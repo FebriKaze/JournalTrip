@@ -3,10 +3,9 @@ import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/dashboard/Header';
 import RitaseTracking from './components/dashboard/RitaseTracking';
-import ReadinessStatus from './components/dashboard/ReadinessStatus';
 import DriversPage from './pages/DriversPage';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
-import { Ritase, Readiness, Driver } from './types';
+import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
 
 export default function App() {
@@ -18,7 +17,6 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [selectedShift, setSelectedShift] = useState<'Day' | 'Night'>('Day');
   const [ritases, setRitases] = useState<Ritase[]>([]);
-  const [readiness, setReadiness] = useState<Readiness | undefined>();
   const [selectedDriver, setSelectedDriver] = useState<Driver | undefined>();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +53,6 @@ export default function App() {
       const data = await fetchDashboardData(selectedDate, selectedDriverId, selectedArea);
       if (data) {
         setRitases(data.ritases || []);
-        setReadiness(data.readiness);
         if (data.driverDetails) setSelectedDriver(data.driverDetails);
       }
     } catch (e) { console.error(e); }
@@ -117,6 +114,8 @@ export default function App() {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         isLoading={isDriversLoading}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
       />
 
       <main className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} pt-20 px-4 md:px-8 pb-8`}>
@@ -137,7 +136,6 @@ export default function App() {
                   ritases={ritases}
                   isLoading={isLoading}
                 />
-                <ReadinessStatus data={readiness} />
               </div>
             </>
           ) : (

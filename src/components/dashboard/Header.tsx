@@ -45,16 +45,6 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
               </button>
             ))}
           </div>
-
-          <div className="relative group bg-white p-2 rounded-2xl border border-slate-200/50 shadow-sm hover:shadow-md transition-all">
-            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-hover:text-red-600 transition-colors" />
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="bg-transparent border-none py-1 pl-9 pr-2 text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer"
-            />
-          </div>
         </div>
       </motion.div>
 
@@ -85,9 +75,6 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
                       <User className="w-10 h-10 text-slate-300" />
                     </div>
                   )}
-                  <div className={`absolute -bottom-2 -right-2 ${driver.status === 'online' ? 'bg-green-500' : 'bg-slate-400'} w-8 h-8 rounded-2xl border-4 border-white flex items-center justify-center shadow-sm`}>
-                    <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
-                  </div>
                 </motion.div>
                 
                 <div>

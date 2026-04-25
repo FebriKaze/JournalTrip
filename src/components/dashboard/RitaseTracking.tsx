@@ -11,13 +11,23 @@ interface RitaseTrackingProps {
 }
 
 export default function RitaseTracking({ selectedDate, ritases, isLoading }: RitaseTrackingProps) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedIds, setExpandedIds] = useState<number[]>([]);
 
-  // Set expanded to the active ritase if it exists
+  // Auto-expand active ritase when data loads
   useState(() => {
     const active = ritases.find(r => r.type === 'active');
-    if (active) setExpandedId(active.id);
+    if (active && !expandedIds.includes(active.id)) {
+      setExpandedIds(prev => [...prev, active.id]);
+    }
   });
+
+  const toggleRitase = (id: number) => {
+    setExpandedIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(i => i !== id) 
+        : [...prev, id]
+    );
+  };
 
   return (
     <section className="mb-8">
@@ -62,8 +72,8 @@ export default function RitaseTracking({ selectedDate, ritases, isLoading }: Rit
             <RitaseItem 
               key={ritase.id} 
               ritase={ritase} 
-              isExpanded={expandedId === ritase.id}
-              onToggle={() => setExpandedId(expandedId === ritase.id ? null : ritase.id)}
+              isExpanded={expandedIds.includes(ritase.id)}
+              onToggle={() => toggleRitase(ritase.id)}
             />
           ))}
         </div>

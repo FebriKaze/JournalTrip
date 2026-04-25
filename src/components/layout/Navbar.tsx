@@ -66,7 +66,18 @@ export default function Navbar({
         </div>
       </div>
       
-      <div className="flex items-center gap-3 md:gap-4">
+      <div className="flex items-center gap-2 md:gap-4 ml-auto">
+        {/* Date Picker - Compact for Mobile/Tablet */}
+        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm hover:border-red-500 transition-all group shrink-0">
+          <CalendarIcon className="w-3.5 h-3.5 text-red-600 transition-transform group-hover:scale-110" />
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => onDateChange(e.target.value)}
+            className="text-[11px] font-black text-slate-800 border-none focus:ring-0 cursor-pointer p-0 bg-transparent outline-none uppercase w-24"
+          />
+        </div>
+
         {/* Shift Selector */}
         <div className="hidden sm:flex bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button

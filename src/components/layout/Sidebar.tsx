@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, User, Search, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { X, User, Search, PanelLeftClose, PanelLeft, LayoutDashboard, Users } from 'lucide-react';
 import { Driver } from '../../types';
 
 interface SidebarProps {
@@ -12,6 +12,8 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isLoading?: boolean;
+  currentPage?: 'dashboard' | 'drivers';
+  onPageChange?: (page: 'dashboard' | 'drivers') => void;
 }
 
 export default function Sidebar({ 
@@ -22,7 +24,9 @@ export default function Sidebar({
   onClose, 
   isCollapsed, 
   onToggleCollapse,
-  isLoading 
+  isLoading,
+  currentPage,
+  onPageChange
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -66,6 +70,37 @@ export default function Sidebar({
           <button onClick={onClose} className="md:hidden p-2 hover:bg-slate-50 rounded-xl text-slate-400">
             <X className="w-6 h-6" />
           </button>
+        </div>
+
+        {/* Mobile Navigation - Only visible on small screens */}
+        <div className="flex flex-col p-4 border-b border-slate-50 md:hidden bg-slate-50/50">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Navigation Menu</p>
+          <div className="space-y-1">
+            <button
+              onClick={() => {
+                onPageChange?.('dashboard');
+                onClose();
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${
+                currentPage === 'dashboard' ? 'bg-white text-red-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500'
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span className="text-sm font-bold">Dashboard</span>
+            </button>
+            <button
+              onClick={() => {
+                onPageChange?.('drivers');
+                onClose();
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${
+                currentPage === 'drivers' ? 'bg-white text-red-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span className="text-sm font-bold">Drivers Registry</span>
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
