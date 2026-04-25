@@ -11,6 +11,8 @@ export interface Driver {
   simPhotoUrl?: string;
 }
 
+export type DriverDetails = Driver;
+
 
 export interface RitaseStep {
   label: string;

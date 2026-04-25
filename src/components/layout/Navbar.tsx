@@ -88,20 +88,6 @@ export default function Navbar({
             NIGHT
           </button>
         </div>
-
-        {/* Date Picker */}
-        <div className="flex items-center gap-2 md:gap-3 bg-white border-2 border-red-50 rounded-2xl px-4 py-2 shadow-[0_4px_20px_-4px_rgba(220,38,38,0.1)] hover:border-red-500 hover:shadow-red-500/10 transition-all group cursor-pointer">
-          <CalendarIcon className="w-5 h-5 text-red-600 group-hover:scale-110 transition-transform" />
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-red-600/50 uppercase tracking-widest leading-none mb-1">Pilih Tanggal</span>
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="text-xs md:text-sm font-black text-slate-800 border-none focus:ring-0 cursor-pointer p-0 bg-transparent outline-none uppercase tracking-tight"
-            />
-          </div>
-        </div>
       </div>
     </nav>
   );

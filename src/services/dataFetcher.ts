@@ -1,13 +1,21 @@
 import { supabase } from '../lib/supabase';
 import { Driver, Ritase, RitaseStep } from '../types';
 
-function calculateDuration(start: string | null, end: string | null): string {
+function calculateDuration(start: string | null, end: string | null, area: string = 'JBK'): string {
   if (!start || !end || start === '--:--' || end === '--:--') return '--';
   try {
     const s = start.split(':').map(Number);
     const e = end.split(':').map(Number);
     let diff = (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]);
+    
+    // Handle cross-midnight
     if (diff < 0) diff += 1440;
+    
+    // Handle Long Haul Cross-Day (>20h)
+    if (area !== 'JBK' && diff < 900) {
+      diff += 1440;
+    }
+    
     return `${Math.floor(diff / 60)}h ${diff % 60}m`;
   } catch (e) { return '--'; }
 }
@@ -24,7 +32,7 @@ function calculateSIMStatus(expiryDate: string | null): 'Valid' | 'Expired' | 'W
   return 'Valid';
 }
 
-export async function fetchActiveDrivers(selectedDate: string, shift?: string) {
+export async function fetchActiveDrivers(selectedDate: string, area: string = 'JBK', shift?: string) {
   try {
     let query = supabase
       .from('trips')
@@ -32,6 +40,7 @@ export async function fetchActiveDrivers(selectedDate: string, shift?: string) {
         driver_id,
         no_polisi,
         shift,
+        area,
         drivers!inner (
           id,
           name,
@@ -39,7 +48,8 @@ export async function fetchActiveDrivers(selectedDate: string, shift?: string) {
           no_polisi
         )
       `)
-      .eq('tanggal', selectedDate);
+      .eq('tanggal', selectedDate)
+      .eq('area', area);
 
     if (shift) {
       query = query.ilike('shift', `%${shift}%`);
@@ -83,7 +93,7 @@ export async function fetchAllDrivers() {
   })) || [];
 }
 
-export async function fetchDashboardData(selectedDate: string, driverId: string) {
+export async function fetchDashboardData(selectedDate: string, driverId: string, area: string = 'JBK') {
   try {
     const { data: trips, error } = await supabase
       .from('trips')
@@ -93,6 +103,7 @@ export async function fetchDashboardData(selectedDate: string, driverId: string)
       `)
       .eq('tanggal', selectedDate)
       .eq('driver_id', driverId)
+      .eq('area', area)
       .order('ritase_no', { ascending: true });
 
     if (error) throw error;
@@ -107,7 +118,7 @@ export async function fetchDashboardData(selectedDate: string, driverId: string)
         route: `${row.pdc_muat || '---'} → ${row.pdc_bongkar || '---'}`, 
         status: (isFinished ? 'finished' : (isActive ? 'active' : 'locked')) as any,
         type: (isFinished ? 'completed' : (isActive ? 'active' : 'locked')) as any,
-        duration: calculateDuration(row.actual_in_pdc, row.actual_unloading),
+        duration: calculateDuration(row.actual_in_pdc, row.actual_unloading, row.area || area),
         timeline: [
           { label: 'OUTPOOL', actual: row.actual_outpool || '--:--', type: (row.actual_outpool ? 'completed' : 'pending') as any },
           { label: 'IN PDC', plan: row.plan_dccp || '--:--', actual: row.actual_in_pdc || '--:--', type: (row.actual_in_pdc ? 'completed' : (isActive ? 'active' : 'pending')) as any },
