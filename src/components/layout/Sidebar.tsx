@@ -1,7 +1,14 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
-import { X, User, Search, PanelLeftClose, PanelLeft, LayoutDashboard, Users } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  X, User, Search, PanelLeftClose, PanelLeft,
+  Route, Leaf, Users, ChevronRight
+} from 'lucide-react';
 import { Driver } from '../../types';
+import Logo from '../../image/Logo.png';
+
+type Page = 'dashboard' | 'drivers';
 
 interface SidebarProps {
   drivers: Driver[];
@@ -12,169 +19,215 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isLoading?: boolean;
-  currentPage?: 'dashboard' | 'drivers';
-  onPageChange?: (page: 'dashboard' | 'drivers') => void;
+  currentPage: Page;
+  onPageChange: (page: Page) => void;
 }
 
-export default function Sidebar({ 
-  drivers, 
-  selectedDriverId, 
-  onDriverSelect, 
-  isOpen, 
-  onClose, 
-  isCollapsed, 
+const NAV_ITEMS: { id: Page; label: string; icon: ReactNode; sub?: string }[] = [
+  { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking' },
+  { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi' },
+];
+
+export default function Sidebar({
+  drivers,
+  selectedDriverId,
+  onDriverSelect,
+  isOpen,
+  onClose,
+  isCollapsed,
   onToggleCollapse,
   isLoading,
   currentPage,
-  onPageChange
+  onPageChange,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredDrivers = drivers.filter(driver => 
-    driver.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    driver.id.includes(searchQuery.toLowerCase())
+  const filteredDrivers = drivers.filter(d =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    d.id.includes(searchQuery.toLowerCase())
   );
+
+  const showDriverPanel = currentPage === 'dashboard';
 
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden"
           onClick={onClose}
         />
       )}
 
       <aside className={`
-        fixed top-0 left-0 z-50 h-full bg-white border-r border-slate-200/50 
-        transition-all duration-300 ease-in-out flex flex-col shadow-xl md:shadow-none
+        fixed top-0 left-0 z-50 h-full bg-white border-r border-slate-200/60
+        transition-all duration-300 ease-in-out flex flex-col shadow-xl md:shadow-sm
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        ${isCollapsed ? 'w-20' : 'w-64'}
+        ${isCollapsed ? 'w-[72px]' : 'w-64'}
       `}>
-        {/* Sidebar Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-50 shrink-0">
+
+        {/* ── BRAND HEADER ── */}
+        <div className={`h-[76px] flex items-center border-b border-slate-100 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-4 gap-3'}`}>
+          <div className="w-[60px] h-[60px] shrink-0 flex items-center justify-center overflow-hidden rounded-xl">
+            <img src={Logo} alt="K Line" className="w-full h-full object-contain" />
+          </div>
           {!isCollapsed && (
-            <div className="flex flex-col">
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">Active Drivers</h2>
-              <p className="text-[10px] font-bold text-red-600">Tracking {drivers.length} Units</p>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-lg font-black text-red-600 truncate tracking-tight">K Line</p>
             </div>
           )}
-          
-          <button 
-            onClick={onToggleCollapse}
-            className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors hidden md:block"
-          >
-            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-          </button>
-          
-          <button onClick={onClose} className="md:hidden p-2 hover:bg-slate-50 rounded-xl text-slate-400">
-            <X className="w-6 h-6" />
+          {/* Close on mobile */}
+          <button onClick={onClose} className="md:hidden p-1.5 hover:bg-slate-50 rounded-lg text-slate-400">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Mobile Navigation - Only visible on small screens */}
-        <div className="flex flex-col p-4 border-b border-slate-50 md:hidden bg-slate-50/50">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Navigation Menu</p>
-          <div className="space-y-1">
-            <button
-              onClick={() => {
-                onPageChange?.('dashboard');
-                onClose();
-              }}
-              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${
-                currentPage === 'dashboard' ? 'bg-white text-red-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500'
-              }`}
-            >
-              <LayoutDashboard className="w-5 h-5" />
-              <span className="text-sm font-bold">Dashboard</span>
-            </button>
-            <button
-              onClick={() => {
-                onPageChange?.('drivers');
-                onClose();
-              }}
-              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${
-                currentPage === 'drivers' ? 'bg-white text-red-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500'
-              }`}
-            >
-              <Users className="w-5 h-5" />
-              <span className="text-sm font-bold">Drivers Registry</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="p-4 border-b border-slate-50">
-          <div className="relative group">
-            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isCollapsed ? 'text-slate-400' : 'text-slate-400 group-focus-within:text-red-500'}`} />
-            <input 
-              type="text" 
-              placeholder={isCollapsed ? "" : "Cari driver..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={`
-                w-full bg-slate-50 border border-slate-100 rounded-xl transition-all outline-none font-medium text-sm
-                ${isCollapsed ? 'h-10 w-10 p-0 pl-10 cursor-pointer' : 'py-2.5 pl-10 pr-4 focus:ring-4 focus:ring-red-500/5 focus:border-red-500'}
-              `}
-            />
-          </div>
-        </div>
-
-        {/* Drivers List */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 driver-list-scrollbar">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-3">
-              <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Memuat...</p>
-            </div>
-          ) : (
-            <>
-              {filteredDrivers.map((driver, idx) => (
-                <motion.button
-                  key={driver.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  whileHover={{ x: 5 }}
-                  onClick={() => {
-                    onDriverSelect(driver.id);
-                    if (window.innerWidth < 768) onClose();
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all group ${
-                    selectedDriverId === driver.id 
-                      ? 'bg-red-50 text-red-700 shadow-sm ring-1 ring-red-100' 
-                      : 'text-slate-600 hover:bg-slate-50'
-                  } ${isCollapsed ? 'justify-center font-shrink-0' : ''}`}
-                >
-                  <div className="relative shrink-0">
-                    {driver.avatar ? (
-                      <img 
-                        src={driver.avatar} 
-                        alt={driver.name} 
-                        className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-white shadow-sm aspect-square">
-                        <User className="w-5 h-5 text-slate-400" />
-                      </div>
-                    )}
-                  </div>
-                  {!isCollapsed && (
-                    <div className="text-left overflow-hidden">
-                      <p className="text-sm font-bold truncate tracking-tight">{driver.name}</p>
-                      <p className="text-[10px] font-black uppercase tracking-wider text-red-600/70 mb-0.5">{driver.noPolisi || `ID #${driver.id}`}</p>
+        {/* ── MAIN NAVIGATION ── */}
+        <nav className="px-3 pt-4 pb-2 space-y-1 shrink-0">
+          {!isCollapsed && (
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 mb-3">Main Menu</p>
+          )}
+          {NAV_ITEMS.map(item => {
+            const active = currentPage === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => { onPageChange(item.id); if (window.innerWidth < 768) onClose(); }}
+                title={isCollapsed ? item.label : undefined}
+                className={`
+                  w-full flex items-center rounded-xl transition-all duration-200 group relative
+                  ${isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'}
+                  ${active
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-500/20'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}
+                `}
+              >
+                <span className={`shrink-0 transition-transform ${active ? 'scale-100' : 'group-hover:scale-110'}`}>
+                  {item.icon}
+                </span>
+                {!isCollapsed && (
+                  <>
+                    <div className="text-left flex-1 overflow-hidden">
+                      <p className="text-sm font-bold truncate leading-tight">{item.label}</p>
+                      <p className={`text-[9px] truncate ${active ? 'text-red-200' : 'text-slate-400'}`}>{item.sub}</p>
                     </div>
-                  )}
-                </motion.button>
-              ))}
-              
-              {filteredDrivers.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-xs text-slate-400 font-medium italic">Driver tidak ditemukan</p>
+                    {active && <ChevronRight className="w-4 h-4 text-red-300 shrink-0" />}
+                  </>
+                )}
+                {/* Collapsed tooltip */}
+                {isCollapsed && (
+                  <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50 shadow-lg">
+                    {item.label}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* ── DRIVER PANEL (only on Journal Trip) ── */}
+        <AnimatePresence>
+          {showDriverPanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-col flex-1 overflow-hidden border-t border-slate-100 mt-2"
+            >
+              {/* Driver Panel Header */}
+              {!isCollapsed && (
+                <div className="px-4 pt-4 pb-2 shrink-0">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Active Drivers</p>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari driver..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-xs font-medium outline-none focus:ring-2 focus:ring-red-500/10 focus:border-red-400 transition-all"
+                    />
+                  </div>
                 </div>
               )}
-            </>
+
+              {/* Driver List */}
+              <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 driver-list-scrollbar">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-3">
+                    <div className="w-7 h-7 border-3 border-red-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Memuat...</p>
+                  </div>
+                ) : (
+                  <>
+                    {filteredDrivers.map((driver, idx) => (
+                      <motion.button
+                        key={driver.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.04 }}
+                        onClick={() => { onDriverSelect(driver.id); if (window.innerWidth < 768) onClose(); }}
+                        title={isCollapsed ? driver.name : undefined}
+                        className={`
+                          w-full flex items-center rounded-xl transition-all group relative
+                          ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-2.5'}
+                          ${selectedDriverId === driver.id
+                            ? 'bg-red-50 ring-1 ring-red-100 text-red-700'
+                            : 'text-slate-600 hover:bg-slate-50'}
+                        `}
+                      >
+                        <div className="relative shrink-0">
+                          {driver.avatar ? (
+                            <img src={driver.avatar} alt={driver.name}
+                              className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center border-2 border-white shadow-sm">
+                              <User className="w-4 h-4 text-slate-400" />
+                            </div>
+                          )}
+                          {selectedDriverId === driver.id && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+                          )}
+                        </div>
+                        {!isCollapsed && (
+                          <div className="text-left overflow-hidden flex-1">
+                            <p className="text-xs font-bold truncate">{driver.name}</p>
+                            <p className="text-[9px] font-black uppercase tracking-wider text-red-500/70 truncate">
+                              {driver.noPolisi || `#${driver.id.slice(0, 6)}`}
+                            </p>
+                          </div>
+                        )}
+                        {isCollapsed && (
+                          <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50 shadow-lg">
+                            {driver.name}
+                          </div>
+                        )}
+                      </motion.button>
+                    ))}
+                    {filteredDrivers.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-[10px] text-slate-400 font-medium italic">Driver tidak ditemukan</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
           )}
+        </AnimatePresence>
+
+        {/* ── COLLAPSE TOGGLE (Desktop only) ── */}
+        <div className="p-3 border-t border-slate-100 shrink-0 hidden md:block">
+          <button
+            onClick={onToggleCollapse}
+            className="w-full flex items-center justify-center p-2.5 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors group"
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed
+              ? <PanelLeft className="w-5 h-5 group-hover:text-red-500 transition-colors" />
+              : <PanelLeftClose className="w-5 h-5 group-hover:text-red-500 transition-colors" />
+            }
+          </button>
         </div>
       </aside>
     </>

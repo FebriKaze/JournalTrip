@@ -8,8 +8,12 @@ import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
 
+type Page = 'dashboard' | 'drivers';
+
+
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'drivers'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedArea, setSelectedArea] = useState('JBK');
   const [selectedDriverId, setSelectedDriverId] = useState('');
@@ -22,17 +26,15 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDriversLoading, setIsDriversLoading] = useState(true);
 
-  // 1. Load Drivers
+  // 1. Load Drivers (only relevant for Journal Trip dashboard)
   const loadDrivers = useCallback(async () => {
     setIsDriversLoading(true);
     const data = await fetchActiveDrivers(selectedDate, selectedArea, selectedShift);
     setDrivers(data);
-    
+
     if (data.length > 0) {
       const stillInList = data.find(d => d.id === selectedDriverId);
-      if (!stillInList) {
-        setSelectedDriverId(data[0].id);
-      }
+      if (!stillInList) setSelectedDriverId(data[0].id);
     } else {
       setSelectedDriverId('');
       setSelectedDriver(undefined);
@@ -67,80 +69,79 @@ export default function App() {
   useEffect(() => {
     const channel = supabase
       .channel('realtime-dashboard')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'trips' },
-        () => {
-          loadData();
-          loadDrivers();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'drivers' },
-        () => {
-          loadData();
-          loadDrivers();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, () => {
+        loadData();
+        loadDrivers();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => {
+        loadData();
+        loadDrivers();
+      })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [loadData, loadDrivers]);
 
+  const sidebarWidth = isSidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64';
+
   return (
-    <div className="flex min-h-screen bg-[#f9f9ff]">
-      <Navbar 
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        selectedDate={selectedDate} 
-        onDateChange={setSelectedDate}
-        selectedShift={selectedShift}
-        onShiftChange={setSelectedShift}
-        isSidebarOpen={isSidebarOpen}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        isSidebarCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
-      
-      <Sidebar 
+    <div className="flex min-h-screen bg-[#f8f9fc]">
+      {/* ── SIDEBAR (Main Navigation) ── */}
+      <Sidebar
         drivers={drivers}
-        selectedDriverId={selectedDriverId} 
+        selectedDriverId={selectedDriverId}
         onDriverSelect={setSelectedDriverId}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onToggleCollapse={() => setIsSidebarCollapsed(c => !c)}
         isLoading={isDriversLoading}
         currentPage={currentPage}
-        onPageChange={setCurrentPage}
+        onPageChange={(page) => {
+          setCurrentPage(page);
+          setIsSidebarOpen(false);
+        }}
       />
 
-      <main className={`flex-1 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} pt-20 px-4 md:px-8 pb-8`}>
-        <div className="max-w-7xl mx-auto">
-          {currentPage === 'dashboard' ? (
+      {/* ── NAVBAR (Top Bar) ── */}
+      <Navbar
+        currentPage={currentPage}
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        selectedShift={selectedShift}
+        onShiftChange={setSelectedShift}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen(o => !o)}
+        isSidebarCollapsed={isSidebarCollapsed}
+      />
+
+      {/* ── MAIN CONTENT ── */}
+      <main className={`flex-1 transition-all duration-300 ${sidebarWidth} pt-16 min-h-screen`}>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+
+          {/* Journal Trip Dashboard */}
+          {currentPage === 'dashboard' && (
             <>
-              <Header 
-                driver={selectedDriver as any} 
+              <Header
+                driver={selectedDriver as any}
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
                 selectedArea={selectedArea}
                 onAreaChange={setSelectedArea}
               />
-              
-              <div className="grid grid-cols-1 gap-8 mt-6">
-                <RitaseTracking 
-                  selectedDate={selectedDate} 
+              <div className="mt-6">
+                <RitaseTracking
+                  selectedDate={selectedDate}
                   ritases={ritases}
                   isLoading={isLoading}
                 />
               </div>
             </>
-          ) : (
-            <DriversPage />
           )}
+
+          {/* Drivers Registry */}
+          {currentPage === 'drivers' && <DriversPage />}
+
         </div>
       </main>
     </div>

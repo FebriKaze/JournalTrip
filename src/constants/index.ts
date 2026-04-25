@@ -10,12 +10,12 @@ export const DRIVERS: Driver[] = [
 export const RITASE_DATA: Ritase[] = [
   {
     id: 1,
-    title: 'Ritase 1',
-    subtitle: 'Coal Hauling • Route A',
-    status: 'Finished',
+    ritaseNo: 'Ritase 1',
+    route: 'Coal Hauling • Route A',
+    status: 'finished',
     type: 'completed',
     duration: '02h 15m',
-    steps: [
+    timeline: [
       { label: 'OUTPOOL', plan: '06:00', actual: '06:02', type: 'completed' },
       { label: 'IN PDC', plan: '06:45', actual: '06:47', type: 'completed' },
       { label: 'OUT PDC', plan: '07:15', actual: '07:20', type: 'completed' },
@@ -24,12 +24,12 @@ export const RITASE_DATA: Ritase[] = [
   },
   {
     id: 2,
-    title: 'Ritase 2',
-    subtitle: 'Coal Hauling • Route B',
-    status: 'Active',
+    ritaseNo: 'Ritase 2',
+    route: 'Coal Hauling • Route B',
+    status: 'active',
     type: 'active',
     duration: '01h 45m',
-    steps: [
+    timeline: [
       { label: 'OUTPOOL', plan: '08:30', actual: '08:32', type: 'completed' },
       { label: 'IN PDC', plan: '09:15', actual: '09:18', type: 'completed' },
       { label: 'OUT PDC', plan: '09:45', actual: '10:02', type: 'active', delay: '+17m' },
