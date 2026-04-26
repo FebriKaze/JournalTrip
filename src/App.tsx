@@ -7,6 +7,7 @@ import DriversPage from './pages/DriversPage';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 type Page = 'dashboard' | 'drivers';
 
