@@ -108,7 +108,7 @@ export default function DriversPage() {
                 <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                   <div className="flex items-center gap-2 mb-2 text-slate-400">
                     <Truck className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">UNIT TERAKHIR</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">NOPOL</span>
                   </div>
                   <p className="text-xs font-black text-slate-800 bg-white px-2 py-1 rounded-lg border border-slate-100 inline-block">
                     {driver.noPolisi || '--'}
@@ -142,53 +142,53 @@ export default function DriversPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white rounded-[48px] overflow-hidden shadow-2xl max-w-2xl w-full"
+              className="relative bg-white rounded-[32px] md:rounded-[48px] overflow-y-auto shadow-2xl max-w-2xl w-full max-h-[85vh] custom-scrollbar"
             >
-              <div className="absolute top-0 right-0 p-6 z-10">
+              <div className="absolute top-0 right-0 p-4 md:p-6 z-10">
                 <button 
                   onClick={() => setSelectedDriver(null)}
-                  className="p-3 bg-white/80 backdrop-blur shadow-sm hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all"
+                  className="p-2 md:p-3 bg-white/80 backdrop-blur shadow-sm hover:bg-red-50 hover:text-red-600 rounded-xl md:rounded-2xl transition-all"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
               </div>
 
               <div className="relative">
                 {/* Header Background */}
-                <div className="h-48 bg-linear-to-br from-red-600 to-red-800 relative">
+                <div className="h-28 md:h-48 bg-linear-to-br from-red-600 to-red-800 relative">
                   <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
                 </div>
 
-                <div className="px-10 pb-12 -mt-24 relative z-10">
-                  <div className="flex flex-col md:flex-row items-end gap-6 mb-10">
+                <div className="px-5 md:px-10 pb-6 md:pb-12 -mt-12 md:-mt-24 relative z-10">
+                  <div className="flex flex-col md:flex-row items-center md:items-end text-center md:text-left gap-3 md:gap-6 mb-6 md:mb-10">
                     {selectedDriver.avatar ? (
-                      <img src={selectedDriver.avatar} alt={selectedDriver.name} className="w-44 h-44 rounded-[40px] object-cover ring-8 ring-white shadow-2xl" />
+                      <img src={selectedDriver.avatar} alt={selectedDriver.name} className="w-24 h-24 md:w-44 md:h-44 rounded-full md:rounded-[40px] object-cover ring-4 md:ring-8 ring-white shadow-xl md:shadow-2xl" />
                     ) : (
-                      <div className="w-44 h-44 rounded-[40px] bg-slate-100 flex items-center justify-center ring-8 ring-white shadow-xl">
-                        <User className="w-20 h-20 text-slate-300" />
+                      <div className="w-24 h-24 md:w-44 md:h-44 rounded-full md:rounded-[40px] bg-slate-100 flex items-center justify-center ring-4 md:ring-8 ring-white shadow-md md:shadow-xl">
+                        <User className="w-10 h-10 md:w-20 md:h-20 text-slate-300" />
                       </div>
                     )}
-                    <div className="pb-4">
-                      <h2 className="text-4xl font-black tracking-tight text-white drop-shadow-md mb-2">{selectedDriver.name}</h2>
-                      <div className="flex items-center gap-3">
-                         <span className="bg-white/20 backdrop-blur text-white px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border border-white/20">
+                    <div className="pb-0 md:pb-4 flex flex-col items-center md:items-start">
+                      <h2 className="text-xl md:text-4xl font-black tracking-tight text-slate-900 md:text-white drop-shadow-none md:drop-shadow-md mb-2">{selectedDriver.name}</h2>
+                      <div className="flex items-center gap-2 md:gap-3">
+                         <span className="hidden md:inline-block bg-slate-100 md:bg-white/20 backdrop-blur text-slate-600 md:text-white px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase border border-slate-200 md:border-white/20">
                             ID #{selectedDriver.id.slice(0, 8).toUpperCase()}
                          </span>
-                         <span className="bg-white text-red-600 px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase shadow-sm">
+                         <span className="bg-red-50 md:bg-white text-red-600 px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase shadow-none md:shadow-sm">
                             DRIVER AKTIF
                          </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
                     {/* SIM Card Info */}
-                    <div className="space-y-6">
-                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <div className="space-y-4 md:space-y-6">
+                      <h4 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 md:mb-4 flex items-center gap-2">
                         <div className="w-1.5 h-1.5 bg-red-600 rounded-full" />
                         Informasi Lisensi
                       </h4>
-                      <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-4">
+                      <div className="p-4 md:p-6 bg-slate-50 rounded-[24px] md:rounded-[32px] border border-slate-100 space-y-3 md:space-y-4">
                         <div className="flex justify-between items-center">
                            <p className="text-xs font-bold text-slate-500 uppercase">Status SIM</p>
                            <p className={`text-sm font-black ${selectedDriver.simStatus === 'Valid' ? 'text-green-600' : 'text-red-500'}`}>
@@ -211,28 +211,56 @@ export default function DriversPage() {
                     </div>
 
                     {/* Operational Info */}
-                    <div className="space-y-6">
-                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <div className="space-y-4 md:space-y-6">
+                      <h4 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 md:mb-4 flex items-center gap-2">
                         <div className="w-1.5 h-1.5 bg-red-600 rounded-full" />
-                        Detail Operasional
+                        Data Pengemudi & Operasional
                       </h4>
-                      <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-6">
+                      <div className="p-4 md:p-6 bg-slate-50 rounded-[24px] md:rounded-[32px] border border-slate-100 space-y-4 md:space-y-5">
+                        
+                        {/* NIK */}
                         <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-red-600">
-                              <Truck className="w-6 h-6" />
+                           <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex shrink-0 items-center justify-center shadow-sm text-slate-400">
+                              <Shield className="w-5 h-5 md:w-6 md:h-6" />
                            </div>
                            <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nopol Terakhir</p>
-                              <p className="text-lg font-black text-slate-800">{selectedDriver.noPolisi || '---'}</p>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NIK</p>
+                              <p className="text-sm md:text-lg font-black text-slate-800">{selectedDriver.nik || '---'}</p>
                            </div>
                         </div>
+
+                        {/* Alamat */}
+                        <div className="flex items-start gap-4">
+                           <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex shrink-0 items-center justify-center shadow-sm text-slate-400 mt-1">
+                              <MapPin className="w-5 h-5 md:w-6 md:h-6" />
+                           </div>
+                           <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alamat</p>
+                              <p className="text-xs md:text-sm font-bold text-slate-700 leading-relaxed mt-0.5">{selectedDriver.alamat || '---'}</p>
+                           </div>
+                        </div>
+
+                        <div className="h-px w-full bg-slate-200/60 my-2" />
+
+                        {/* Nopol */}
                         <div className="flex items-center gap-4">
-                           <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-red-600">
-                              <MapPin className="w-6 h-6" />
+                           <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex shrink-0 items-center justify-center shadow-sm text-red-600">
+                              <Truck className="w-5 h-5 md:w-6 md:h-6" />
+                           </div>
+                           <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NOPOL</p>
+                              <p className="text-base md:text-lg font-black text-slate-800">{selectedDriver.noPolisi || '---'}</p>
+                           </div>
+                        </div>
+
+                        {/* Penempatan */}
+                        <div className="flex items-center gap-4">
+                           <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex shrink-0 items-center justify-center shadow-sm text-red-600">
+                              <MapPin className="w-5 h-5 md:w-6 md:h-6" />
                            </div>
                            <div>
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Penempatan</p>
-                              <p className="text-lg font-black text-slate-800">BASE POOL A (JBK)</p>
+                              <p className="text-base md:text-lg font-black text-slate-800">BASE POOL A (JBK)</p>
                            </div>
                         </div>
                       </div>

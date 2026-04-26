@@ -89,7 +89,9 @@ export async function fetchAllDrivers() {
     noPolisi: d.no_polisi, 
     simExpiry: d.sim_expiry, 
     simPhotoUrl: d.sim_photo_url,
-    simStatus: calculateSIMStatus(d.sim_expiry)
+    simStatus: calculateSIMStatus(d.sim_expiry),
+    nik: d.nik,
+    alamat: d.alamat
   })) || [];
 }
 

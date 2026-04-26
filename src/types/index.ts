@@ -9,6 +9,9 @@ export interface Driver {
   simExpiry?: string;
   simStatus?: 'Valid' | 'Expired' | 'Warning';
   simPhotoUrl?: string;
+
+  nik?: string;
+  alamat?: string;
 }
 
 export type DriverDetails = Driver;
