@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Calendar as CalendarIcon, Menu, X, Sun, Moon } from 'lucide-react';
 
 type Page = 'dashboard' | 'drivers';
@@ -29,6 +30,7 @@ export default function Navbar({
   isSidebarCollapsed,
 }: NavbarProps) {
   const pageInfo = PAGE_TITLES[currentPage];
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <nav className={`
@@ -56,9 +58,13 @@ export default function Navbar({
       {/* ── JOURNAL TRIP Controls ── */}
       {currentPage === 'dashboard' && (
         <div className="flex items-center gap-2 md:gap-3">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-red-400 transition-all">
+          <div 
+            onClick={() => dateInputRef.current?.showPicker()}
+            className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 hover:border-red-400 transition-all cursor-pointer"
+          >
             <CalendarIcon className="w-3.5 h-3.5 text-red-500 shrink-0" />
             <input
+              ref={dateInputRef}
               type="date"
               value={selectedDate}
               onChange={e => {
