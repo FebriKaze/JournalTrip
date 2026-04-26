@@ -61,7 +61,10 @@ export default function Navbar({
             <input
               type="date"
               value={selectedDate}
-              onChange={e => onDateChange(e.target.value)}
+              onChange={e => {
+                onDateChange(e.target.value);
+                e.target.blur();
+              }}
               className="text-[11px] font-black text-slate-800 border-none focus:ring-0 cursor-pointer p-0 bg-transparent outline-none w-[100px]"
             />
           </div>
