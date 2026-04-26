@@ -7,7 +7,7 @@ import DriversPage from './pages/DriversPage';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 type Page = 'dashboard' | 'drivers';
 
@@ -86,7 +86,9 @@ export default function App() {
   const sidebarWidth = isSidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64';
 
   return (
-    <div className="flex min-h-screen bg-[#f8f9fc]">
+    <>
+      <SpeedInsights />
+      <div className="flex min-h-screen bg-[#f8f9fc]">
       {/* ── SIDEBAR (Main Navigation) ── */}
       <Sidebar
         drivers={drivers}
@@ -145,6 +147,7 @@ export default function App() {
 
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 }
