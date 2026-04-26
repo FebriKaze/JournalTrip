@@ -7,7 +7,7 @@ import DriversPage from './pages/DriversPage';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
-import { SpeedInsights } from "@vercel/speed-insights/vue"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 type Page = 'dashboard' | 'drivers';
 
@@ -145,6 +145,7 @@ export default function App() {
 
         </div>
       </main>
+      <SpeedInsights />
     </div>
   );
 }
