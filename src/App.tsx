@@ -26,6 +26,24 @@ export default function App() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDriversLoading, setIsDriversLoading] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // 1. Load Drivers (only relevant for Journal Trip dashboard)
   const loadDrivers = useCallback(async () => {
@@ -83,10 +101,17 @@ export default function App() {
     return () => { supabase.removeChannel(channel); };
   }, [loadData, loadDrivers]);
 
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
   const sidebarWidth = isSidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64';
 
   return (
-    <div className="flex min-h-screen bg-[#f8f9fc]">
+    <div 
+      data-theme={theme}
+      className={`flex min-h-screen bg-(--bg-app) text-(--text-main) transition-colors duration-300 ${theme === 'dark' ? 'dark' : ''}`}
+    >
       {/* ── SIDEBAR (Main Navigation) ── */}
       <Sidebar
         drivers={drivers}
@@ -98,6 +123,7 @@ export default function App() {
         onToggleCollapse={() => setIsSidebarCollapsed(c => !c)}
         isLoading={isDriversLoading}
         currentPage={currentPage}
+        theme={theme}
         onPageChange={(page) => {
           setCurrentPage(page);
           setIsSidebarOpen(false);
@@ -114,6 +140,8 @@ export default function App() {
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen(o => !o)}
         isSidebarCollapsed={isSidebarCollapsed}
+        theme={theme}
+        onThemeToggle={toggleTheme}
       />
 
       {/* ── MAIN CONTENT ── */}

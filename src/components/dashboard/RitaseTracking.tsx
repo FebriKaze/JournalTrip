@@ -33,38 +33,38 @@ export default function RitaseTracking({ selectedDate, ritases, isLoading }: Rit
     <section className="mb-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
         <div className="flex items-center gap-2">
-          <Route className="w-5 h-5 text-red-600" />
-          <h3 className="text-lg font-bold text-slate-800 tracking-tight">Ritase Tracking</h3>
+          <Route className="w-5 h-5 text-red-600 dark:text-red-500" />
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">Ritase Tracking</h3>
         </div>
-        <span className="text-[10px] md:text-xs font-medium text-slate-400 bg-slate-100/50 px-3 py-1 rounded-full border border-slate-100 italic w-fit">
+        <span className="text-[10px] md:text-xs font-medium text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-slate-800/30 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-800 italic w-fit">
           Data: {new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 mb-6 bg-white/50 p-3 rounded-xl border border-slate-100/50">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Legend:</p>
+      <div className="flex flex-wrap items-center gap-4 mb-6 bg-white/50 dark:bg-slate-900/30 p-3 rounded-xl border border-slate-100/50 dark:border-slate-800/50">
+        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-2">Legend:</p>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Selesai</span>
+          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Selesai</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-red-600" />
-          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Perjalanan</span>
+          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Perjalanan</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Menunggu</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Menunggu</span>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="bg-white border border-slate-200/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3">
-          <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Loading Data...</p>
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-4 border-red-600 dark:border-red-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Loading Data...</p>
         </div>
       ) : ritases.length === 0 ? (
-        <div className="bg-white border border-slate-200/50 rounded-2xl p-8 text-center">
-          <p className="text-slate-400 font-medium">Tidak ada data ritase untuk tanggal dan driver ini.</p>
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-8 text-center">
+          <p className="text-slate-400 dark:text-slate-500 font-medium">Tidak ada data ritase untuk tanggal dan driver ini.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -81,4 +81,3 @@ export default function RitaseTracking({ selectedDate, ritases, isLoading }: Rit
     </section>
   );
 }
-
