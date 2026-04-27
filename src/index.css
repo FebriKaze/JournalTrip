@@ -37,6 +37,12 @@
 
   button, a, select, input[type="button"], input[type="submit"] {
     cursor: pointer;
+    outline: none !important;
+  }
+  
+  button:focus, button:active {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   /* Custom Premium Scrollbar */

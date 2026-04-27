@@ -29,6 +29,21 @@ const NAV_ITEMS: { id: Page; label: string; icon: ReactNode; sub?: string }[] = 
   { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi' },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -15 },
+  show: { opacity: 1, x: 0 }
+};
+
 export default function Sidebar({
   drivers,
   selectedDriverId,
@@ -94,8 +109,9 @@ export default function Sidebar({
           {NAV_ITEMS.map(item => {
             const active = currentPage === item.id;
             return (
-              <button
+              <motion.button
                 key={item.id}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => { onPageChange(item.id); if (window.innerWidth < 768) onClose(); }}
                 title={isCollapsed ? item.label : undefined}
                 className={`
@@ -124,7 +140,7 @@ export default function Sidebar({
                     {item.label}
                   </div>
                 )}
-              </button>
+              </motion.button>
             );
           })}
         </nav>
@@ -156,7 +172,12 @@ export default function Sidebar({
               )}
 
               {/* Driver List */}
-              <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 driver-list-scrollbar">
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="flex-1 overflow-y-auto px-3 py-2 space-y-1 driver-list-scrollbar"
+              >
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-8 gap-3">
                     <div className="w-7 h-7 border-3 border-red-500 border-t-transparent rounded-full animate-spin" />
@@ -164,12 +185,11 @@ export default function Sidebar({
                   </div>
                 ) : (
                   <>
-                    {filteredDrivers.map((driver, idx) => (
+                    {filteredDrivers.map((driver) => (
                       <motion.button
                         key={driver.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.04 }}
+                        variants={itemVariants}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => { onDriverSelect(driver.id); if (window.innerWidth < 768) onClose(); }}
                         title={isCollapsed ? driver.name : undefined}
                         className={`
@@ -215,7 +235,7 @@ export default function Sidebar({
                     )}
                   </>
                 )}
-              </div>
+              </motion.div>
               </motion.div>
           )}
         </AnimatePresence>

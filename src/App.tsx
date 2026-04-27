@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/dashboard/Header';
@@ -147,30 +148,38 @@ export default function App() {
       {/* ── MAIN CONTENT ── */}
       <main className={`flex-1 transition-all duration-300 ${sidebarWidth} pt-16 min-h-screen`}>
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPage}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              {/* Journal Trip Dashboard */}
+              {currentPage === 'dashboard' && (
+                <>
+                  <Header
+                    driver={selectedDriver as any}
+                    selectedDate={selectedDate}
+                    onDateChange={setSelectedDate}
+                    selectedArea={selectedArea}
+                    onAreaChange={setSelectedArea}
+                  />
+                  <div className="mt-6">
+                    <RitaseTracking
+                      selectedDate={selectedDate}
+                      ritases={ritases}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                </>
+              )}
 
-          {/* Journal Trip Dashboard */}
-          {currentPage === 'dashboard' && (
-            <>
-              <Header
-                driver={selectedDriver as any}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-                selectedArea={selectedArea}
-                onAreaChange={setSelectedArea}
-              />
-              <div className="mt-6">
-                <RitaseTracking
-                  selectedDate={selectedDate}
-                  ritases={ritases}
-                  isLoading={isLoading}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Drivers Registry */}
-          {currentPage === 'drivers' && <DriversPage />}
-
+              {/* Drivers Registry */}
+              {currentPage === 'drivers' && <DriversPage />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
       <SpeedInsights />

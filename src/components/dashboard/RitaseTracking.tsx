@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Route } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Ritase } from '../../types';
 import { RITASE_DATA } from '../../constants';
 import RitaseItem from './RitaseItem';
@@ -9,6 +10,16 @@ interface RitaseTrackingProps {
   ritases: Ritase[];
   isLoading: boolean;
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
 
 export default function RitaseTracking({ selectedDate, ritases, isLoading }: RitaseTrackingProps) {
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
@@ -58,16 +69,29 @@ export default function RitaseTracking({ selectedDate, ritases, isLoading }: Rit
       </div>
 
       {isLoading ? (
-        <div className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3"
+        >
           <div className="w-8 h-8 border-4 border-red-600 dark:border-red-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Loading Data...</p>
-        </div>
+        </motion.div>
       ) : ritases.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-8 text-center">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-8 text-center"
+        >
           <p className="text-slate-400 dark:text-slate-500 font-medium">Tidak ada data ritase untuk tanggal dan driver ini.</p>
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-4">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="space-y-4"
+        >
           {ritases.map((ritase: Ritase) => (
             <RitaseItem 
               key={ritase.id} 
@@ -76,7 +100,7 @@ export default function RitaseTracking({ selectedDate, ritases, isLoading }: Rit
               onToggle={() => toggleRitase(ritase.id)}
             />
           ))}
-        </div>
+        </motion.div>
       )}
     </section>
   );

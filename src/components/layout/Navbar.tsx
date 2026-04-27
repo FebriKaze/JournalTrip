@@ -92,12 +92,12 @@ export default function Navbar({
           </div>
           <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
             <button onClick={() => onShiftChange('Day')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${selectedShift === 'Day' ? 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all outline-none focus:outline-none focus:ring-0 ${selectedShift === 'Day' ? 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
               <Sun className={`w-3.5 h-3.5 ${selectedShift === 'Day' ? 'text-orange-500' : ''}`} />
               DAY
             </button>
             <button onClick={() => onShiftChange('Night')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${selectedShift === 'Night' ? 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all outline-none focus:outline-none focus:ring-0 ${selectedShift === 'Night' ? 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
               <Moon className={`w-3.5 h-3.5 ${selectedShift === 'Night' ? 'text-blue-500' : ''}`} />
               NIGHT
             </button>

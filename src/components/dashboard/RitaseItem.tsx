@@ -9,6 +9,21 @@ interface RitaseItemProps {
   onToggle: () => void;
 }
 
+const timelineContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08
+    }
+  }
+};
+
+const timelineItemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  show: { opacity: 1, x: 0 }
+};
+
 const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle }) => {
   const isLocked = ritase.type === 'locked';
 
@@ -17,10 +32,11 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
       layout
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      whileHover={{ scale: 1.01 }}
+      whileHover={isLocked ? {} : { scale: 1.01 }}
       className="relative"
     >
-      <button 
+      <motion.button 
+        whileTap={isLocked ? {} : { scale: 0.98 }}
         onClick={() => !isLocked && onToggle()}
         className={`w-full text-left bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-4 md:p-5 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 relative z-20 overflow-hidden ${
           isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.99]'
@@ -57,7 +73,7 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
             )}
           </div>
         </div>
-      </button>
+      </motion.button>
 
       <AnimatePresence>
         {isExpanded && ritase.timeline && (
@@ -81,7 +97,12 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
               </div>
 
               {/* Responsive Timeline Visualization */}
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative gap-6 md:gap-0 pl-4 md:pl-0">
+              <motion.div 
+                variants={timelineContainerVariants}
+                initial="hidden"
+                animate="show"
+                className="flex flex-col md:flex-row justify-between items-start md:items-center relative gap-6 md:gap-0 pl-4 md:pl-0"
+              >
                 {/* Background Connecting Line (Desktop) */}
                 <div className="hidden md:block absolute top-[18px] left-0 w-full h-[2px] bg-slate-100 dark:bg-slate-800 z-0" />
                 {/* Active/Completed Progress Line (Desktop) */}
@@ -100,7 +121,11 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
                 <div className="md:hidden absolute top-0 left-[18px] w-[2px] h-full bg-slate-100 dark:bg-slate-800 z-0" />
 
                 {ritase.timeline.map((step, idx) => (
-                  <div key={idx} className={`flex md:flex-col items-center md:items-center relative z-10 w-full md:w-32 gap-4 md:gap-0 ${step.type === 'pending' ? 'opacity-40' : ''}`}>
+                  <motion.div 
+                    key={idx} 
+                    variants={timelineItemVariants}
+                    className={`flex md:flex-col items-center md:items-center relative z-10 w-full md:w-32 gap-4 md:gap-0 ${step.type === 'pending' ? 'opacity-40' : ''}`}
+                  >
                     <div className="md:mb-3 shrink-0">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-md transition-all hover:scale-110 ${
                         step.type === 'active' ? 'bg-red-600 dark:bg-red-500' :
@@ -127,9 +152,9 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
                         {step.delay && ritase.type !== 'completed' && <span className="text-[8px] font-black text-red-500 dark:text-red-400">{step.delay}</span>}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         )}
