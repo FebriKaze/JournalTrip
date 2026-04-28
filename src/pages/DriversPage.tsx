@@ -298,9 +298,6 @@ export default function DriversPage() {
                     <div className="pb-0 md:pb-4 flex flex-col items-center md:items-start">
                       <h2 className="text-xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white drop-shadow-none md:drop-shadow-md mb-2">{selectedDriver.name}</h2>
                       <div className="flex items-center gap-2 md:gap-3">
-                         <span className="hidden md:inline-block bg-slate-100 md:bg-white/20 dark:bg-slate-800/50 backdrop-blur text-slate-600 md:text-white dark:text-slate-300 px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase border border-slate-200 md:border-white/20 dark:border-slate-700">
-                            ID #{selectedDriver.id.slice(0, 8).toUpperCase()}
-                         </span>
                          <span className="bg-red-50 md:bg-white dark:bg-red-600 text-red-600 dark:text-white px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black tracking-widest uppercase shadow-none md:shadow-sm">
                             DRIVER AKTIF
                          </span>

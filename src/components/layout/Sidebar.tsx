@@ -80,12 +80,12 @@ export default function Sidebar({
         fixed top-0 left-0 z-50 h-full bg-white dark:bg-[#0f172a] border-r border-slate-200/60 dark:border-slate-800/60
         transition-all duration-500 ease-in-out flex flex-col shadow-xl md:shadow-sm
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        ${isCollapsed ? 'w-[72px]' : 'w-64'}
+        ${isCollapsed ? 'w-18' : 'w-64'}
       `}>
 
         {/* ── BRAND HEADER ── */}
-        <div className={`h-[76px] flex items-center border-b border-slate-100 dark:border-slate-800 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-4 gap-3'}`}>
-          <div className="w-[60px] h-[60px] shrink-0 flex items-center justify-center overflow-hidden p-1">
+        <div className={`h-19 flex items-center border-b border-slate-100 dark:border-slate-800 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-4 gap-3'}`}>
+          <div className="w-15 h-15 shrink-0 flex items-center justify-center overflow-hidden p-1">
               <img 
                 src={theme === 'light' ? Logo : Logo} 
                 alt="K Line" 
