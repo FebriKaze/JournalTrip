@@ -104,10 +104,10 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
                 className="flex flex-col md:flex-row justify-between items-start md:items-center relative gap-6 md:gap-0 pl-4 md:pl-0"
               >
                 {/* Background Connecting Line (Desktop) */}
-                <div className="hidden md:block absolute top-[18px] left-0 w-full h-[2px] bg-slate-100 dark:bg-slate-800 z-0" />
+                <div className="hidden md:block absolute top-4.5 left-0 w-full h-0.5 bg-slate-100 dark:bg-slate-800 z-0" />
                 {/* Active/Completed Progress Line (Desktop) */}
                 {(ritase.type === 'active' || ritase.type === 'completed') && (
-                  <div className={`hidden md:block absolute top-[18px] left-0 h-[2px] z-0 ${
+                  <div className={`hidden md:block absolute top-4.5 left-0 h-0.5 z-0 ${
                     ritase.type === 'active' ? 'bg-red-600 dark:bg-red-500' : 'bg-green-500'
                   }`} style={{ 
                     width: ritase.type === 'completed' 
@@ -118,7 +118,7 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
 
 
                 {/* Vertical Connecting Line (Mobile) */}
-                <div className="md:hidden absolute top-0 left-[18px] w-[2px] h-full bg-slate-100 dark:bg-slate-800 z-0" />
+                <div className="md:hidden absolute top-0 left-4.5 w-0.5 h-full bg-slate-100 dark:bg-slate-800 z-0" />
 
                 {ritase.timeline.map((step, idx) => (
                   <motion.div 

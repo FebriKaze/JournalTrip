@@ -32,7 +32,7 @@ export default function DriversPage() {
         className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-8 rounded-4xl shadow-sm"
       >
         <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Driver Directory</h1>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Data Driver</h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium">Monitoring data personel dan lisensi pengemudi KMDI</p>
         </div>
         
@@ -100,9 +100,10 @@ export default function DriversPage() {
                   </div>
                   <p className={`text-xs font-black px-2 py-1 rounded-lg inline-block ${
                     driver.simStatus === 'Valid' ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 
-                    driver.simStatus === 'Warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400' : 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                    driver.simStatus === 'Warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400' : 
+                    driver.simStatus === '--' ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                   }`}>
-                    {driver.simStatus === 'Valid' ? 'VALID' : driver.simStatus === 'Warning' ? 'EXPIRED SOON' : 'EXPIRED'}
+                    {driver.simStatus === 'Valid' ? 'VALID' : driver.simStatus === 'Warning' ? 'EXPIRED SOON' : driver.simStatus === '--' ? '--' : 'EXPIRED'}
                   </p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
@@ -142,7 +143,7 @@ export default function DriversPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 rounded-[32px] md:rounded-[48px] overflow-y-auto shadow-2xl max-w-2xl w-full max-h-[85vh] custom-scrollbar border dark:border-slate-800"
+              className="relative bg-white dark:bg-slate-900 rounded-4xl md:rounded-[48px] overflow-y-auto shadow-2xl max-w-2xl w-full max-h-[85vh] custom-scrollbar border dark:border-slate-800"
             >
               <div className="absolute top-0 right-0 p-4 md:p-6 z-10">
                 <button 
@@ -155,8 +156,134 @@ export default function DriversPage() {
 
               <div className="relative">
                 {/* Header Background */}
-                <div className="h-28 md:h-48 bg-linear-to-br from-red-600 to-red-800 relative">
-                  <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+                <div className="h-28 md:h-48 bg-linear-to-br from-red-600 to-red-800 relative overflow-hidden">
+                  {/* Logistics Animated Elements */}
+                  {/* Moving Truck Icon */}
+                  <motion.div
+                    animate={{
+                      x: [-50, 350, -50],
+                      y: [0, -10, 0],
+                      rotate: [0, 5, -5, 0]
+                    }}
+                    transition={{
+                      duration: 8,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                    className="absolute top-1/3 left-0 text-white/20 text-3xl"
+                  >
+                    🚚
+                  </motion.div>
+                  
+                  {/* Route Path Animation */}
+                  <svg className="absolute inset-0 w-full h-full">
+                    <motion.path
+                      d="M 20,40 Q 100,20 180,40 T 340,40"
+                      stroke="white"
+                      strokeWidth="2"
+                      fill="none"
+                      strokeDasharray="5,5"
+                      opacity="0.3"
+                      animate={{
+                        strokeDashoffset: [0, -10]
+                      }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    />
+                  </svg>
+                  
+                  {/* Delivery Package Drop */}
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={`package-${i}`}
+                      animate={{
+                        y: [-20, 100, -20],
+                        x: [50 + i * 80, 50 + i * 80, 50 + i * 80],
+                        opacity: [0, 0.8, 0],
+                        rotate: [0, 180, 360]
+                      }}
+                      transition={{
+                        duration: 3 + i * 1,
+                        repeat: Infinity,
+                        delay: i * 1.5,
+                        ease: "easeInOut"
+                      }}
+                      className="absolute text-white/15 text-2xl"
+                      style={{
+                        left: `${50 + i * 80}px`,
+                        top: '20px'
+                      }}
+                    >
+                      📦
+                    </motion.div>
+                  ))}
+                  
+                  {/* Location Pulse */}
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.5, 1],
+                      opacity: [0.6, 0.2, 0.6]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute bottom-8 right-8 w-8 h-8 text-white/20 text-xl"
+                  >
+                    📍
+                  </motion.div>
+                  
+                  {/* Route Progress Bar */}
+                  <motion.div
+                    animate={{
+                      width: ["0%", "100%", "0%"]
+                    }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="absolute bottom-12 left-8 h-1 bg-white/20 rounded-full"
+              />
+              
+              {/* GPS Signal Waves */}
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={`gps-${i}`}
+                  animate={{
+                    scale: [1, 2, 3],
+                    opacity: [0.4, 0.2, 0]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: i * 0.5,
+                    ease: "easeOut"
+                  }}
+                  className="absolute top-1/2 right-1/4 w-16 h-16 border-2 border-white/10 rounded-full -translate-y-1/2"
+                />
+              ))}
+              
+              {/* Clock/Timer Animation */}
+              <motion.div
+                animate={{
+                  rotate: [0, 360]
+                }}
+                transition={{
+                  duration: 10,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                className="absolute top-8 left-1/3 text-white/15 text-xl"
+              >
+                🕐
+              </motion.div>
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
                 </div>
 
                 <div className="px-5 md:px-10 pb-6 md:pb-12 -mt-12 md:-mt-24 relative z-10">
@@ -188,11 +315,15 @@ export default function DriversPage() {
                         <div className="w-1.5 h-1.5 bg-red-600 dark:bg-red-500 rounded-full" />
                         Informasi Lisensi
                       </h4>
-                      <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[24px] md:rounded-[32px] border border-slate-100 dark:border-slate-800 space-y-3 md:space-y-4">
+                      <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl md:rounded-4xl border border-slate-100 dark:border-slate-800 space-y-3 md:space-y-4">
                         <div className="flex justify-between items-center">
                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Status SIM</p>
-                           <p className={`text-sm font-black ${selectedDriver.simStatus === 'Valid' ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                             {selectedDriver.simStatus?.toUpperCase()}
+                           <p className={`text-sm font-black ${
+                             selectedDriver.simStatus === 'Valid' ? 'text-green-600 dark:text-green-400' : 
+                             selectedDriver.simStatus === 'Warning' ? 'text-amber-600 dark:text-amber-400' :
+                             selectedDriver.simStatus === '--' ? 'text-slate-500 dark:text-slate-400' : 'text-red-500 dark:text-red-400'
+                           }`}>
+                             {selectedDriver.simStatus === '--' ? '--' : selectedDriver.simStatus?.toUpperCase()}
                            </p>
                         </div>
                         <div className="flex justify-between items-center pt-4 border-t border-slate-200/50 dark:border-slate-700">
@@ -216,7 +347,7 @@ export default function DriversPage() {
                         <div className="w-1.5 h-1.5 bg-red-600 dark:bg-red-500 rounded-full" />
                         Data Pengemudi & Operasional
                       </h4>
-                      <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[24px] md:rounded-[32px] border border-slate-100 dark:border-slate-800 space-y-4 md:space-y-5">
+                      <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl md:rounded-4xl border border-slate-100 dark:border-slate-800 space-y-4 md:space-y-5">
                         
                         {/* NIK */}
                         <div className="flex items-center gap-4">

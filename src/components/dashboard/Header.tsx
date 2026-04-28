@@ -82,7 +82,7 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
                   <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-slate-100 leading-tight mb-1">{driver.name}</h1>
                   <div className="flex flex-wrap items-center gap-3 mt-1">
                     <span className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-black tracking-tight border border-red-100 dark:border-red-900/30">
-                      UNIT: {driver.noPolisi || '--'}
+                      {driver.noPolisi || '--'}
                     </span>
                     <motion.button 
                       whileTap={{ scale: 0.95 }}
@@ -90,11 +90,12 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
                       className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border outline-none focus:outline-none ${
                         driver.simStatus === 'Valid' ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/40' : 
                         driver.simStatus === 'Warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-100 dark:border-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/40' :
+                        driver.simStatus === '--' ? 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700' :
                         'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40'
                       }`}
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      SIM {driver.simStatus}
+                      SIM {driver.simStatus === '--' ? '--' : driver.simStatus}
                       <ZoomIn className="w-3 h-3 opacity-50" />
                     </motion.button>
                   </div>

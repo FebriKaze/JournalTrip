@@ -85,11 +85,13 @@ export default function Sidebar({
 
         {/* ── BRAND HEADER ── */}
         <div className={`h-[76px] flex items-center border-b border-slate-100 dark:border-slate-800 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-4 gap-3'}`}>
-          {theme === 'light' && (
-            <div className="w-[60px] h-[60px] shrink-0 flex items-center justify-center overflow-hidden rounded-xl bg-white dark:bg-slate-800/50 p-1">
-              <img src={Logo} alt="K Line" className="w-full h-full object-contain" />
+          <div className="w-[60px] h-[60px] shrink-0 flex items-center justify-center overflow-hidden p-1">
+              <img 
+                src={theme === 'light' ? Logo : Logo} 
+                alt="K Line" 
+                className="w-full h-full object-contain" 
+              />
             </div>
-          )}
           {!isCollapsed && (
             <div className="flex-1 overflow-hidden">
               <p className="text-lg font-black text-red-600 dark:text-red-500 truncate tracking-tight">K Line</p>

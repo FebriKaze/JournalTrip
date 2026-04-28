@@ -36,6 +36,10 @@ export default function App() {
 
   useEffect(() => {
     const root = window.document.documentElement;
+    // Add transition class for smooth theme change
+    root.classList.add('theme-transition');
+    
+    // Immediate theme change for better performance
     if (theme === 'dark') {
       root.classList.add('dark');
       root.setAttribute('data-theme', 'dark');
@@ -43,7 +47,13 @@ export default function App() {
       root.classList.remove('dark');
       root.setAttribute('data-theme', 'light');
     }
+    
     localStorage.setItem('theme', theme);
+    
+    // Remove transition class quickly
+    setTimeout(() => {
+      root.classList.remove('theme-transition');
+    }, 500);
   }, [theme]);
 
   // 1. Load Drivers (only relevant for Journal Trip dashboard)

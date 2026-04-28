@@ -20,8 +20,8 @@ function calculateDuration(start: string | null, end: string | null, area: strin
   } catch (e) { return '--'; }
 }
 
-function calculateSIMStatus(expiryDate: string | null): 'Valid' | 'Expired' | 'Warning' {
-  if (!expiryDate) return 'Expired';
+function calculateSIMStatus(expiryDate: string | null): 'Valid' | 'Expired' | 'Warning' | '--' {
+  if (!expiryDate) return '--';
   const today = new Date();
   const expiry = new Date(expiryDate);
   const diffTime = expiry.getTime() - today.getTime();

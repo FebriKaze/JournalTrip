@@ -7,7 +7,7 @@ export interface Driver {
   simNumber?: string;
 
   simExpiry?: string;
-  simStatus?: 'Valid' | 'Expired' | 'Warning';
+  simStatus?: 'Valid' | 'Expired' | 'Warning' | '--';
   simPhotoUrl?: string;
 
   nik?: string;
