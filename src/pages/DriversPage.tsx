@@ -29,21 +29,21 @@ export default function DriversPage() {
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-8 rounded-4xl shadow-sm"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-4 md:p-8 rounded-2xl md:rounded-4xl shadow-sm"
       >
         <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Data Driver</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Monitoring data personel dan lisensi pengemudi KMDI</p>
+          <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Data Driver</h1>
+          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium">Monitoring data personel dan lisensi pengemudi KMDI</p>
         </div>
         
         <div className="relative w-full md:w-96 group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-red-600 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-red-600 transition-colors" />
           <input 
             type="text" 
             placeholder="Cari nama driver..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-3xl py-4 pl-14 pr-6 focus:ring-4 focus:ring-red-500/5 dark:focus:ring-red-500/10 focus:border-red-500 transition-all outline-none font-bold text-slate-700 dark:text-slate-200"
+            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl md:rounded-3xl py-3 md:py-4 pl-12 md:pl-14 pr-4 md:pr-6 focus:ring-4 focus:ring-red-500/5 dark:focus:ring-red-500/10 focus:border-red-500 transition-all outline-none font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base"
           />
         </div>
       </motion.div>
@@ -60,7 +60,7 @@ export default function DriversPage() {
           variants={{
             visible: { transition: { staggerChildren: 0.05 } }
           }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-6"
         >
           {filteredDrivers.map((driver) => (
             <motion.div 
@@ -70,35 +70,35 @@ export default function DriversPage() {
                 visible: { opacity: 1, scale: 1 }
               }}
               whileHover={{ y: -8 }}
-              className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-7 rounded-[40px] shadow-sm hover:shadow-2xl hover:shadow-red-500/10 dark:hover:shadow-red-500/5 transition-all duration-300 relative overflow-hidden"
+              className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-4 md:p-7 rounded-2xl md:rounded-[40px] shadow-sm hover:shadow-2xl hover:shadow-red-500/10 dark:hover:shadow-red-500/5 transition-all duration-300 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-red-50/30 dark:bg-red-900/10 rounded-full -mr-16 -mt-16 blur-3xl" />
               
-              <div className="flex items-center gap-5 mb-7 relative z-10">
+              <div className="flex items-center gap-3 md:gap-5 mb-4 md:mb-7 relative z-10">
                 {driver.avatar ? (
-                  <img src={driver.avatar} alt={driver.name} className="w-22 h-22 rounded-3xl object-cover shadow-lg border-4 border-white dark:border-slate-800" />
+                  <img src={driver.avatar} alt={driver.name} className="w-16 h-16 md:w-22 md:h-22 rounded-2xl md:rounded-3xl object-cover shadow-lg border-4 border-white dark:border-slate-800" />
                 ) : (
-                  <div className="w-22 h-22 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-sm">
-                    <User className="w-10 h-10 text-slate-300 dark:text-slate-700" />
+                  <div className="w-16 h-16 md:w-22 md:h-22 rounded-2xl md:rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-sm">
+                    <User className="w-8 h-8 md:w-10 md:h-10 text-slate-300 dark:text-slate-700" />
                   </div>
                 )}
                 
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100 truncate mb-1 leading-tight">{driver.name}</h3>
+                  <h3 className="text-lg md:text-2xl font-black text-slate-900 dark:text-slate-100 truncate mb-1 leading-tight">{driver.name}</h3>
                   <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                    <MapPin className="w-4 h-4 text-red-600 dark:text-red-500" />
-                    <span className="text-xs font-bold uppercase tracking-wider">BASE POOL A</span>
+                    <MapPin className="w-3 h-3 md:w-4 md:h-4 text-red-600 dark:text-red-500" />
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">BASE POOL A</span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-7 relative z-10">
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+              <div className="grid grid-cols-2 gap-3 mb-4 md:mb-7 relative z-10">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 md:rounded-2xl md:p-4 border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2 mb-2 text-slate-400 dark:text-slate-500">
-                    <CreditCard className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">SIM STATUS</span>
+                    <CreditCard className="w-3 h-3 md:w-4 md:h-4" />
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">SIM STATUS</span>
                   </div>
-                  <p className={`text-xs font-black px-2 py-1 rounded-lg inline-block ${
+                  <p className={`text-[10px] md:text-xs font-black px-2 py-1 rounded-lg inline-block ${
                     driver.simStatus === 'Valid' ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 
                     driver.simStatus === 'Warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400' : 
                     driver.simStatus === '--' ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
@@ -106,12 +106,12 @@ export default function DriversPage() {
                     {driver.simStatus === 'Valid' ? 'VALID' : driver.simStatus === 'Warning' ? 'EXPIRED SOON' : driver.simStatus === '--' ? '--' : 'EXPIRED'}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 md:rounded-2xl md:p-4 border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2 mb-2 text-slate-400 dark:text-slate-500">
-                    <Truck className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">NOPOL</span>
+                    <Truck className="w-3 h-3 md:w-4 md:h-4" />
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">NOPOL</span>
                   </div>
-                  <p className="text-xs font-black text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-700 inline-block">
+                  <p className="text-[10px] md:text-xs font-black text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-700 inline-block">
                     {driver.noPolisi || '--'}
                   </p>
                 </div>
@@ -119,7 +119,7 @@ export default function DriversPage() {
 
               <button 
                 onClick={() => setSelectedDriver(driver)}
-                className="w-full text-sm font-black text-white bg-slate-900 dark:bg-red-600 py-4 rounded-2xl hover:bg-red-600 dark:hover:bg-red-700 transition-all transform active:scale-95 shadow-lg shadow-slate-200 dark:shadow-red-900/20"
+                className="w-full text-xs md:text-sm font-black text-white bg-slate-900 dark:bg-red-600 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-red-600 dark:hover:bg-red-700 transition-all transform active:scale-95 shadow-lg shadow-slate-200 dark:shadow-red-900/20"
               >
                 VIEW PROFILE
               </button>
@@ -131,7 +131,7 @@ export default function DriversPage() {
       {/* Profile Detail Modal */}
       <AnimatePresence>
         {selectedDriver && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 md:p-6 text-slate-900 dark:text-slate-100">
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-2 md:p-6 text-slate-900 dark:text-slate-100">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -143,7 +143,7 @@ export default function DriversPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 rounded-4xl md:rounded-[48px] overflow-y-auto shadow-2xl max-w-2xl w-full max-h-[85vh] custom-scrollbar border dark:border-slate-800"
+              className="relative bg-white dark:bg-slate-900 rounded-2xl md:rounded-[48px] overflow-y-auto shadow-2xl max-w-2xl w-full max-h-[90vh] md:max-h-[85vh] custom-scrollbar border dark:border-slate-800"
             >
               <div className="absolute top-0 right-0 p-4 md:p-6 z-10">
                 <button 

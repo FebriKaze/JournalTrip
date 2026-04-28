@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Calendar as CalendarIcon, Menu, X, Sun, Moon } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown } from 'lucide-react';
 
 type Page = 'dashboard' | 'drivers';
 
@@ -35,17 +35,18 @@ export default function Navbar({
 }: NavbarProps) {
   const pageInfo = PAGE_TITLES[currentPage];
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const [isShiftOpen, setIsShiftOpen] = useState(false);
 
   return (
     <nav className={`
       fixed top-0 z-40 right-0 bg-white/90 dark:bg-[#0f172a]/90 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800/60
       h-16 flex items-center px-4 md:px-6 shadow-sm transition-all duration-500 gap-4
-      ${isSidebarCollapsed ? 'md:left-[72px]' : 'md:left-64'} left-0
+      ${isSidebarCollapsed ? 'md:left-18' : 'md:left-16'} left-0
     `}>
       {/* Hamburger (mobile) */}
       <button
         onClick={onToggleSidebar}
-        className="p-2 -ml-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl md:hidden transition-colors shrink-0"
+        className="p-2 -mr-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
       >
         {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -55,9 +56,6 @@ export default function Navbar({
         <h2 className="text-base font-black text-red-600 dark:text-red-500 leading-tight">{pageInfo.title}</h2>
         <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">{pageInfo.sub}</p>
       </div>
-
-      {/* Spacer */}
-      <div className="flex-1" />
 
       {/* Theme Toggle */}
       <button
@@ -87,20 +85,39 @@ export default function Navbar({
                 onDateChange(e.target.value);
                 e.target.blur();
               }}
-              className="text-[11px] font-black text-slate-800 dark:text-slate-200 border-none focus:ring-0 cursor-pointer p-0 bg-transparent outline-none w-[100px]"
+              className="text-[11px] font-black text-slate-800 dark:text-slate-200 border-none focus:ring-0 cursor-pointer p-0 bg-transparent outline-none w-25"
             />
           </div>
-          <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button onClick={() => onShiftChange('Day')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all outline-none focus:outline-none focus:ring-0 ${selectedShift === 'Day' ? 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
-              <Sun className={`w-3.5 h-3.5 ${selectedShift === 'Day' ? 'text-orange-500' : ''}`} />
-              DAY
+          
+          {/* Shift Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsShiftOpen(!isShiftOpen)}
+              className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 hover:border-red-400 dark:hover:border-red-500 transition-all cursor-pointer"
+            >
+              <span className="text-[10px] font-black text-slate-800 dark:text-slate-200">{selectedShift}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${isShiftOpen ? 'rotate-180' : ''}`} />
             </button>
-            <button onClick={() => onShiftChange('Night')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all outline-none focus:outline-none focus:ring-0 ${selectedShift === 'Night' ? 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
-              <Moon className={`w-3.5 h-3.5 ${selectedShift === 'Night' ? 'text-blue-500' : ''}`} />
-              NIGHT
-            </button>
+            
+            {/* Shift Options */}
+            {isShiftOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 min-w-30">
+                <button
+                  onClick={() => { onShiftChange('Day'); setIsShiftOpen(false); }}
+                  className={`flex items-center gap-2 px-3 py-2 text-left w-full hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors ${selectedShift === 'Day' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : ''}`}
+                >
+                  <Sun className={`w-4 h-4 ${selectedShift === 'Day' ? 'text-orange-500' : ''}`} />
+                  <span className="text-sm font-medium">Day Shift</span>
+                </button>
+                <button
+                  onClick={() => { onShiftChange('Night'); setIsShiftOpen(false); }}
+                  className={`flex items-center gap-2 px-3 py-2 text-left w-full hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors ${selectedShift === 'Night' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : ''}`}
+                >
+                  <Moon className={`w-4 h-4 ${selectedShift === 'Night' ? 'text-blue-500' : ''}`} />
+                  <span className="text-sm font-medium">Night Shift</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
