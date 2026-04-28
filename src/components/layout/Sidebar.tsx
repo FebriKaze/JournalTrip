@@ -198,7 +198,7 @@ export default function Sidebar({
                           w-full flex items-center rounded-xl transition-all group relative
                           ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-2.5'}
                           ${selectedDriverId === driver.id
-                            ? 'bg-red-50 dark:bg-red-500/10 ring-1 ring-red-100 dark:ring-red-500/20 text-red-700 dark:text-red-400'
+                            ? 'bg-red-50 dark:bg-red-500/10 ring-1 ring-red-100 dark:ring-red-500/20 text-red-700 dark:text-red-300'
                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100'}
                         `}
                       >
@@ -218,7 +218,7 @@ export default function Sidebar({
                         {!isCollapsed && (
                           <div className="text-left overflow-hidden flex-1">
                             <p className="text-xs font-bold truncate">{driver.name}</p>
-                            <p className="text-[9px] font-black uppercase tracking-wider text-red-500/70 dark:text-red-400/80 truncate">
+                            <p className="text-[9px] font-black uppercase tracking-wider text-red-500/70 dark:text-red-300/80 truncate">
                               {driver.noPolisi || `#${driver.id.slice(0, 6)}`}
                             </p>
                           </div>

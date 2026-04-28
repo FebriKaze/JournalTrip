@@ -101,9 +101,10 @@ export default function DriversPage() {
                   <p className={`text-[10px] md:text-xs font-black px-2 py-1 rounded-lg inline-block ${
                     driver.simStatus === 'Valid' ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 
                     driver.simStatus === 'Warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400' : 
-                    driver.simStatus === '--' ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                    (!driver.simStatus || driver.simStatus === '--') ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 
+                    'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                   }`}>
-                    {driver.simStatus === 'Valid' ? 'VALID' : driver.simStatus === 'Warning' ? 'EXPIRED SOON' : driver.simStatus === '--' ? '--' : 'EXPIRED'}
+                    {driver.simStatus === 'Valid' ? 'VALID' : driver.simStatus === 'Warning' ? 'EXPIRED SOON' : (!driver.simStatus || driver.simStatus === '--') ? '--' : 'EXPIRED'}
                   </p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 md:rounded-2xl md:p-4 border border-slate-100 dark:border-slate-800">
@@ -155,135 +156,34 @@ export default function DriversPage() {
               </div>
 
               <div className="relative">
-                {/* Header Background */}
-                <div className="h-28 md:h-48 bg-linear-to-br from-red-600 to-red-800 relative overflow-hidden">
-                  {/* Logistics Animated Elements */}
-                  {/* Moving Truck Icon */}
+                {/* Header Background - Premium Mesh Gradient with Glassmorphism */}
+                <div className="h-32 md:h-56 bg-slate-900 dark:bg-black relative overflow-hidden">
+                  {/* Base Mesh Gradients */}
+                  <div className="absolute inset-0 bg-[radial-gradient(at_top_right,rgba(220,38,38,0.2)_0%,transparent_50%)]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(at_bottom_left,rgba(51,65,85,0.4)_0%,transparent_50%)]" />
+                  <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,rgba(15,23,42,0)_0%,rgba(15,23,42,0.8)_100%)] opacity-30" />
+                  
+                  {/* Decorative Glass Elements */}
+                  <div className="absolute top-4 right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl animate-pulse" />
+                  <div className="absolute -bottom-10 left-20 w-48 h-48 bg-red-600/10 rounded-full blur-3xl" />
+                  
+                  {/* Logistics Animated Elements (Subtle) */}
                   <motion.div
                     animate={{
-                      x: [-50, 350, -50],
-                      y: [0, -10, 0],
-                      rotate: [0, 5, -5, 0]
+                      x: [-50, 400, -50],
+                      opacity: [0, 0.3, 0]
                     }}
                     transition={{
-                      duration: 8,
+                      duration: 12,
                       repeat: Infinity,
                       ease: "linear"
                     }}
-                    className="absolute top-1/3 left-0 text-white/20 text-3xl"
+                    className="absolute top-1/4 left-0 text-white/20 text-3xl select-none"
                   >
-                    🚚
+                    🚛
                   </motion.div>
                   
-                  {/* Route Path Animation */}
-                  <svg className="absolute inset-0 w-full h-full">
-                    <motion.path
-                      d="M 20,40 Q 100,20 180,40 T 340,40"
-                      stroke="white"
-                      strokeWidth="2"
-                      fill="none"
-                      strokeDasharray="5,5"
-                      opacity="0.3"
-                      animate={{
-                        strokeDashoffset: [0, -10]
-                      }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "linear"
-                      }}
-                    />
-                  </svg>
-                  
-                  {/* Delivery Package Drop */}
-                  {[...Array(3)].map((_, i) => (
-                    <motion.div
-                      key={`package-${i}`}
-                      animate={{
-                        y: [-20, 100, -20],
-                        x: [50 + i * 80, 50 + i * 80, 50 + i * 80],
-                        opacity: [0, 0.8, 0],
-                        rotate: [0, 180, 360]
-                      }}
-                      transition={{
-                        duration: 3 + i * 1,
-                        repeat: Infinity,
-                        delay: i * 1.5,
-                        ease: "easeInOut"
-                      }}
-                      className="absolute text-white/15 text-2xl"
-                      style={{
-                        left: `${50 + i * 80}px`,
-                        top: '20px'
-                      }}
-                    >
-                      📦
-                    </motion.div>
-                  ))}
-                  
-                  {/* Location Pulse */}
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.5, 1],
-                      opacity: [0.6, 0.2, 0.6]
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="absolute bottom-8 right-8 w-8 h-8 text-white/20 text-xl"
-                  >
-                    📍
-                  </motion.div>
-                  
-                  {/* Route Progress Bar */}
-                  <motion.div
-                    animate={{
-                      width: ["0%", "100%", "0%"]
-                    }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="absolute bottom-12 left-8 h-1 bg-white/20 rounded-full"
-              />
-              
-              {/* GPS Signal Waves */}
-              {[...Array(3)].map((_, i) => (
-                <motion.div
-                  key={`gps-${i}`}
-                  animate={{
-                    scale: [1, 2, 3],
-                    opacity: [0.4, 0.2, 0]
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    delay: i * 0.5,
-                    ease: "easeOut"
-                  }}
-                  className="absolute top-1/2 right-1/4 w-16 h-16 border-2 border-white/10 rounded-full -translate-y-1/2"
-                />
-              ))}
-              
-              {/* Clock/Timer Animation */}
-              <motion.div
-                animate={{
-                  rotate: [0, 360]
-                }}
-                transition={{
-                  duration: 10,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-                className="absolute top-8 left-1/3 text-white/15 text-xl"
-              >
-                🕐
-              </motion.div>
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-slate-900/60 via-transparent to-transparent" />
                 </div>
 
                 <div className="px-5 md:px-10 pb-6 md:pb-12 -mt-12 md:-mt-24 relative z-10">
@@ -315,13 +215,14 @@ export default function DriversPage() {
                       <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl md:rounded-4xl border border-slate-100 dark:border-slate-800 space-y-3 md:space-y-4">
                         <div className="flex justify-between items-center">
                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Status SIM</p>
-                           <p className={`text-sm font-black ${
-                             selectedDriver.simStatus === 'Valid' ? 'text-green-600 dark:text-green-400' : 
-                             selectedDriver.simStatus === 'Warning' ? 'text-amber-600 dark:text-amber-400' :
-                             selectedDriver.simStatus === '--' ? 'text-slate-500 dark:text-slate-400' : 'text-red-500 dark:text-red-400'
-                           }`}>
-                             {selectedDriver.simStatus === '--' ? '--' : selectedDriver.simStatus?.toUpperCase()}
-                           </p>
+                            <p className={`text-sm font-black ${
+                              selectedDriver.simStatus === 'Valid' ? 'text-green-600 dark:text-green-400' : 
+                              selectedDriver.simStatus === 'Warning' ? 'text-amber-600 dark:text-amber-400' :
+                              (!selectedDriver.simStatus || selectedDriver.simStatus === '--') ? 'text-slate-500 dark:text-slate-400' : 
+                              'text-red-500 dark:text-red-400'
+                            }`}>
+                              {(!selectedDriver.simStatus || selectedDriver.simStatus === '--') ? '--' : selectedDriver.simStatus?.toUpperCase()}
+                            </p>
                         </div>
                         <div className="flex justify-between items-center pt-4 border-t border-slate-200/50 dark:border-slate-700">
                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Masa Berlaku</p>

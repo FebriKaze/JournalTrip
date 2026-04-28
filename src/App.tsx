@@ -29,7 +29,12 @@ export default function App() {
   const [isDriversLoading, setIsDriversLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+      const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+      if (savedTheme) return savedTheme;
+      
+      // Auto theme based on time
+      const hour = new Date().getHours();
+      return (hour >= 18 || hour < 6) ? 'dark' : 'light';
     }
     return 'light';
   });
@@ -77,6 +82,28 @@ export default function App() {
     loadDrivers();
   }, [selectedDate, selectedArea, selectedShift]);
 
+  // Auto theme based on time
+  useEffect(() => {
+    const checkTimeAndSetTheme = () => {
+      const hour = new Date().getHours();
+      const shouldBeDark = hour >= 18 || hour < 6;
+      
+      // Only change if user hasn't manually set a theme
+      const hasManualTheme = localStorage.getItem('manual-theme-set');
+      if (!hasManualTheme) {
+        setTheme(shouldBeDark ? 'dark' : 'light');
+      }
+    };
+
+    // Check immediately
+    checkTimeAndSetTheme();
+    
+    // Check every minute
+    const interval = setInterval(checkTimeAndSetTheme, 60000);
+    
+    return () => clearInterval(interval);
+  }, [setTheme]);
+
   // 2. Load Dashboard Detail
   const loadData = useCallback(async () => {
     if (!selectedDriverId) return;
@@ -114,6 +141,8 @@ export default function App() {
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    // Mark that user manually set theme
+    localStorage.setItem('manual-theme-set', 'true');
   };
 
   const sidebarWidth = isSidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64';
