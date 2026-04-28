@@ -156,34 +156,96 @@ export default function DriversPage() {
               </div>
 
               <div className="relative">
-                {/* Header Background - Premium Mesh Gradient with Glassmorphism */}
-                <div className="h-32 md:h-56 bg-slate-900 dark:bg-black relative overflow-hidden">
-                  {/* Base Mesh Gradients */}
-                  <div className="absolute inset-0 bg-[radial-gradient(at_top_right,rgba(220,38,38,0.2)_0%,transparent_50%)]" />
-                  <div className="absolute inset-0 bg-[radial-gradient(at_bottom_left,rgba(51,65,85,0.4)_0%,transparent_50%)]" />
-                  <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,rgba(15,23,42,0)_0%,rgba(15,23,42,0.8)_100%)] opacity-30" />
-                  
-                  {/* Decorative Glass Elements */}
-                  <div className="absolute top-4 right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl animate-pulse" />
-                  <div className="absolute -bottom-10 left-20 w-48 h-48 bg-red-600/10 rounded-full blur-3xl" />
-                  
-                  {/* Logistics Animated Elements (Subtle) */}
+                {/* Header: Light = Red Gradient | Dark = Dark Mesh */}
+                <div className="h-32 md:h-56 bg-linear-to-br from-red-500 via-red-600 to-red-800 dark:bg-linear-to-br dark:from-slate-900 dark:via-slate-900 dark:to-black relative overflow-hidden">
+                  {/* Dark mode mesh overlays */}
+                  <div className="absolute inset-0 hidden dark:block bg-[radial-gradient(at_top_right,rgba(220,38,38,0.2)_0%,transparent_50%)]" />
+                  <div className="absolute inset-0 hidden dark:block bg-[radial-gradient(at_bottom_left,rgba(51,65,85,0.4)_0%,transparent_50%)]" />
+
+                  {/* Light mode soft shimmer */}
+                  <div className="absolute inset-0 dark:hidden bg-[radial-gradient(at_top_left,rgba(255,255,255,0.15)_0%,transparent_60%)]" />
+
+                  {/* Decorative Blobs */}
+                  <div className="absolute top-4 right-10 w-32 h-32 bg-white/10 dark:bg-white/5 rounded-full blur-2xl" />
+                  <div className="absolute -bottom-10 left-20 w-48 h-48 bg-white/10 dark:bg-red-600/10 rounded-full blur-3xl" />
+
+                  {/* Moving Truck */}
                   <motion.div
-                    animate={{
-                      x: [-50, 400, -50],
-                      opacity: [0, 0.3, 0]
-                    }}
-                    transition={{
-                      duration: 12,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                    className="absolute top-1/4 left-0 text-white/20 text-3xl select-none"
+                    animate={{ x: [-50, 400, -50], y: [0, -10, 0], rotate: [0, 3, -3, 0] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                    className="absolute top-1/3 left-0 text-white/25 text-3xl select-none"
                   >
-                    🚛
+                    🚚
                   </motion.div>
-                  
-                  <div className="absolute inset-0 bg-linear-to-t from-slate-900/60 via-transparent to-transparent" />
+
+                  {/* Route Path Animation */}
+                  <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                    <motion.path
+                      d="M 20,40 Q 100,20 180,40 T 340,40"
+                      stroke="white"
+                      strokeWidth="2"
+                      fill="none"
+                      strokeDasharray="5,5"
+                      opacity="0.3"
+                      animate={{ strokeDashoffset: [0, -10] }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    />
+                  </svg>
+
+                  {/* Delivery Packages */}
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={`pkg-${i}`}
+                      animate={{
+                        y: [-20, 100, -20],
+                        opacity: [0, 0.5, 0],
+                        rotate: [0, 180, 360],
+                      }}
+                      transition={{ duration: 3 + i, repeat: Infinity, delay: i * 1.5, ease: 'easeInOut' }}
+                      className="absolute text-white/20 text-2xl select-none"
+                      style={{ left: `${50 + i * 80}px`, top: '20px' }}
+                    >
+                      📦
+                    </motion.div>
+                  ))}
+
+                  {/* Location Pulse */}
+                  <motion.div
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0.15, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute bottom-8 right-8 text-white/25 text-xl select-none"
+                  >
+                    📍
+                  </motion.div>
+
+                  {/* Route Progress Bar */}
+                  <motion.div
+                    animate={{ width: ['0%', '100%', '0%'] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute bottom-5 left-8 h-0.5 bg-white/25 rounded-full"
+                  />
+
+                  {/* GPS Signal Waves */}
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={`gps-${i}`}
+                      animate={{ scale: [1, 2, 3], opacity: [0.3, 0.15, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.5, ease: 'easeOut' }}
+                      className="absolute top-1/2 right-1/4 w-12 h-12 border-2 border-white/15 rounded-full -translate-y-1/2"
+                    />
+                  ))}
+
+                  {/* Rotating Clock */}
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+                    className="absolute top-6 left-1/3 text-white/20 text-xl select-none"
+                  >
+                    🕐
+                  </motion.div>
+
+                  {/* Bottom Gradient Overlay */}
+                  <div className="absolute inset-0 bg-linear-to-t from-black/20 dark:from-black/40 to-transparent" />
                 </div>
 
                 <div className="px-5 md:px-10 pb-6 md:pb-12 -mt-12 md:-mt-24 relative z-10">
