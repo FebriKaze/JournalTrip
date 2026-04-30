@@ -38,9 +38,9 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
       <motion.button 
         whileTap={isLocked ? {} : { scale: 0.98 }}
         onClick={() => !isLocked && onToggle()}
-        className={`w-full text-left bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-4 md:p-5 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 relative z-20 overflow-hidden ${
+        className={`w-full text-left bg-white dark:bg-slate-900/50 rounded-2xl p-4 md:p-5 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 relative z-20 overflow-hidden outline-none ${
           isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.99]'
-        } ${isExpanded ? 'ring-2 ring-blue-500/10 dark:ring-blue-500/5 border-blue-500/20 dark:border-blue-500/30 shadow-md' : ''}`}
+        } ${isExpanded ? 'shadow-lg shadow-blue-500/10 dark:shadow-blue-500/5' : ''}`}
       >
         {ritase.type === 'active' && <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600 dark:bg-red-500" />}
         
@@ -82,7 +82,7 @@ const RitaseItem: React.FC<RitaseItemProps> = ({ ritase, isExpanded, onToggle })
             animate={{ height: 'auto', opacity: 1, y: 0 }}
             exit={{ height: 0, opacity: 0, y: -20 }}
             transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
-            className="overflow-hidden bg-white dark:bg-slate-900/80 border-x border-b border-slate-200/50 dark:border-slate-800/50 rounded-b-2xl -mt-4 mx-2 md:mx-4 pt-8 pb-6 px-4 md:px-6 shadow-sm shadow-slate-100 dark:shadow-slate-950 relative z-10"
+            className="overflow-hidden bg-white dark:bg-slate-900/80 rounded-b-2xl -mt-4 mx-2 md:mx-4 pt-8 pb-6 px-4 md:px-6 shadow-xl shadow-slate-200 dark:shadow-black/40 relative z-10"
           >
             <div className="space-y-10">
               <div className="flex flex-col md:flex-row justify-between md:items-end gap-3">

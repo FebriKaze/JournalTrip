@@ -1,11 +1,9 @@
 import { useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type Page = 'dashboard' | 'drivers';
-
 interface NavbarProps {
-  currentPage: Page;
   selectedDate: string;
   onDateChange: (date: string) => void;
   selectedShift: 'Day' | 'Night';
@@ -17,13 +15,12 @@ interface NavbarProps {
   onThemeToggle: () => void;
 }
 
-const PAGE_TITLES: Record<Page, { title: string; sub: string }> = {
-  'dashboard': { title: 'Journal Trip', sub: 'Ritase & Driver Tracking' },
-  'drivers':   { title: 'Drivers',      sub: 'Data Registry Pengemudi' },
+const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
+  '/': { title: 'Journal Trip', sub: 'Ritase & Driver Tracking' },
+  '/drivers': { title: 'Drivers Registry', sub: 'Data Master Pengemudi' },
 };
 
 export default function Navbar({
-  currentPage,
   selectedDate,
   onDateChange,
   selectedShift,
@@ -34,11 +31,20 @@ export default function Navbar({
   theme,
   onThemeToggle,
 }: NavbarProps) {
-  const pageInfo     = PAGE_TITLES[currentPage];
+  const location = useLocation();
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [isShiftOpen, setIsShiftOpen] = useState(false);
 
+  const getPageInfo = () => {
+    if (location.pathname.startsWith('/drivers/')) {
+      return { title: 'Driver Profile', sub: 'Detail Data & History' };
+    }
+    return PAGE_TITLES[location.pathname] || PAGE_TITLES['/'];
+  };
+
+  const pageInfo = getPageInfo();
   const isDay = selectedShift === 'Day';
+  const isDashboard = location.pathname === '/';
 
   return (
     <nav className={`
@@ -72,7 +78,7 @@ export default function Navbar({
       {/* ── Page Title ── */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentPage}
+          key={location.pathname}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 10 }}
@@ -94,7 +100,7 @@ export default function Navbar({
         <motion.button
           whileTap={{ scale: 0.9, rotate: 15 }}
           onClick={(e) => { e.preventDefault(); onThemeToggle(); }}
-          className="relative p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
+          className="relative p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm outline-none ring-0"
           title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -112,7 +118,7 @@ export default function Navbar({
 
         {/* ── JOURNAL TRIP Controls ── */}
         <AnimatePresence>
-          {currentPage === 'dashboard' && (
+          {isDashboard && (
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -124,7 +130,7 @@ export default function Navbar({
               <motion.div
                 whileTap={{ scale: 0.97 }}
                 onClick={() => dateInputRef.current?.showPicker()}
-                className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 hover:border-red-400 dark:hover:border-red-500/70 transition-all cursor-pointer"
+                className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl shadow-inner outline-none ring-0 cursor-pointer"
               >
                 <CalendarIcon className="w-3.5 h-3.5 text-red-500 shrink-0" />
                 <input

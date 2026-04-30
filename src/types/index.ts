@@ -12,6 +12,8 @@ export interface Driver {
 
   nik?: string;
   alamat?: string;
+  totalViolations?: number;
+  totalRitaseMonth?: number;
 }
 
 export type DriverDetails = Driver;

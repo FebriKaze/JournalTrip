@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, User, Search, PanelLeftClose, PanelLeft,
@@ -7,8 +8,6 @@ import {
 } from 'lucide-react';
 import { Driver } from '../../types';
 import Logo from '../../image/Logo.png';
-
-type Page = 'dashboard' | 'drivers';
 
 interface SidebarProps {
   drivers: Driver[];
@@ -19,14 +18,12 @@ interface SidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isLoading?: boolean;
-  currentPage: Page;
   theme: 'light' | 'dark';
-  onPageChange: (page: Page) => void;
 }
 
-const NAV_ITEMS: { id: Page; label: string; icon: ReactNode; sub?: string }[] = [
-  { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking' },
-  { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi' },
+const NAV_ITEMS: { id: string; label: string; icon: ReactNode; sub?: string; path: string }[] = [
+  { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking', path: '/' },
+  { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi', path: '/drivers' },
 ];
 
 const containerVariants = {
@@ -53,18 +50,17 @@ export default function Sidebar({
   isCollapsed,
   onToggleCollapse,
   isLoading,
-  currentPage,
   theme,
-  onPageChange,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const location = useLocation();
 
   const filteredDrivers = drivers.filter(d =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.id.includes(searchQuery.toLowerCase())
   );
 
-  const showDriverPanel = currentPage === 'dashboard';
+  const showDriverPanel = location.pathname === '/';
 
   return (
     <>
@@ -87,7 +83,7 @@ export default function Sidebar({
         <div className={`h-19 flex items-center border-b border-slate-100 dark:border-slate-800 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-4 gap-3'}`}>
           <div className="w-15 h-15 shrink-0 flex items-center justify-center overflow-hidden p-1">
               <img 
-                src={theme === 'light' ? Logo : Logo} 
+                src={Logo} 
                 alt="K Line" 
                 className="w-full h-full object-contain" 
               />
@@ -97,7 +93,6 @@ export default function Sidebar({
               <p className="text-lg font-black text-red-600 dark:text-red-500 truncate tracking-tight">K Line</p>
             </div>
           )}
-          {/* Close on mobile */}
           <button onClick={onClose} className="md:hidden p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-slate-400">
             <X className="w-5 h-5" />
           </button>
@@ -109,12 +104,15 @@ export default function Sidebar({
             <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-3">Main Menu</p>
           )}
           {NAV_ITEMS.map(item => {
-            const active = currentPage === item.id;
+            const active = item.path === '/' 
+              ? location.pathname === '/' 
+              : location.pathname.startsWith(item.path);
+
             return (
-              <motion.button
+              <Link
                 key={item.id}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => { onPageChange(item.id); if (window.innerWidth < 768) onClose(); }}
+                to={item.path}
+                onClick={() => { if (window.innerWidth < 768) onClose(); }}
                 title={isCollapsed ? item.label : undefined}
                 className={`
                   w-full flex items-center rounded-xl transition-all duration-200 group relative
@@ -136,13 +134,12 @@ export default function Sidebar({
                     {active && <ChevronRight className="w-4 h-4 text-red-300 dark:text-red-400 shrink-0" />}
                   </>
                 )}
-                {/* Collapsed tooltip */}
                 {isCollapsed && (
                   <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50 shadow-lg border dark:border-slate-700">
                     {item.label}
                   </div>
                 )}
-              </motion.button>
+              </Link>
             );
           })}
         </nav>
