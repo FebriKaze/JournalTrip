@@ -117,10 +117,7 @@ export default function FleetMonitoringPage() {
               <ArrowRight className="w-4 h-4 rotate-180" />
             </button>
             
-            <div 
-              onClick={() => monthInputRef.current?.showPicker()}
-              className="flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
+            <div className="relative flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <Calendar className="w-4 h-4 text-red-500" />
               <span className="text-xs font-black text-slate-900 dark:text-white">
                 {new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -130,7 +127,7 @@ export default function FleetMonitoringPage() {
                 type="date" 
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="sr-only"
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
             </div>
 

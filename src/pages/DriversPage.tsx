@@ -61,9 +61,6 @@ export default function DriversPage() {
             className="w-full bg-white dark:bg-slate-900 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold focus:outline-none shadow-sm dark:text-white outline-none ring-0"
           />
         </div>
-        <button className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl text-slate-500 hover:text-red-600 transition-all shadow-sm outline-none ring-0">
-          <Filter className="w-5 h-5" />
-        </button>
       </div>
 
       {/* ── DRIVERS GRID ── */}
