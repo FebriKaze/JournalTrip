@@ -245,3 +245,111 @@ export async function fetchDashboardData(selectedDate: string, driverId: string,
     return { ritases: [], readiness: null, driverDetails: null };
   }
 }
+export async function fetchFleetMonitoringData(date: string) {
+  try {
+    console.log('--- START FLEET FETCH ---');
+    console.log('Target Date:', date);
+    
+    // 1. Fetch trips for the date FIRST (only active ones)
+    const { data: trips, error: tError } = await supabase
+      .from('trips')
+      .select(`
+        *,
+        drivers (
+          id,
+          name,
+          avatar_url,
+          no_polisi
+        )
+      `)
+      .eq('tanggal', date);
+    
+    if (tError) throw tError;
+    
+    if (!trips || trips.length === 0) {
+      console.warn('No trips found for date:', date);
+      return [];
+    }
+
+    console.log(`Found ${trips.length} trips for today`);
+
+    // 2. Group trips by driver
+    const driverIds = Array.from(new Set(trips.map(t => t.driver_id)));
+    
+    const fleet = driverIds.map(dId => {
+      // Helper to parse ritase number from string like "RIT 1" or "1"
+      const parseRit = (val: any) => {
+        if (typeof val === 'number') return val;
+        const match = String(val || '').match(/\d+/);
+        return match ? parseInt(match[0]) : 0;
+      };
+
+      const driverTrips = trips
+        .filter(t => t.driver_id === dId)
+        .sort((a, b) => parseRit(a.ritase_no) - parseRit(b.ritase_no));
+      
+      const firstTrip = driverTrips[0];
+      const driverInfo = firstTrip.drivers;
+      
+      // Find the "current" ritase: 
+      // 1. The first one that is NOT finished (actual_unloading is null)
+      // 2. OR the last one if all are finished
+      let currentTrip = driverTrips.find(t => !t.actual_unloading) || driverTrips[driverTrips.length - 1];
+      
+      let status: any = 'In Pool';
+      let lastUpdate = '--:--';
+      let origin = 'Pool';
+      let destination = 'Plant';
+
+      if (currentTrip) {
+        const curRitNo = parseRit(currentTrip.ritase_no);
+        origin = currentTrip.pdc_muat || 'Plant';
+        destination = currentTrip.pdc_bongkar || 'Tujuan';
+
+        if (currentTrip.actual_unloading) {
+          status = 'At Destination';
+          lastUpdate = currentTrip.actual_unloading;
+          
+          // Check for next trip
+          const nextTrip = driverTrips.find(t => parseRit(t.ritase_no) === curRitNo + 1);
+          if (nextTrip) {
+            status = 'OTW PDC';
+            origin = currentTrip.pdc_bongkar;
+            destination = nextTrip.pdc_muat;
+          } else {
+            status = 'Finished';
+          }
+        } else if (currentTrip.actual_out_pdc) {
+          status = 'OTW Destination';
+          lastUpdate = currentTrip.actual_out_pdc;
+        } else if (currentTrip.actual_in_pdc) {
+          status = 'In PDC';
+          lastUpdate = currentTrip.actual_in_pdc;
+        } else if (currentTrip.actual_outpool) {
+          status = 'OTW PDC';
+          lastUpdate = currentTrip.actual_outpool;
+          origin = 'Pool';
+          destination = currentTrip.pdc_muat;
+        }
+      }
+
+      return {
+        id: dId,
+        driverName: driverInfo?.name || 'Unknown Driver',
+        nopol: driverInfo?.no_polisi || firstTrip.no_polisi || 'No Plat',
+        currentRitase: currentTrip ? parseRit(currentTrip.ritase_no) : 0,
+        totalRitase: driverTrips.length,
+        status,
+        lastUpdate,
+        origin,
+        destination
+      };
+    });
+
+    console.log('--- FLEET FETCH SUCCESS ---');
+    return fleet;
+  } catch (e) {
+    console.error('CRITICAL ERROR in fetchFleetMonitoringData:', e);
+    return [];
+  }
+}

@@ -17,6 +17,7 @@ interface NavbarProps {
 
 const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   '/': { title: 'Journal Trip', sub: 'Ritase & Driver Tracking' },
+  '/monitoring': { title: 'Fleet Monitoring', sub: 'Live Status & Schedule' },
   '/drivers': { title: 'Drivers Registry', sub: 'Data Master Pengemudi' },
 };
 
