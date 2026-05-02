@@ -14,7 +14,9 @@ export interface EcoViolation {
   lokasi: string;
   latitude: number | null;
   longitude: number | null;
+  koordinat?: string;
   area: string;
+  customer?: string;
   grup_kendaraan: string;
 }
 
@@ -50,31 +52,39 @@ export interface EcoSummary {
 // ─── FETCH ALL VIOLATIONS (with optional filters) ─────────────────────────────
 export async function fetchEcoViolations(options?: {
   area?: string;
+  customer?: string;
   startDate?: string;
   endDate?: string;
+  driverId?: string;
+  driverName?: string;
+  monthFilter?: string; // e.g., '%-Apr-26' for fast DB filtering
 }): Promise<EcoViolation[]> {
   let allData: EcoViolation[] = [];
   let from = 0;
   const pageSize = 1000;
 
-  // Sedot semua baris data mentah ke frontend
-  // Mengurangi load dengan filter langsung di Postgres (murni perbandingan String sehingga aman dari TimeZone Javascript)
   while (true) {
     let query = supabase
       .from('eco_driving_violations')
       .select('*')
-      .order('tanggal', { ascending: false })
-      .order('id', { ascending: false }) // PENYELAMAT PAGINASI BIAR GAK ADA DATA YANG KE-SKIP
+      .order('Tanggal', { ascending: false })
+      .order('id', { ascending: false })
       .range(from, from + pageSize - 1);
 
+    if (options?.driverId) {
+      query = query.eq('driver_id', options.driverId);
+    } else if (options?.driverName) {
+      query = query.eq('Pengemudi', options.driverName);
+    }
+
     if (options?.area && options.area !== 'ALL') {
-      query = query.eq('area', options.area);
+      query = query.eq('Area', options.area);
     }
-    if (options?.startDate) {
-      query = query.gte('tanggal', options.startDate);
+    if (options?.customer && options.customer !== 'ALL') {
+      query = query.eq('Customer', options.customer);
     }
-    if (options?.endDate) {
-      query = query.lte('tanggal', options.endDate);
+    if (options?.monthFilter) {
+      query = query.ilike('Tanggal', options.monthFilter);
     }
 
     const { data, error } = await query;
@@ -84,7 +94,25 @@ export async function fetchEcoViolations(options?: {
     }
 
     if (data && data.length > 0) {
-      allData = [...allData, ...data];
+      const mapped = data.map((item: any) => ({
+        id: item.id,
+        tanggal: item.Tanggal || '',
+        waktu: item.Waktu || '',
+        plat_nomor: item["Plat Nomor"] || '',
+        pengemudi: item.Pengemudi || '',
+        driver_id: item.driver_id,
+        jenis_peringatan: item["Jenis Peringatan"] || '',
+        tingkat_urgensi: item["Tingkat Urgensi"] || '',
+        detail: item.Detail || '',
+        lokasi: item.Lokasi || '',
+        latitude: parseFloat(item.Latitude) || null,
+        longitude: parseFloat(item.Longitude) || null,
+        koordinat: item.Koordinat || '',
+        area: item.Area || '',
+        customer: item.Customer || '',
+        grup_kendaraan: item["Grup Kendaraan"] || ''
+      }));
+      allData = [...allData, ...mapped];
     }
 
     if (!data || data.length < pageSize) {
@@ -93,7 +121,7 @@ export async function fetchEcoViolations(options?: {
     from += pageSize;
   }
 
-  return allData.slice(0, 50000);
+  return allData;
 }
 
 // ─── COMPUTE DRIVER RANKINGS ──────────────────────────────────────────────────

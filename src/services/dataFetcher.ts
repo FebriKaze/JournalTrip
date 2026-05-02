@@ -286,7 +286,11 @@ export async function fetchFleetMonitoringData(date: string) {
 
       const driverTrips = trips
         .filter(t => t.driver_id === dId)
-        .sort((a, b) => parseRit(a.ritase_no) - parseRit(b.ritase_no));
+        .sort((a, b) => {
+          const timeA = a.plan_dccp || '00:00:00';
+          const timeB = b.plan_dccp || '00:00:00';
+          return timeA.localeCompare(timeB);
+        });
       
       const firstTrip = driverTrips[0];
       const driverInfo = firstTrip.drivers;
@@ -328,8 +332,8 @@ export async function fetchFleetMonitoringData(date: string) {
       });
       const project = (isTAM ? 'TAM' : 'TMMIN') as 'TAM' | 'TMMIN';
 
-      const enrichedTrips = driverTrips.map(t => {
-        const ritNo = parseRit(t.ritase_no);
+      const enrichedTrips = driverTrips.map((t, index) => {
+        const ritNo = index + 1;
         const shift = (t.shift || '').toUpperCase();
         const inPdc = t.actual_in_pdc || '';
         
@@ -351,12 +355,13 @@ export async function fetchFleetMonitoringData(date: string) {
       });
 
       if (currentTrip) {
-        const curRitNo = parseRit(currentTrip.ritase_no);
+        const curEnriched = enrichedTrips.find(t => t.id === currentTrip.id);
+        const curRitNo = curEnriched?.ritNo || 0;
+        
         origin = currentTrip.pdc_muat || 'Plant';
         destination = currentTrip.pdc_bongkar || 'Tujuan';
         
         // 1. Check for Change Shift (current status)
-        const curEnriched = enrichedTrips.find(t => t.id === currentTrip.id);
         if (curEnriched?.isChange) {
           isChangeShift = true;
           changeRitase = curRitNo;
@@ -375,14 +380,15 @@ export async function fetchFleetMonitoringData(date: string) {
           status = 'At Destination';
           lastUpdate = currentTrip.actual_unloading;
           
-          const nextTrip = driverTrips.find(t => parseRit(t.ritase_no) === curRitNo + 1);
-          if (nextTrip) {
+          const nextEnriched = enrichedTrips.find(t => t.ritNo === curRitNo + 1);
+          if (nextEnriched) {
+            const nextTrip = driverTrips.find(t => t.id === nextEnriched.id);
             status = 'OTW PDC';
             origin = currentTrip.pdc_bongkar;
-            destination = nextTrip.pdc_muat;
-            if (isLate(null, nextTrip.plan_dccp)) {
+            destination = nextTrip?.pdc_muat || 'Plant';
+            if (isLate(null, nextTrip?.plan_dccp || null)) {
               isDelayed = true;
-              delayRitase = parseRit(nextTrip.ritase_no);
+              delayRitase = nextEnriched.ritNo;
             }
           } else {
             status = 'Finished';
@@ -405,7 +411,7 @@ export async function fetchFleetMonitoringData(date: string) {
         id: dId,
         driverName: driverInfo?.name || 'Unknown Driver',
         nopol: driverInfo?.no_polisi || firstTrip.no_polisi || 'No Plat',
-        currentRitase: currentTrip ? parseRit(currentTrip.ritase_no) : 0,
+        currentRitase: currentTrip ? (enrichedTrips.find(t => t.id === currentTrip.id)?.ritNo || 0) : 0,
         totalRitase: driverTrips.length,
         status,
         lastUpdate,

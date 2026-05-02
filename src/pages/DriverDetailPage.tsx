@@ -12,9 +12,24 @@ import {
   BarChart3,
   Search,
   ChevronDown,
-  ChevronRight as ChevronRightIcon
+  ChevronRight as ChevronRightIcon,
+  TrendingUp,
+  Activity,
+  X
 } from 'lucide-react';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 import { fetchDriverProfile } from '../services/dataFetcher';
+import { fetchEcoViolations, EcoViolation } from '../services/ecoDataFetcher';
 import { Driver, Ritase } from '../types';
 import RitaseItem from '../components/dashboard/RitaseItem';
 
@@ -26,10 +41,14 @@ export default function DriverDetailPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [driver, setDriver] = useState<Driver | null>(location.state?.driver || null);
   const [ritases, setRitases] = useState<(Ritase & { tanggal: string })[]>([]);
+  const [ecoViolations, setEcoViolations] = useState<EcoViolation[]>([]);
+  const [showEcoModal, setShowEcoModal] = useState(false);
+  const [ecoPage, setEcoPage] = useState(1);
+  const ecoItemsPerPage = 5;
   const [isLoading, setIsLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // Sweet spot between 5 and 10
+  const itemsPerPage = 8;
 
   const loadProfile = useCallback(async () => {
     if (!id) return;
@@ -38,6 +57,49 @@ export default function DriverDetailPage() {
     if (data) {
       setDriver(data.driver);
       setRitases(data.ritases);
+      
+      // Fetch Eco Violations for this driver
+      const driverId = data.driver.id;
+      const driverName = data.driver.name;
+      
+      const ecoData = await fetchEcoViolations({
+        driverId: driverId,
+        driverName: driverName
+      });
+
+      // Helper to match month from "DD-Mon-YY" (e.g. 01-Jan-26) with "YYYY-MM" (e.g. 2026-01)
+      const matchesMonth = (dbDate: string, targetMonth: string) => {
+        if (!dbDate || !targetMonth) return false;
+        // dbDate example: "01-Jan-26"
+        // targetMonth example: "2026-04"
+        const [year, month] = targetMonth.split('-');
+        const monthMap: any = { 
+          'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
+          'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+        };
+        const dbParts = dbDate.split('-');
+        if (dbParts.length !== 3) return false;
+        const dbMonth = monthMap[dbParts[1]];
+        const dbYear = '20' + dbParts[2]; // assuming 20xx
+        return dbYear === year && dbMonth === month;
+      };
+
+      const driverViolations = ecoData.filter(v => {
+        const isThisDriver = v.driver_id === driverId || v.pengemudi?.toLowerCase() === driverName.toLowerCase();
+        const isThisMonth = matchesMonth(v.tanggal, selectedMonth);
+        return isThisDriver && isThisMonth;
+      });
+      
+      console.log('--- ECO DRIVING DIAGNOSTIC ---');
+      console.log('Driver ID:', driverId);
+      console.log('Driver Name:', driverName);
+      console.log('Selected Month:', selectedMonth);
+      console.log('Raw Data Samples:', ecoData.slice(0, 3));
+      console.log('Matched for Driver (total):', ecoData.filter(v => v.driver_id === driverId || v.pengemudi?.toLowerCase() === driverName.toLowerCase()).length);
+      console.log('Matched for Month (total):', ecoData.filter(v => matchesMonth(v.tanggal, selectedMonth)).length);
+      console.log('Final Filtered Result:', driverViolations.length);
+      
+      setEcoViolations(driverViolations);
     }
     setIsLoading(false);
   }, [id, selectedMonth]);
@@ -175,14 +237,23 @@ export default function DriverDetailPage() {
               <p className="text-3xl font-black text-slate-900 dark:text-white">{driver.totalRitaseMonth || 0} <span className="text-sm font-bold text-slate-400 italic">This Month</span></p>
             </div>
 
-            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl shadow-sm">
+            <div 
+              onClick={() => setShowEcoModal(true)}
+              className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl shadow-sm cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all border border-transparent hover:border-orange-200"
+            >
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total Pelanggaran</p>
               </div>
-              <p className="text-3xl font-black text-slate-900 dark:text-white">{driver.totalViolations || 0} <span className="text-sm font-bold text-slate-400 italic">Total</span></p>
+              <p className="text-3xl font-black text-slate-900 dark:text-white">
+                {ecoViolations.length} 
+                <span className="text-sm font-bold text-slate-400 italic ml-2">This Month</span>
+              </p>
+              <div className="mt-2 flex items-center gap-1 text-[10px] font-black text-orange-600 uppercase tracking-tighter">
+                View Details <TrendingUp className="w-3 h-3" />
+              </div>
             </div>
 
             <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl shadow-sm">
@@ -227,6 +298,41 @@ export default function DriverDetailPage() {
                   <p className="font-bold text-slate-900 dark:text-white">
                     {driver.simExpiry ? new Date(driver.simExpiry).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '---'}
                   </p>
+                </div>
+              </div>
+
+              {/* Eco Driving Summary Card */}
+              <div className="pt-4">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full" />
+                  Eco Driving Summary
+                </h3>
+                <div 
+                  onClick={() => setShowEcoModal(true)}
+                  className="bg-linear-to-br from-slate-900 to-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden group cursor-pointer"
+                >
+                  <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                    <Activity className="w-32 h-32 text-white" />
+                  </div>
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Safety Performance</p>
+                    <h4 className="text-2xl font-black text-white mb-4">Analysis Report</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
+                        <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Total Incidents</p>
+                        <p className="text-xl font-black text-white">{ecoViolations.length}</p>
+                      </div>
+                      <div className="p-3 bg-white/5 rounded-2xl border border-white/10 text-right">
+                        <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Trend Status</p>
+                        <p className={`text-xs font-black ${ecoViolations.length > 5 ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {ecoViolations.length > 5 ? 'High Risk' : 'Healthy'}
+                        </p>
+                      </div>
+                    </div>
+                    <button className="w-full mt-6 py-3 bg-white/10 hover:bg-white/20 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all border border-white/5">
+                      Open Detailed Analysis
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -350,6 +456,254 @@ export default function DriverDetailPage() {
           </div>
         </div>
       </div>
+      {/* ── ECO DRIVING DETAIL MODAL ── */}
+      <AnimatePresence>
+        {showEcoModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEcoModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-y-auto border border-slate-200/60 dark:border-slate-800"
+            >
+              <div className="p-8">
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-[24px] bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+                      <Activity className="w-8 h-8 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white">Eco Driving Analysis</h3>
+                      <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Detail Pelanggaran & Tren Mengemudi</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowEcoModal(false)}
+                    className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Analysis Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                  <div className="lg:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800/60">
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Violation Trend</h4>
+                      <div className="flex gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-orange-500" />
+                          <span className="text-[9px] font-black text-slate-500 uppercase">Incidents</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={(() => {
+                          const daily = ecoViolations.reduce((acc: any, v) => {
+                            const day = new Date(v.tanggal).getDate();
+                            acc[day] = (acc[day] || 0) + 1;
+                            return acc;
+                          }, {});
+                          // Generate array for all days in month
+                          return Array.from({ length: 31 }, (_, i) => ({
+                            day: i + 1,
+                            count: daily[i + 1] || 0
+                          }));
+                        })()}>
+                          <defs>
+                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.1} />
+                          <XAxis 
+                            dataKey="day" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
+                            interval={4}
+                            tickFormatter={(val) => `Tgl ${val}`}
+                          />
+                          <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
+                            allowDecimals={false}
+                          />
+                          <Tooltip 
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="bg-slate-900 p-3 rounded-2xl shadow-2xl border border-slate-800">
+                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">{label} April 2026</p>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                                      <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">Insiden</span></p>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Area 
+                            name="Jumlah Insiden"
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#f97316" 
+                            strokeWidth={4}
+                            fillOpacity={1} 
+                            fill="url(#colorCount)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="p-5 bg-orange-50 dark:bg-orange-950/20 rounded-[24px] border border-orange-100 dark:border-orange-900/30">
+                      <p className="text-[10px] font-black text-orange-600 uppercase mb-1">Most Frequent</p>
+                      <h5 className="text-sm font-black text-slate-900 dark:text-white truncate">
+                        {(() => {
+                          const counts: any = {};
+                          ecoViolations.forEach(v => counts[v.jenis_peringatan] = (counts[v.jenis_peringatan] || 0) + 1);
+                          return Object.entries(counts).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || 'None';
+                        })()}
+                      </h5>
+                    </div>
+                    <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[24px] border border-slate-100 dark:border-slate-800">
+                      <p className="text-[10px] font-black text-slate-400 uppercase mb-4">Violation Breakdown</p>
+                      <div className="space-y-3">
+                        {['Akselerasi', 'Perlambatan', 'Kecepatan', 'Tikungan'].map(cat => {
+                          const count = ecoViolations.filter(v => v.jenis_peringatan.includes(cat)).length;
+                          const pct = ecoViolations.length ? (count / ecoViolations.length) * 100 : 0;
+                          return (
+                            <div key={cat}>
+                              <div className="flex justify-between text-[9px] font-black uppercase mb-1">
+                                <span className="text-slate-500">{cat}</span>
+                                <span className="text-slate-900 dark:text-white">{count}</span>
+                              </div>
+                              <div className="h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div className="h-full bg-orange-500" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* History Table */}
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Historical Events</h4>
+                <div className="bg-slate-50 dark:bg-slate-800/30 rounded-[32px] overflow-hidden border border-slate-100 dark:border-slate-800 mb-6">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800">
+                        <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Waktu</th>
+                        <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Jenis Pelanggaran</th>
+                        <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Lokasi</th>
+                        <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-right">Unit</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {ecoViolations.slice((ecoPage - 1) * ecoItemsPerPage, ecoPage * ecoItemsPerPage).map((v, i) => (
+                        <tr key={i} className="hover:bg-white dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <p className="font-black text-slate-900 dark:text-white">
+                              {new Date(v.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">{v.waktu}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${
+                              v.jenis_peringatan.toLowerCase().includes('akselerasi') ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                              v.jenis_peringatan.toLowerCase().includes('perlambatan') ? 'bg-red-100 text-red-700 border border-red-200' :
+                              v.jenis_peringatan.toLowerCase().includes('kecepatan') ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                              'bg-blue-100 text-blue-700 border border-blue-200'
+                            }`}>
+                              <div className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                                v.jenis_peringatan.toLowerCase().includes('akselerasi') ? 'bg-orange-500' :
+                                v.jenis_peringatan.toLowerCase().includes('perlambatan') ? 'bg-red-500' :
+                                v.jenis_peringatan.toLowerCase().includes('kecepatan') ? 'bg-amber-500' :
+                                'bg-blue-500'
+                              }`} />
+                              {v.jenis_peringatan}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="font-bold text-slate-500 dark:text-slate-400 line-clamp-1 text-[10px]">{v.lokasi}</p>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="font-black text-slate-900 dark:text-white">{v.plat_nomor}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Eco Pagination */}
+                {ecoViolations.length > ecoItemsPerPage && (
+                  <div className="flex justify-center items-center gap-2 mb-8">
+                    <button 
+                      disabled={ecoPage === 1}
+                      onClick={() => setEcoPage(p => p - 1)}
+                      className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl disabled:opacity-30 text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, Math.ceil(ecoViolations.length / ecoItemsPerPage)) }, (_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setEcoPage(pageNum)}
+                            className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
+                              ecoPage === pageNum 
+                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-400/20' 
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-900'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button 
+                      disabled={ecoPage >= Math.ceil(ecoViolations.length / ecoItemsPerPage)}
+                      onClick={() => setEcoPage(p => p + 1)}
+                      className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl disabled:opacity-30 text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all"
+                    >
+                      <ChevronRightIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center sticky bottom-0">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Data updated monthly from telematics logs.</p>
+                <button 
+                  onClick={() => setShowEcoModal(false)}
+                  className="px-8 py-3 bg-red-600 rounded-2xl text-xs font-black text-white shadow-xl shadow-red-500/30 hover:bg-red-700 transition-all uppercase tracking-widest"
+                >
+                  Close Analysis
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

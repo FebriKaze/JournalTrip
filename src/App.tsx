@@ -8,6 +8,7 @@ import RitaseTracking from './components/dashboard/RitaseTracking';
 import DriversPage from './pages/DriversPage';
 import DriverDetailPage from './pages/DriverDetailPage';
 import FleetMonitoringPage from './pages/FleetMonitoringPage';
+import EcoDrivingPage from './pages/EcoDrivingPage';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
@@ -189,6 +190,7 @@ export default function App() {
                   </AnimatePresence>
                 } />
                 <Route path="/monitoring" element={<FleetMonitoringPage />} />
+                <Route path="/eco" element={<EcoDrivingPage />} />
                 <Route path="/drivers" element={<DriversPage />} />
                 <Route path="/drivers/:id" element={<DriverDetailPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
