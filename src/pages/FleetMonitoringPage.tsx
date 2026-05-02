@@ -9,7 +9,8 @@ import {
   Search,
   ArrowRight,
   Calendar,
-  RefreshCcw
+  RefreshCcw,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchFleetMonitoringData } from '../services/dataFetcher';
@@ -28,13 +29,23 @@ interface FleetArmada {
   lastUpdate: string;
   origin: string;
   destination: string;
+  shift: string;
+  areaCategory: 'TAM' | 'TMMIN';
+  isChangeShift: boolean;
+  changeRitase: number;
+  isDelayed: boolean;
+  delayRitase: number;
+  allTrips: any[];
 }
 
 export default function FleetMonitoringPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedShift, setSelectedShift] = useState<'ALL' | 'DAY' | 'NIGHT'>('ALL');
+  const [selectedArea, setSelectedArea] = useState<'ALL' | 'TAM' | 'TMMIN'>('ALL');
   const [fleetData, setFleetData] = useState<FleetArmada[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const monthInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDriver, setSelectedDriver] = useState<FleetArmada | null>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
     const offset = now.getTimezoneOffset();
@@ -45,7 +56,12 @@ export default function FleetMonitoringPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     const data = await fetchFleetMonitoringData(selectedDate);
-    setFleetData(data || []);
+    // Map project to areaCategory to match the updated interface
+    const mappedData = (data || []).map((item: any) => ({
+      ...item,
+      areaCategory: item.project
+    }));
+    setFleetData(mappedData);
     setIsLoading(false);
   }, [selectedDate]);
 
@@ -63,33 +79,38 @@ export default function FleetMonitoringPage() {
     return () => { supabase.removeChannel(channel); };
   }, [loadData]);
 
-  const stats = useMemo(() => {
-    return {
-      total: fleetData.length,
-      inPool: fleetData.filter(f => f.status === 'In Pool').length,
-      otwPdc: fleetData.filter(f => f.status === 'OTW PDC').length,
-      inPdc: fleetData.filter(f => f.status === 'In PDC').length,
-      otwDest: fleetData.filter(f => f.status === 'OTW Destination').length,
-      atDest: fleetData.filter(f => f.status === 'At Destination').length,
-    };
-  }, [fleetData]);
-
   const getStatusColor = (status: FleetStatus) => {
     switch (status) {
-      case 'In Pool': return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400';
-      case 'OTW PDC': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'In PDC': return 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400';
-      case 'OTW Destination': return 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400';
-      case 'At Destination': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400';
-      case 'Finished': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-      default: return 'bg-slate-100 text-slate-600';
+      case 'In Pool': return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
+      case 'OTW PDC': return 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400';
+      case 'In PDC': return 'bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400';
+      case 'OTW Destination': return 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400';
+      case 'At Destination': return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400';
+      case 'Finished': return 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400';
+      default: return 'bg-slate-100 text-slate-500';
     }
   };
 
-  const filteredFleet = fleetData.filter(f => 
-    f.driverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.nopol.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFleet = fleetData.filter(f => {
+    const matchesSearch = f.driverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         f.nopol.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesShift = selectedShift === 'ALL' || f.shift.toUpperCase().includes(selectedShift);
+    const matchesArea = selectedArea === 'ALL' || f.areaCategory === selectedArea;
+
+    return matchesSearch && matchesShift && matchesArea;
+  });
+
+  const stats = useMemo(() => {
+    return {
+      total: filteredFleet.length,
+      inPool: filteredFleet.filter(f => f.status === 'In Pool').length,
+      otwPdc: filteredFleet.filter(f => f.status === 'OTW PDC').length,
+      inPdc: filteredFleet.filter(f => f.status === 'In PDC').length,
+      otwDest: filteredFleet.filter(f => f.status === 'OTW Destination').length,
+      atDest: filteredFleet.filter(f => f.status === 'At Destination' || f.status === 'Finished').length,
+    };
+  }, [filteredFleet]);
 
   return (
     <div className="space-y-8 pb-12">
@@ -104,6 +125,66 @@ export default function FleetMonitoringPage() {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
+          {/* Area Filter - Responsive */}
+          <div className="relative group">
+            {/* Desktop Buttons */}
+            <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+              {(['ALL', 'TAM', 'TMMIN'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setSelectedArea(p)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${
+                    selectedArea === p 
+                      ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' 
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            {/* Mobile Dropdown */}
+            <select 
+              value={selectedArea}
+              onChange={(e) => setSelectedArea(e.target.value as any)}
+              className="lg:hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 text-[10px] font-black focus:outline-none appearance-none shadow-sm dark:text-white"
+            >
+              <option value="ALL">AREA: ALL</option>
+              <option value="TAM">AREA: TAM</option>
+              <option value="TMMIN">AREA: TMMIN</option>
+            </select>
+          </div>
+
+          {/* Shift Filter - Responsive */}
+          <div className="relative group">
+            {/* Desktop Buttons */}
+            <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+              {(['ALL', 'DAY', 'NIGHT'] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSelectedShift(s)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${
+                    selectedShift === s 
+                      ? 'bg-white dark:bg-slate-800 text-red-600 shadow-sm' 
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            {/* Mobile Dropdown */}
+            <select 
+              value={selectedShift}
+              onChange={(e) => setSelectedShift(e.target.value as any)}
+              className="lg:hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 text-[10px] font-black focus:outline-none appearance-none shadow-sm dark:text-white"
+            >
+              <option value="ALL">SHIFT: ALL</option>
+              <option value="DAY">SHIFT: DAY</option>
+              <option value="NIGHT">SHIFT: NIGHT</option>
+            </select>
+          </div>
+
           {/* Date Navigation Control */}
           <div className="flex items-center bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
             <button 
@@ -117,17 +198,20 @@ export default function FleetMonitoringPage() {
               <ArrowRight className="w-4 h-4 rotate-180" />
             </button>
             
-            <div className="relative flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <div 
+              onClick={() => dateInputRef.current?.showPicker()}
+              className="relative flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/cal"
+            >
               <Calendar className="w-4 h-4 text-red-500" />
-              <span className="text-xs font-black text-slate-900 dark:text-white">
-                {new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+              <span className="text-[10px] md:text-xs font-black text-slate-900 dark:text-white whitespace-nowrap">
+                {new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
               </span>
               <input 
-                ref={monthInputRef}
+                ref={dateInputRef}
                 type="date" 
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                className="absolute inset-0 opacity-0 pointer-events-auto cursor-pointer z-20"
               />
             </div>
 
@@ -143,14 +227,14 @@ export default function FleetMonitoringPage() {
             </button>
           </div>
 
-          <div className="relative group">
+          <div className="relative group flex-1 md:flex-none">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-red-500 transition-colors" />
             <input 
               type="text" 
-              placeholder="Cari armada..."
+              placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white dark:bg-slate-900 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-bold focus:outline-none shadow-sm dark:text-white w-full md:w-40"
+              className="bg-white dark:bg-slate-900 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold focus:outline-none shadow-sm border border-slate-200 dark:border-slate-800 dark:text-white w-full md:w-32 lg:w-40"
             />
           </div>
 
@@ -163,13 +247,13 @@ export default function FleetMonitoringPage() {
         </div>
       </div>
 
-      {/* ── SCORE CARDS (STATS) ── */}
+      {/* ── STATS CARDS ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: 'Total Armada', value: stats.total, icon: Truck, color: 'text-slate-600', bg: 'bg-slate-100' },
-          { label: 'In Pool', value: stats.inPool, icon: Building2, color: 'text-slate-500', bg: 'bg-slate-100' },
+          { label: 'Planning Armada', value: stats.total, icon: Truck, color: 'text-slate-500', bg: 'bg-slate-50' },
+          { label: 'In Pool', value: stats.inPool, icon: Building2, color: 'text-slate-400', bg: 'bg-slate-50' },
           { label: 'OTW PDC', value: stats.otwPdc, icon: Navigation, color: 'text-blue-500', bg: 'bg-blue-50' },
-          { label: 'In PDC', value: stats.inPdc, icon: MapPin, color: 'text-amber-500', bg: 'bg-amber-50' },
+          { label: 'In PDC', value: stats.inPdc, icon: MapPin, color: 'text-orange-500', bg: 'bg-orange-50' },
           { label: 'OTW Tujuan', value: stats.otwDest, icon: Navigation, color: 'text-indigo-500', bg: 'bg-indigo-50' },
           { label: 'Sampai Tujuan', value: stats.atDest, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
         ].map((item, i) => (
@@ -235,15 +319,25 @@ export default function FleetMonitoringPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                     {filteredFleet.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <tr 
+                        key={item.id} 
+                        onClick={() => setSelectedDriver(item)}
+                        className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group"
+                      >
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform">
                               <Truck className="w-5 h-5 text-slate-400" />
                             </div>
                             <div>
-                              <p className="font-black text-slate-900 dark:text-white text-sm">{item.driverName}</p>
-                              <p className="text-[10px] font-bold text-slate-400 tracking-wider">{item.nopol}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-black text-slate-900 dark:text-white text-sm">{item.driverName}</p>
+                                <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase ${item.areaCategory === 'TAM' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{item.areaCategory}</span>
+                                {item.isChangeShift && (
+                                  <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter">Rit {item.changeRitase} Change</span>
+                                )}
+                              </div>
+                              <p className="text-[10px] font-bold text-slate-400 tracking-wider">{item.nopol} • {item.shift}</p>
                             </div>
                           </div>
                         </td>
@@ -268,9 +362,17 @@ export default function FleetMonitoringPage() {
                           </div>
                         </td>
                         <td className="px-6 py-5">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(item.status)}`}>
-                            {item.status}
-                          </span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(item.status)}`}>
+                              {item.status}
+                            </span>
+                            {item.isDelayed && (
+                              <span className="text-[9px] font-black text-red-600 animate-pulse flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5" />
+                                Rit {item.delayRitase} Berpotensi Delay
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2 text-slate-400">
@@ -287,20 +389,38 @@ export default function FleetMonitoringPage() {
               {/* Mobile View Cards */}
               <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredFleet.map((item) => (
-                  <div key={item.id} className="p-5 space-y-4">
+                  <div 
+                    key={item.id} 
+                    onClick={() => setSelectedDriver(item)}
+                    className="p-5 space-y-4 active:bg-slate-50 dark:active:bg-slate-800 transition-colors"
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                           <Truck className="w-5 h-5 text-slate-400" />
                         </div>
                         <div>
-                          <p className="font-black text-slate-900 dark:text-white text-sm">{item.driverName}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-slate-900 dark:text-white text-sm">{item.driverName}</p>
+                            <span className={`px-1 py-0.5 rounded text-[6px] font-black uppercase ${item.areaCategory === 'TAM' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{item.areaCategory}</span>
+                            {item.isChangeShift && (
+                              <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-1 py-0.5 rounded text-[6px] font-black uppercase tracking-tighter">Change</span>
+                            )}
+                          </div>
                           <p className="text-[10px] font-bold text-slate-400 tracking-wider">{item.nopol}</p>
                         </div>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusColor(item.status)}`}>
-                        {item.status}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusColor(item.status)}`}>
+                          {item.status}
+                        </span>
+                        {item.isDelayed && (
+                          <span className="text-[8px] font-black text-red-600 animate-pulse flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            Rit {item.delayRitase} Delay
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl">
@@ -336,6 +456,143 @@ export default function FleetMonitoringPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* ── DRIVER DETAILS MODAL ── */}
+      <AnimatePresence>
+        {selectedDriver && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedDriver(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white dark:bg-slate-900 w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/60 dark:border-slate-800"
+            >
+              <div className="p-6 md:p-8">
+                <div className="flex justify-between items-start mb-10">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-[24px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                      <Truck className="w-8 h-8 text-red-600" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white">{selectedDriver.driverName}</h3>
+                        <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{selectedDriver.areaCategory}</span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-400">{selectedDriver.nopol} • {selectedDriver.shift}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedDriver(null)}
+                    className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                  {/* Vertical Timeline */}
+                  <div className="lg:col-span-3 space-y-6">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Operational Timeline</h4>
+                    <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                      {selectedDriver.allTrips.map((trip: any, idx: number) => (
+                        <div key={idx} className="relative pl-10 pb-4">
+                          {/* Vertical Line */}
+                          {idx < selectedDriver.allTrips.length - 1 && (
+                            <div className="absolute left-[19px] top-8 bottom-0 w-0.5 bg-slate-100 dark:bg-slate-800" />
+                          )}
+                          
+                          {/* Circle Indicator */}
+                          <div className={`absolute left-0 top-1 w-10 h-10 rounded-2xl flex items-center justify-center z-10 ${
+                            trip.actual_unloading ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+                          }`}>
+                            <span className="text-xs font-black">R{trip.ritNo}</span>
+                          </div>
+
+                          <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{trip.pdc_muat}</span>
+                                <ArrowRight className="w-3 h-3 text-slate-300" />
+                                <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{trip.pdc_bongkar}</span>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                {trip.isDelayed && (
+                                  <span className="text-[7px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-black uppercase animate-pulse">Berpotensi Delay</span>
+                                )}
+                                {trip.isChange && (
+                                  <span className="text-[7px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded font-black uppercase">Change Shift</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Plan DCCP</p>
+                                <p className="text-xs font-black text-slate-900 dark:text-white">{trip.plan_dccp || '--:--'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Actual In PDC</p>
+                                <p className={`text-xs font-black ${trip.isDelayed ? 'text-red-500' : 'text-emerald-500'}`}>
+                                  {trip.actual_in_pdc || (trip.isDelayed ? 'BELUM MASUK' : '--:--')}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Info Sidebar */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Monitoring Guide</h4>
+                    <div className="p-5 bg-blue-50/50 dark:bg-blue-500/5 rounded-[24px] border border-blue-100/50 dark:border-blue-900/20">
+                      <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 mb-4 uppercase tracking-widest">Parameter Logic</p>
+                      <ul className="space-y-4">
+                        <li className="flex gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1 shrink-0" />
+                          <p className="text-[10px] font-bold text-slate-500 leading-relaxed">
+                            <span className="text-slate-800 dark:text-slate-300">Potential Delay:</span> Sistem mendeteksi jika unit belum masuk PDC melewati jam Plan DCCP.
+                          </p>
+                        </li>
+                        <li className="flex gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1 shrink-0" />
+                          <p className="text-[10px] font-bold text-slate-500 leading-relaxed">
+                            <span className="text-slate-800 dark:text-slate-300">Change Shift:</span> Ditandai otomatis jika Day Shift muat &gt; 17:00 atau Night Shift muat &gt; 05:00 pagi.
+                          </p>
+                        </li>
+                        <li className="flex gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1 shrink-0" />
+                          <p className="text-[10px] font-bold text-slate-500 leading-relaxed">
+                            <span className="text-slate-800 dark:text-slate-300">Cascading Effect:</span> Jika Rit 1 telat, status Rit berikutnya otomatis ikut terpantau delay.
+                          </p>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200/60 dark:border-slate-800 flex justify-between items-center px-8">
+                <p className="text-[10px] font-bold text-slate-400 italic">Data diperbarui secara real-time dari sistem pusat.</p>
+                <button 
+                  onClick={() => setSelectedDriver(null)}
+                  className="px-8 py-3 bg-white dark:bg-slate-800 rounded-2xl text-xs font-black text-slate-900 dark:text-white shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Tutup Monitor
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

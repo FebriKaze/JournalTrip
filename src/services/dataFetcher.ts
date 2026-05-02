@@ -291,31 +291,99 @@ export async function fetchFleetMonitoringData(date: string) {
       const firstTrip = driverTrips[0];
       const driverInfo = firstTrip.drivers;
       
-      // Find the "current" ritase: 
-      // 1. The first one that is NOT finished (actual_unloading is null)
-      // 2. OR the last one if all are finished
+      // Helper to compare times (HH:mm)
+      const isLate = (actual: string | null, plan: string | null) => {
+        if (!plan || plan === '--:--') return false;
+        
+        // Only check delay if we are looking at TODAY or past dates
+        const now = new Date();
+        const offset = now.getTimezoneOffset();
+        const todayStr = new Date(now.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+        if (date > todayStr) return false; // Don't flag future dates
+
+        if (!actual || actual === '--:--') {
+          const currentStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          return currentStr > plan;
+        }
+        return actual > plan;
+      };
+
+      // Find the "current" ritase
       let currentTrip = driverTrips.find(t => !t.actual_unloading) || driverTrips[driverTrips.length - 1];
       
       let status: any = 'In Pool';
       let lastUpdate = '--:--';
       let origin = 'Pool';
       let destination = 'Plant';
+      let isDelayed = false;
+      let delayRitase = 0;
+      let isChangeShift = false;
+      let changeRitase = 0;
+
+      // Project Categorization Logic (using 'area' column as requested)
+      const tamKeywords = ['JBK', 'NGORO', 'SUMATERA'];
+      const isTAM = driverTrips.some(t => {
+        const area = (t.area || '').toUpperCase();
+        return tamKeywords.some(key => area.includes(key));
+      });
+      const project = (isTAM ? 'TAM' : 'TMMIN') as 'TAM' | 'TMMIN';
+
+      const enrichedTrips = driverTrips.map(t => {
+        const ritNo = parseRit(t.ritase_no);
+        const shift = (t.shift || '').toUpperCase();
+        const inPdc = t.actual_in_pdc || '';
+        
+        let isChange = false;
+        if (shift.includes('DAY')) {
+          isChange = inPdc > '17:00';
+        } else if (shift.includes('NIGHT')) {
+          // Night shift normally ends in the morning. 
+          // If they are still loading (Muat) at 5 AM or later, it's a change shift.
+          isChange = inPdc > '05:00' && inPdc < '12:00'; 
+        }
+
+        return {
+          ...t,
+          ritNo,
+          isDelayed: isLate(t.actual_in_pdc, t.plan_dccp),
+          isChange
+        };
+      });
 
       if (currentTrip) {
         const curRitNo = parseRit(currentTrip.ritase_no);
         origin = currentTrip.pdc_muat || 'Plant';
         destination = currentTrip.pdc_bongkar || 'Tujuan';
+        
+        // 1. Check for Change Shift (current status)
+        const curEnriched = enrichedTrips.find(t => t.id === currentTrip.id);
+        if (curEnriched?.isChange) {
+          isChangeShift = true;
+          changeRitase = curRitNo;
+        }
+
+        // 2. Check for Potential Delay (current status)
+        if (!currentTrip.actual_outpool && isLate(null, currentTrip.plan_dccp)) {
+          isDelayed = true;
+          delayRitase = curRitNo;
+        } else if (curEnriched?.isDelayed) {
+          isDelayed = true;
+          delayRitase = curRitNo;
+        }
 
         if (currentTrip.actual_unloading) {
           status = 'At Destination';
           lastUpdate = currentTrip.actual_unloading;
           
-          // Check for next trip
           const nextTrip = driverTrips.find(t => parseRit(t.ritase_no) === curRitNo + 1);
           if (nextTrip) {
             status = 'OTW PDC';
             origin = currentTrip.pdc_bongkar;
             destination = nextTrip.pdc_muat;
+            if (isLate(null, nextTrip.plan_dccp)) {
+              isDelayed = true;
+              delayRitase = parseRit(nextTrip.ritase_no);
+            }
           } else {
             status = 'Finished';
           }
@@ -342,7 +410,14 @@ export async function fetchFleetMonitoringData(date: string) {
         status,
         lastUpdate,
         origin,
-        destination
+        destination,
+        shift: firstTrip.shift || 'Unknown',
+        project,
+        isChangeShift,
+        changeRitase,
+        isDelayed,
+        delayRitase,
+        allTrips: enrichedTrips
       };
     });
 
