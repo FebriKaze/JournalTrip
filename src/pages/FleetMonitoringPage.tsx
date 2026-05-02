@@ -472,75 +472,84 @@ export default function FleetMonitoringPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/60 dark:border-slate-800"
+              className="relative bg-white dark:bg-slate-900 w-full max-w-3xl max-h-[90vh] rounded-[32px] shadow-2xl overflow-y-auto border border-slate-200/60 dark:border-slate-800"
             >
-              <div className="p-6 md:p-8">
-                <div className="flex justify-between items-start mb-10">
-                  <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-[24px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                      <Truck className="w-8 h-8 text-red-600" />
+              <div className="p-5 md:p-8">
+                <div className="flex justify-between items-start mb-6 md:mb-10">
+                  <div className="flex items-center gap-4 md:gap-5">
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                      <Truck className="w-6 h-6 md:w-8 md:h-8 text-red-600" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white">{selectedDriver.driverName}</h3>
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">{selectedDriver.driverName}</h3>
                         <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{selectedDriver.areaCategory}</span>
                       </div>
-                      <p className="text-sm font-bold text-slate-400">{selectedDriver.nopol} • {selectedDriver.shift}</p>
+                      <p className="text-[10px] md:text-sm font-bold text-slate-400">{selectedDriver.nopol} • {selectedDriver.shift}</p>
                     </div>
                   </div>
                   <button 
                     onClick={() => setSelectedDriver(null)}
-                    className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"
+                    className="p-2 md:p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5 md:w-6 md:h-6" />
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                   {/* Vertical Timeline */}
                   <div className="lg:col-span-3 space-y-6">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Operational Timeline</h4>
-                    <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operational Timeline</h4>
+                    </div>
+                    
+                    <div className="relative space-y-8 pl-4">
+                      {/* Timeline Line */}
+                      <div className="absolute left-[23px] top-4 bottom-4 w-0.5 bg-slate-100 dark:bg-slate-800" />
+                      
                       {selectedDriver.allTrips.map((trip: any, idx: number) => (
-                        <div key={idx} className="relative pl-10 pb-4">
-                          {/* Vertical Line */}
-                          {idx < selectedDriver.allTrips.length - 1 && (
-                            <div className="absolute left-[19px] top-8 bottom-0 w-0.5 bg-slate-100 dark:bg-slate-800" />
-                          )}
+                        <div key={idx} className="relative flex gap-6">
+                          {/* Dot */}
+                          <div className={`z-10 w-5 h-5 rounded-full border-4 border-white dark:border-slate-900 shadow-sm mt-1 shrink-0 ${trip.actual_in_pdc ? 'bg-emerald-500' : 'bg-slate-200'}`} />
                           
-                          {/* Circle Indicator */}
-                          <div className={`absolute left-0 top-1 w-10 h-10 rounded-2xl flex items-center justify-center z-10 ${
-                            trip.actual_unloading ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+                          {/* Card */}
+                          <div className={`flex-1 p-4 rounded-2xl border transition-all ${
+                            trip.ritNo === selectedDriver.currentRitase 
+                              ? 'bg-red-50/30 border-red-100 dark:bg-red-500/5 dark:border-red-900/30' 
+                              : 'bg-white dark:bg-slate-800/40 border-slate-100 dark:border-slate-800'
                           }`}>
-                            <span className="text-xs font-black">R{trip.ritNo}</span>
-                          </div>
-
-                          <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60">
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="flex justify-between items-start mb-4">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{trip.pdc_muat}</span>
-                                <ArrowRight className="w-3 h-3 text-slate-300" />
-                                <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{trip.pdc_bongkar}</span>
+                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black ${
+                                  trip.actual_in_pdc ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                                }`}>
+                                  R{trip.ritNo}
+                                </span>
+                                <div className="flex items-center gap-2 text-xs font-black">
+                                  <span className="text-slate-900 dark:text-white">{trip.pdc_muat}</span>
+                                  <ArrowRight className="w-3 h-3 text-slate-300" />
+                                  <span className="text-slate-900 dark:text-white">{trip.pdc_bongkar}</span>
+                                </div>
                               </div>
-                              <div className="flex flex-col items-end gap-1">
+                              <div className="flex flex-col gap-1 items-end">
                                 {trip.isDelayed && (
-                                  <span className="text-[7px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-black uppercase animate-pulse">Berpotensi Delay</span>
+                                  <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[7px] font-black uppercase animate-pulse">Berpotensi Delay</span>
                                 )}
                                 {trip.isChange && (
-                                  <span className="text-[7px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded font-black uppercase">Change Shift</span>
+                                  <span className="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[7px] font-black uppercase">Change Shift</span>
                                 )}
                               </div>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Plan DCCP</p>
+                              <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Plan DCCP</p>
                                 <p className="text-xs font-black text-slate-900 dark:text-white">{trip.plan_dccp || '--:--'}</p>
                               </div>
-                              <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Actual In PDC</p>
-                                <p className={`text-xs font-black ${trip.isDelayed ? 'text-red-500' : 'text-emerald-500'}`}>
-                                  {trip.actual_in_pdc || (trip.isDelayed ? 'BELUM MASUK' : '--:--')}
+                              <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Actual In PDC</p>
+                                <p className={`text-xs font-black ${trip.isDelayed ? 'text-red-600' : 'text-emerald-600'}`}>
+                                  {trip.actual_in_pdc || 'Waiting...'}
                                 </p>
                               </div>
                             </div>
@@ -580,8 +589,8 @@ export default function FleetMonitoringPage() {
                 </div>
               </div>
               
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200/60 dark:border-slate-800 flex justify-between items-center px-8">
-                <p className="text-[10px] font-bold text-slate-400 italic">Data diperbarui secara real-time dari sistem pusat.</p>
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200/60 dark:border-slate-800 flex justify-between items-center px-8 sticky bottom-0">
+                <p className="text-[10px] font-bold text-slate-400 italic">Data diperbarui secara real-time.</p>
                 <button 
                   onClick={() => setSelectedDriver(null)}
                   className="px-8 py-3 bg-white dark:bg-slate-800 rounded-2xl text-xs font-black text-slate-900 dark:text-white shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 transition-colors"
