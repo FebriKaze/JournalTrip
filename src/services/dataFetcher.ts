@@ -417,6 +417,7 @@ export async function fetchFleetMonitoringData(date: string) {
         changeRitase,
         isDelayed,
         delayRitase,
+        avatar_url: driverInfo?.avatar_url,
         allTrips: enrichedTrips
       };
     });

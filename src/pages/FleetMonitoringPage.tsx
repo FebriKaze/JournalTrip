@@ -10,7 +10,8 @@ import {
   ArrowRight,
   Calendar,
   RefreshCcw,
-  X
+  X,
+  User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchFleetMonitoringData } from '../services/dataFetcher';
@@ -35,6 +36,7 @@ interface FleetArmada {
   changeRitase: number;
   isDelayed: boolean;
   delayRitase: number;
+  avatar_url?: string;
   allTrips: any[];
 }
 
@@ -64,6 +66,14 @@ export default function FleetMonitoringPage() {
     setFleetData(mappedData);
     setIsLoading(false);
   }, [selectedDate]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedDriver(null);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -326,8 +336,12 @@ export default function FleetMonitoringPage() {
                       >
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Truck className="w-5 h-5 text-slate-400" />
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform overflow-hidden">
+                              {item.avatar_url ? (
+                                <img src={item.avatar_url} alt={item.driverName} className="w-full h-full object-cover" />
+                              ) : (
+                                <User className="w-5 h-5 text-slate-400" />
+                              )}
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
@@ -396,8 +410,12 @@ export default function FleetMonitoringPage() {
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                          <Truck className="w-5 h-5 text-slate-400" />
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                          {item.avatar_url ? (
+                            <img src={item.avatar_url} alt={item.driverName} className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-5 h-5 text-slate-400" />
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -477,8 +495,12 @@ export default function FleetMonitoringPage() {
               <div className="p-5 md:p-8">
                 <div className="flex justify-between items-start mb-6 md:mb-10">
                   <div className="flex items-center gap-4 md:gap-5">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                      <Truck className="w-6 h-6 md:w-8 md:h-8 text-red-600" />
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center overflow-hidden">
+                      {selectedDriver.avatar_url ? (
+                        <img src={selectedDriver.avatar_url} alt={selectedDriver.driverName} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-6 h-6 md:w-8 md:h-8 text-red-600" />
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 md:gap-3">
