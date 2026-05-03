@@ -33,10 +33,10 @@ const createCustomIcon = (color: string) => {
 };
 
 const iconMap = {
-  'Akselerasi Mendadak': createCustomIcon('#f97316'), // orange-500
-  'Perlambatan Mendadak': createCustomIcon('#ef4444'), // red-500
-  'Kecepatan Melebihi Batas': createCustomIcon('#f59e0b'), // amber-500
-  'Tikungan Tajam': createCustomIcon('#3b82f6'), // blue-500
+  'Akselerasi Mendadak': createCustomIcon('#1e3a8a'), // navy
+  'Perlambatan Mendadak': createCustomIcon('#3b82f6'), // blue-medium
+  'Kecepatan Melebihi Batas': createCustomIcon('#60a5fa'), // blue-light
+  'Tikungan Tajam': createCustomIcon('#93c5fd'), // blue-young
   'default': createCustomIcon('#64748b'), // slate-500
 };
 
@@ -153,6 +153,15 @@ export default function EcoDrivingPage() {
         const end = new Date(endDate); end.setHours(23,59,59,999);
         return d >= start && d <= end;
       }
+    }).map(v => {
+      // Data Pre-Processing Optimization: Calculate types once on load to avoid string scanning on every filter click
+      const j = v.jenis_peringatan?.toLowerCase() || '';
+      let optType = 'Lainnya';
+      if (j.includes('akselerasi')) optType = 'Akselerasi';
+      else if (j.includes('perlambatan')) optType = 'Perlambatan';
+      else if (j.includes('kecepatan')) optType = 'Kecepatan';
+      else if (j.includes('tikungan')) optType = 'Tikungan';
+      return { ...v, _optimizedType: optType };
     });
     
     setViolations(filtered);
@@ -164,13 +173,7 @@ export default function EcoDrivingPage() {
   const checkFilter = (v: any, checkDriver: boolean, checkType: boolean, checkDate: boolean) => {
     if (checkDriver && cfDriver && v.pengemudi !== cfDriver) return false;
     if (checkDate && cfDate && !v.tanggal.startsWith(cfDate)) return false;
-    if (checkType && cfType) {
-      const j = v.jenis_peringatan?.toLowerCase() || '';
-      if (cfType === 'Akselerasi' && !j.includes('akselerasi')) return false;
-      if (cfType === 'Perlambatan' && !j.includes('perlambatan')) return false;
-      if (cfType === 'Kecepatan' && !j.includes('kecepatan')) return false;
-      if (cfType === 'Tikungan' && !j.includes('tikungan')) return false;
-    }
+    if (checkType && cfType && v._optimizedType !== cfType) return false;
     return true;
   };
 
@@ -192,15 +195,10 @@ export default function EcoDrivingPage() {
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
     typeViolations.forEach(v => {
-      let type = 'Lainnya';
-      const j = v.jenis_peringatan?.toLowerCase() || '';
-      if (j.includes('akselerasi')) type = 'Akselerasi';
-      else if (j.includes('perlambatan')) type = 'Perlambatan';
-      else if (j.includes('kecepatan')) type = 'Kecepatan';
-      else if (j.includes('tikungan')) type = 'Tikungan';
+      const type = v._optimizedType || 'Lainnya';
       counts[type] = (counts[type] || 0) + 1;
     });
-    const colors: any = { 'Akselerasi': '#f97316', 'Perlambatan': '#ef4444', 'Kecepatan': '#eab308', 'Tikungan': '#3b82f6', 'Lainnya': '#64748b' };
+    const colors: any = { 'Akselerasi': '#1e3a8a', 'Perlambatan': '#3b82f6', 'Kecepatan': '#60a5fa', 'Tikungan': '#93c5fd', 'Lainnya': '#64748b' };
     return Object.entries(counts).map(([name, value]) => ({ name, value, color: colors[name] }));
   }, [typeViolations]);
 
@@ -215,7 +213,10 @@ export default function EcoDrivingPage() {
 
   const totalViolations = activeViolations.length;
   
-  const countType = (typeStr: string) => typeViolations.filter(v => v.jenis_peringatan.toLowerCase().includes(typeStr)).length;
+  const countType = (typeStr: string) => typeViolations.filter(v => {
+    const t = v._optimizedType?.toLowerCase() || '';
+    return typeStr === 'perlambatan' ? t === 'perlambatan' : t === typeStr;
+  }).length;
 
   return (
     <div className="space-y-6 pb-20">
@@ -268,7 +269,8 @@ export default function EcoDrivingPage() {
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
                     onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
-                    className="w-full sm:w-auto pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-emerald-500/50 outline-none uppercase tracking-widest transition-all cursor-pointer shadow-sm"
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="w-full sm:w-auto pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-emerald-500/50 outline-none uppercase tracking-widest transition-all cursor-pointer shadow-sm select-none"
                   />
                 </div>
               ) : (
@@ -278,7 +280,8 @@ export default function EcoDrivingPage() {
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
-                    className="flex-1 sm:w-auto sm:flex-none px-2 py-1 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer"
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="flex-1 sm:w-auto sm:flex-none px-2 py-1 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
                   />
                   <span className="text-slate-400 font-bold text-xs">-</span>
                   <input
@@ -286,7 +289,8 @@ export default function EcoDrivingPage() {
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
-                    className="flex-1 sm:w-auto sm:flex-none px-2 py-1 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer"
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="flex-1 sm:w-auto sm:flex-none px-2 py-1 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
                   />
                 </div>
               )}
@@ -408,37 +412,37 @@ export default function EcoDrivingPage() {
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{totalViolations}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Akselerasi' ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-orange-500'}`} onClick={() => setCfType(cfType === 'Akselerasi' ? null : 'Akselerasi')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Akselerasi' ? 'border-blue-800 ring-2 ring-blue-800/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-800'}`} onClick={() => setCfType(cfType === 'Akselerasi' ? null : 'Akselerasi')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Akselerasi</p>
-                  <div className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-900 flex items-center justify-center">
                     <Activity className="w-4 h-4" />
                   </div>
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('akselerasi')}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Perlambatan' ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-red-500'}`} onClick={() => setCfType(cfType === 'Perlambatan' ? null : 'Perlambatan')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Perlambatan' ? 'border-blue-600 ring-2 ring-blue-600/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-600'}`} onClick={() => setCfType(cfType === 'Perlambatan' ? null : 'Perlambatan')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rem Mendadak</p>
-                  <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
                     <AlertCircle className="w-4 h-4" />
                   </div>
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('perlambatan')}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Kecepatan' ? 'border-yellow-500 ring-2 ring-yellow-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-yellow-500'}`} onClick={() => setCfType(cfType === 'Kecepatan' ? null : 'Kecepatan')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Kecepatan' ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-400'}`} onClick={() => setCfType(cfType === 'Kecepatan' ? null : 'Kecepatan')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overspeed</p>
-                  <div className="w-8 h-8 rounded-full bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-400 flex items-center justify-center">
                     <Activity className="w-4 h-4" />
                   </div>
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('kecepatan')}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Tikungan' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-500'}`} onClick={() => setCfType(cfType === 'Tikungan' ? null : 'Tikungan')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Tikungan' ? 'border-blue-300 ring-2 ring-blue-300/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-300'}`} onClick={() => setCfType(cfType === 'Tikungan' ? null : 'Tikungan')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tikungan Tajam</p>
-                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-300 flex items-center justify-center">
                     <Route className="w-4 h-4" />
                   </div>
                 </div>
@@ -481,13 +485,13 @@ export default function EcoDrivingPage() {
                         content={({ active, payload, label }) => {
                           if (active && payload && payload.length) {
                             return (
-                              <div className="bg-slate-900 p-3 rounded-2xl shadow-xl border border-slate-800">
-                                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{label}</p>
+                              <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800">
+                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">{label}</p>
                                 {payload.map((entry, index) => (
                                   Number(entry.value) > 0 && (
                                     <div key={index} className="flex items-center gap-2 mb-1">
                                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                      <span className="text-xs font-bold text-white uppercase">{entry.name}: {entry.value}</span>
+                                      <span className="text-xs font-bold text-slate-900 dark:text-white uppercase">{entry.name}: {entry.value}</span>
                                     </div>
                                   )
                                 ))}
@@ -502,7 +506,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#f97316" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#1e3a8a" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                       <Bar 
@@ -510,7 +514,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#ef4444" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#3b82f6" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                       <Bar 
@@ -518,7 +522,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#eab308" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#60a5fa" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                       <Bar 
@@ -526,7 +530,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#3b82f6" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#93c5fd" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -563,11 +567,11 @@ export default function EcoDrivingPage() {
                             const total = pieData.reduce((acc, curr) => acc + curr.value, 0);
                             const percentage = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
                             return (
-                              <div className="bg-slate-900 p-3 rounded-2xl shadow-xl border border-slate-800 flex items-center gap-3">
+                              <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: payload[0].payload.color }} />
                                 <div>
-                                  <p className="text-[10px] font-black text-slate-400 uppercase">{payload[0].name}</p>
-                                  <p className="text-sm font-black text-white">{percentage}% <span className="text-[10px] text-slate-500 font-bold">({val} kasus)</span></p>
+                                  <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase">{payload[0].name}</p>
+                                  <p className="text-sm font-black text-slate-900 dark:text-white">{percentage}% <span className="text-[10px] text-slate-500 font-bold">({val} kasus)</span></p>
                                 </div>
                               </div>
                             );
@@ -577,6 +581,14 @@ export default function EcoDrivingPage() {
                       />
                     </PieChart>
                   </ResponsiveContainer>
+                </div>
+                <div className="w-full mt-4 flex flex-wrap justify-center gap-3">
+                  {pieData.map((entry, idx) => (
+                    <div key={idx} className={`flex items-center gap-1.5 cursor-pointer transition-opacity ${cfType && cfType !== entry.name ? 'opacity-30' : 'opacity-100 hover:opacity-80'}`} onClick={() => setCfType(cfType === entry.name ? null : entry.name)}>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                      <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{entry.name}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -636,14 +648,26 @@ export default function EcoDrivingPage() {
                             key={`marker-${i}`} 
                             position={[lat, lng]}
                             icon={selectedIcon}
+                            eventHandlers={{
+                              click: (e) => {
+                                const m = e.target._map;
+                                if (m) {
+                                  if (m.getZoom() < 16) {
+                                    m.flyTo([lat, lng], 16, { duration: 1.2 });
+                                  } else {
+                                    m.panTo([lat, lng]);
+                                  }
+                                }
+                              }
+                            }}
                           >
                             <Popup className="custom-popup">
                               <div className="p-1 min-w-[200px]">
                                 <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black uppercase mb-2 ${
-                                  iconKey.includes('Akselerasi') ? 'bg-orange-100 text-orange-700' :
-                                  iconKey.includes('Perlambatan') ? 'bg-red-100 text-red-700' :
-                                  iconKey.includes('Kecepatan') ? 'bg-yellow-100 text-yellow-700' :
-                                  'bg-blue-100 text-blue-700'
+                                  iconKey.includes('Akselerasi') ? 'bg-blue-900 text-blue-100' :
+                                  iconKey.includes('Perlambatan') ? 'bg-blue-600 text-blue-50' :
+                                  iconKey.includes('Kecepatan') ? 'bg-blue-400 text-blue-900' :
+                                  'bg-blue-200 text-blue-800'
                                 }`}>{v.jenis_peringatan}</span>
                                 <p className="text-[10px] text-slate-500 font-bold line-clamp-2">{v.lokasi}</p>
                                 <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
@@ -777,9 +801,9 @@ export default function EcoDrivingPage() {
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="bg-slate-900 p-3 rounded-2xl shadow-xl border border-slate-800">
-                              <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{payload[0].payload.fullName}</p>
-                              <p className="text-lg font-black text-white">{payload[0].value} <span className="text-xs text-slate-500">Insiden</span></p>
+                            <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800">
+                              <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">{payload[0].payload.fullName}</p>
+                              <p className="text-lg font-black text-slate-900 dark:text-white">{payload[0].value} <span className="text-xs text-slate-500">Insiden</span></p>
                             </div>
                           );
                         }
@@ -795,7 +819,7 @@ export default function EcoDrivingPage() {
                       style={{ outline: 'none' }}
                     >
                       {driverBarData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={cfDriver === entry.fullName ? '#059669' : cfDriver ? '#a7f3d0' : '#10b981'} className="hover:opacity-80 transition-opacity focus:outline-none" style={{ outline: 'none' }}/>
+                        <Cell key={`cell-${index}`} fill={cfDriver === entry.fullName ? '#1e40af' : cfDriver ? '#bfdbfe' : '#3b82f6'} className="hover:opacity-80 transition-opacity focus:outline-none" style={{ outline: 'none' }}/>
                       ))}
                     </Bar>
                   </BarChart>

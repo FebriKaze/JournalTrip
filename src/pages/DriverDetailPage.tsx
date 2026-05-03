@@ -499,7 +499,7 @@ export default function DriverDetailPage() {
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Violation Trend</h4>
                       <div className="flex gap-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-orange-500" />
+                          <div className="w-2 h-2 rounded-full bg-sky-500" />
                           <span className="text-[9px] font-black text-slate-500 uppercase">Incidents</span>
                         </div>
                       </div>
@@ -520,19 +520,19 @@ export default function DriverDetailPage() {
                         })()}>
                           <defs>
                             <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.1} />
-                          <XAxis 
-                            dataKey="day" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
-                            interval={4}
-                            tickFormatter={(val) => `Tgl ${val}`}
-                          />
+                            <XAxis 
+                              dataKey="day" 
+                              axisLine={false} 
+                              tickLine={false} 
+                              tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
+                              interval={4}
+                              tickFormatter={(val) => val}
+                            />
                           <YAxis 
                             axisLine={false} 
                             tickLine={false} 
@@ -546,7 +546,7 @@ export default function DriverDetailPage() {
                                   <div className="bg-slate-900 p-3 rounded-2xl shadow-2xl border border-slate-800">
                                     <p className="text-[10px] font-black text-slate-500 uppercase mb-1">{label} April 2026</p>
                                     <div className="flex items-center gap-2">
-                                      <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                                      <div className="w-2 h-2 bg-sky-500 rounded-full" />
                                       <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">Insiden</span></p>
                                     </div>
                                   </div>
@@ -559,7 +559,7 @@ export default function DriverDetailPage() {
                             name="Jumlah Insiden"
                             type="monotone" 
                             dataKey="count" 
-                            stroke="#f97316" 
+                            stroke="#0ea5e9" 
                             strokeWidth={4}
                             fillOpacity={1} 
                             fill="url(#colorCount)" 
@@ -570,8 +570,8 @@ export default function DriverDetailPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="p-5 bg-orange-50 dark:bg-orange-950/20 rounded-[24px] border border-orange-100 dark:border-orange-900/30">
-                      <p className="text-[10px] font-black text-orange-600 uppercase mb-1">Most Frequent</p>
+                    <div className="p-5 bg-sky-50 dark:bg-sky-950/20 rounded-[24px] border border-sky-100 dark:border-sky-900/30">
+                      <p className="text-[10px] font-black text-sky-600 uppercase mb-1">Most Frequent</p>
                       <h5 className="text-sm font-black text-slate-900 dark:text-white truncate">
                         {(() => {
                           const counts: any = {};

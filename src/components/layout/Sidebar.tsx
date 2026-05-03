@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, User, Search, PanelLeftClose, PanelLeft,
-  Route, Leaf, Users, ChevronRight, BarChart3
+  Route, Leaf, Users, ChevronRight, BarChart3, Clock
 } from 'lucide-react';
 import { Driver } from '../../types';
 import Logo from '../../image/Logo.png';
@@ -24,6 +24,7 @@ interface SidebarProps {
 const NAV_ITEMS: { id: string; label: string; icon: ReactNode; sub?: string; path: string }[] = [
   { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking', path: '/' },
   { id: 'monitoring', label: 'Monitoring', icon: <BarChart3 className="w-5 h-5" />, sub: 'Fleet Status', path: '/monitoring' },
+  { id: 'leadtime', label: 'LeadTime', icon: <Clock className="w-5 h-5" />, sub: 'Performance', path: '/leadtime' },
   { id: 'eco', label: 'Eco Driving', icon: <Leaf className="w-5 h-5" />, sub: 'Safety Analytics', path: '/eco' },
   { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi', path: '/drivers' },
 ];

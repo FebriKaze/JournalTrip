@@ -18,7 +18,9 @@ interface NavbarProps {
 const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   '/': { title: 'Journal Trip', sub: 'Ritase & Driver Tracking' },
   '/monitoring': { title: 'Fleet Monitoring', sub: 'Live Status & Schedule' },
+  '/leadtime': { title: 'LeadTime Center', sub: 'Performance & Delay Analytics' },
   '/drivers': { title: 'Drivers Registry', sub: 'Data Master Pengemudi' },
+  '/eco': { title: 'Eco Driving', sub: 'Safety Analytics Dashboard' },
 };
 
 export default function Navbar({

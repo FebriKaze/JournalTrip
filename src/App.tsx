@@ -9,6 +9,7 @@ import DriversPage from './pages/DriversPage';
 import DriverDetailPage from './pages/DriverDetailPage';
 import FleetMonitoringPage from './pages/FleetMonitoringPage';
 import EcoDrivingPage from './pages/EcoDrivingPage';
+import LeadTimePage from './pages/LeadTimePage';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
@@ -101,6 +102,9 @@ export default function App() {
         loadData();
         loadDrivers();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leadtimes' }, () => {
+        // LeadTimePage handles its own fetching, but we could trigger global refresh if needed
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -190,6 +194,7 @@ export default function App() {
                   </AnimatePresence>
                 } />
                 <Route path="/monitoring" element={<FleetMonitoringPage />} />
+                <Route path="/leadtime" element={<LeadTimePage />} />
                 <Route path="/eco" element={<EcoDrivingPage />} />
                 <Route path="/drivers" element={<DriversPage />} />
                 <Route path="/drivers/:id" element={<DriverDetailPage />} />

@@ -18,6 +18,7 @@ export interface EcoViolation {
   area: string;
   customer?: string;
   grup_kendaraan: string;
+  _optimizedType?: string;
 }
 
 export interface DriverRanking {
@@ -59,11 +60,24 @@ export async function fetchEcoViolations(options?: {
   driverName?: string;
   monthFilter?: string; // e.g., '%-Apr-26' for fast DB filtering
 }): Promise<EcoViolation[]> {
-  let allData: EcoViolation[] = [];
-  let from = 0;
-  const pageSize = 1000;
+  // 1. Get Exact Count First
+  let countQuery = supabase.from('eco_driving_violations').select('*', { count: 'exact', head: true });
+  if (options?.driverId) countQuery = countQuery.eq('driver_id', options.driverId);
+  else if (options?.driverName) countQuery = countQuery.eq('Pengemudi', options.driverName);
+  if (options?.area && options.area !== 'ALL') countQuery = countQuery.eq('Area', options.area);
+  if (options?.customer && options.customer !== 'ALL') countQuery = countQuery.eq('Customer', options.customer);
+  if (options?.monthFilter) countQuery = countQuery.ilike('Tanggal', options.monthFilter);
 
-  while (true) {
+  const { count, error: countError } = await countQuery;
+  if (countError || count === null || count === 0) return [];
+
+  // 2. Fetch in Parallel
+  const pageSize = 1000;
+  const totalPages = Math.ceil(count / pageSize);
+  const promises = [];
+
+  for (let i = 0; i < totalPages; i++) {
+    const from = i * pageSize;
     let query = supabase
       .from('eco_driving_violations')
       .select('*')
@@ -71,56 +85,44 @@ export async function fetchEcoViolations(options?: {
       .order('id', { ascending: false })
       .range(from, from + pageSize - 1);
 
-    if (options?.driverId) {
-      query = query.eq('driver_id', options.driverId);
-    } else if (options?.driverName) {
-      query = query.eq('Pengemudi', options.driverName);
-    }
+    if (options?.driverId) query = query.eq('driver_id', options.driverId);
+    else if (options?.driverName) query = query.eq('Pengemudi', options.driverName);
+    if (options?.area && options.area !== 'ALL') query = query.eq('Area', options.area);
+    if (options?.customer && options.customer !== 'ALL') query = query.eq('Customer', options.customer);
+    if (options?.monthFilter) query = query.ilike('Tanggal', options.monthFilter);
 
-    if (options?.area && options.area !== 'ALL') {
-      query = query.eq('Area', options.area);
-    }
-    if (options?.customer && options.customer !== 'ALL') {
-      query = query.eq('Customer', options.customer);
-    }
-    if (options?.monthFilter) {
-      query = query.ilike('Tanggal', options.monthFilter);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error('fetchEcoViolations error:', error);
-      break;
-    }
-
-    if (data && data.length > 0) {
-      const mapped = data.map((item: any) => ({
-        id: item.id,
-        tanggal: item.Tanggal || '',
-        waktu: item.Waktu || '',
-        plat_nomor: item["Plat Nomor"] || '',
-        pengemudi: item.Pengemudi || '',
-        driver_id: item.driver_id,
-        jenis_peringatan: item["Jenis Peringatan"] || '',
-        tingkat_urgensi: item["Tingkat Urgensi"] || '',
-        detail: item.Detail || '',
-        lokasi: item.Lokasi || '',
-        latitude: parseFloat(item.Latitude) || null,
-        longitude: parseFloat(item.Longitude) || null,
-        koordinat: item.Koordinat || '',
-        area: item.Area || '',
-        customer: item.Customer || '',
-        grup_kendaraan: item["Grup Kendaraan"] || ''
-      }));
-      allData = [...allData, ...mapped];
-    }
-
-    if (!data || data.length < pageSize) {
-      break;
-    }
-    from += pageSize;
+    promises.push(query);
   }
 
+  const results = await Promise.all(promises);
+  let allData: EcoViolation[] = [];
+
+  for (const { data, error } of results) {
+    if (error || !data) continue;
+    const mapped = data.map((item: any) => ({
+      id: item.id,
+      tanggal: item.Tanggal || '',
+      waktu: item.Waktu || '',
+      plat_nomor: item["Plat Nomor"] || '',
+      pengemudi: item.Pengemudi || '',
+      driver_id: item.driver_id,
+      jenis_peringatan: item["Jenis Peringatan"] || '',
+      tingkat_urgensi: item["Tingkat Urgensi"] || '',
+      detail: item.Detail || '',
+      lokasi: item.Lokasi || '',
+      latitude: parseFloat(item.Latitude) || null,
+      longitude: parseFloat(item.Longitude) || null,
+      koordinat: item.Koordinat || '',
+      area: item.Area || '',
+      customer: item.Customer || '',
+      grup_kendaraan: item["Grup Kendaraan"] || ''
+    }));
+    allData = [...allData, ...mapped];
+  }
+
+  // Ensure strict chronological order across chunks
+  allData.sort((a, b) => b.id - a.id);
+  
   return allData;
 }
 
