@@ -405,7 +405,7 @@ export default function EcoDrivingPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 hover:border-emerald-500 transition-colors cursor-pointer" onClick={() => { setCfDriver(null); setCfType(null); setCfDate(null); }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Insiden</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Pelanggaran</p>
                   <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center">
                     <AlertTriangle className="w-4 h-4" />
                   </div>
@@ -454,7 +454,7 @@ export default function EcoDrivingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Daily Trend Chart */}
               <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800">
-                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Insiden per Hari</h3>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Pelanggaran per Hari</h3>
                 <div className="h-72 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
                     <BarChart 
@@ -602,7 +602,7 @@ export default function EcoDrivingPage() {
                     <MapPin className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Peta Persebaran Insiden</h3>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Peta Persebaran Pelanggaran</h3>
                     <p className="text-xs text-slate-500 font-bold mt-1">
                       Showing <span className="text-emerald-600">{Math.min(activeViolations.length, 1000)}</span> 
                       {activeViolations.length > 1000 ? ` of ${activeViolations.length}` : ''} incidents
@@ -803,7 +803,7 @@ export default function EcoDrivingPage() {
                           return (
                             <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800">
                               <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase mb-1">{payload[0].payload.fullName}</p>
-                              <p className="text-lg font-black text-slate-900 dark:text-white">{payload[0].value} <span className="text-xs text-slate-500">Insiden</span></p>
+                              <p className="text-lg font-black text-slate-900 dark:text-white">{payload[0].value} <span className="text-xs text-slate-500">Pelanggaran</span></p>
                             </div>
                           );
                         }

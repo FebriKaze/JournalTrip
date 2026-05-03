@@ -500,7 +500,7 @@ export default function DriverDetailPage() {
                       <div className="flex gap-4">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-sky-500" />
-                          <span className="text-[9px] font-black text-slate-500 uppercase">Incidents</span>
+                          <span className="text-[9px] font-black text-slate-500 uppercase">Pelanggaran</span>
                         </div>
                       </div>
                     </div>
@@ -547,7 +547,7 @@ export default function DriverDetailPage() {
                                     <p className="text-[10px] font-black text-slate-500 uppercase mb-1">{label} April 2026</p>
                                     <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 bg-sky-500 rounded-full" />
-                                      <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">Insiden</span></p>
+                                      <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">Pelanggaran</span></p>
                                     </div>
                                   </div>
                                 );
@@ -556,7 +556,7 @@ export default function DriverDetailPage() {
                             }}
                           />
                           <Area 
-                            name="Jumlah Insiden"
+                            name="Jumlah Pelanggaran"
                             type="monotone" 
                             dataKey="count" 
                             stroke="#0ea5e9" 
