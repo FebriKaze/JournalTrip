@@ -10,6 +10,7 @@ import DriverDetailPage from './pages/DriverDetailPage';
 import FleetMonitoringPage from './pages/FleetMonitoringPage';
 import EcoDrivingPage from './pages/EcoDrivingPage';
 import LeadTimePage from './pages/LeadTimePage';
+import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
@@ -202,6 +203,7 @@ export default function App() {
               </Routes>
             </div>
           </main>
+          <Footer />
         </div>
         <SpeedInsights />
       </div>
