@@ -113,37 +113,59 @@ export default function EcoDrivingPage() {
     setCfDate(null);
   }, [violations]);
 
-  const getMonthFilter = () => {
-    const monthMap = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const getMonthFilters = () => {
+    const monthMap = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     if (filterMode === 'month') {
       const d = new Date(selectedMonth + '-01');
-      return `%-${monthMap[d.getMonth()]}-${d.getFullYear().toString().slice(-2)}`;
+      return [`%${monthMap[d.getMonth()]}%${d.getFullYear().toString().slice(-2)}%`];
     } else {
       const d1 = new Date(startDate);
       const d2 = new Date(endDate);
-      if (d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear()) {
-        return `%-${monthMap[d1.getMonth()]}-${d1.getFullYear().toString().slice(-2)}`;
+      const filters = [];
+      
+      // Get all months between d1 and d2
+      let current = new Date(d1.getFullYear(), d1.getMonth(), 1);
+      const last = new Date(d2.getFullYear(), d2.getMonth(), 1);
+      
+      while (current <= last) {
+        filters.push(`%${monthMap[current.getMonth()]}%${current.getFullYear().toString().slice(-2)}%`);
+        current.setMonth(current.getMonth() + 1);
       }
-      return undefined; // span months
+      return filters;
     }
   };
 
   const loadData = async () => {
     setIsLoading(true);
-    const mFilter = getMonthFilter();
+    const mFilters = getMonthFilters();
     
-    const rawData = await fetchEcoViolations({
+    // Fetch data for each required month in parallel
+    const promises = mFilters.map(f => fetchEcoViolations({
       area: selectedArea,
       customer: selectedCustomer,
-      monthFilter: mFilter
-    });
+      monthFilter: f
+    }));
+    
+    const results = await Promise.all(promises);
+    const rawData = results.flat();
     
     const filtered = rawData.filter(v => {
       if (!v.tanggal) return false;
-      const parts = v.tanggal.split('-');
+      // Handle "01 Mei 2026" or "01-Mei-26"
+      const parts = v.tanggal.split(/[\s-]/); 
       if (parts.length !== 3) return false;
-      const monthMap: any = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
-      const d = new Date(2000 + parseInt(parts[2]), monthMap[parts[1]], parseInt(parts[0]));
+      
+      const monthMap: any = { 
+        'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'Mei': 4, 'Jun': 5, 
+        'Jul': 6, 'Agu': 7, 'Agt': 7, 'Sep': 8, 'Okt': 9, 'Nov': 10, 'Des': 11 
+      };
+      
+      const monthIdx = monthMap[parts[1]];
+      if (monthIdx === undefined) return false;
+      
+      const rawYear = parseInt(parts[2]);
+      const fullYear = rawYear < 100 ? 2000 + rawYear : rawYear;
+      const d = new Date(fullYear, monthIdx, parseInt(parts[0]));
       
       if (filterMode === 'month') {
         const target = new Date(selectedMonth + '-01');

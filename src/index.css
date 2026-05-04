@@ -42,10 +42,13 @@
     transition: none !important;
   }
 
-  body {
+  body, html {
     background-color: var(--bg-app);
     color: var(--text-main);
     font-family: var(--font-sans);
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
   }
 }
 

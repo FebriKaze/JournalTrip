@@ -136,7 +136,7 @@ export default function App() {
           theme={theme}
         />
 
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarWidth}`}>
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarWidth} overflow-x-hidden`}>
           <Navbar
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
