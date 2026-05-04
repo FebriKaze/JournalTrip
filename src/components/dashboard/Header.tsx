@@ -11,7 +11,7 @@ interface HeaderProps {
   onAreaChange: (area: string) => void;
 }
 
-const areas = ['JBK', 'NGORO', 'SUMATERA'];
+const areas = ['JBK', 'NGORO', 'SUMATERA', 'TMMIN'];
 
 export default function Header({ driver, selectedDate, onDateChange, selectedArea, onAreaChange }: HeaderProps) {
   const [showSimModal, setShowSimModal] = useState(false);
