@@ -114,21 +114,33 @@ export default function EcoDrivingPage() {
   }, [violations]);
 
   const getMonthFilters = () => {
-    const monthMap = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    // DATABASE PUNYA 2 FORMAT:
+    // Lama: "21-Jan-26"  → strip, Inggris, tahun 2 digit
+    // Baru: "01 Mei 2026" → spasi, Indonesia, tahun 4 digit
+    const monthEN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    
+    const buildFilters = (month: number, year: number) => {
+      const y2 = year.toString().slice(-2);
+      return [
+        `%-${monthEN[month]}-${y2}`,       // Format lama: %-Jan-26
+        `% ${monthID[month]} ${year}`       // Format baru: % Mei 2026
+      ];
+    };
+
     if (filterMode === 'month') {
       const d = new Date(selectedMonth + '-01');
-      return [`%${monthMap[d.getMonth()]}%${d.getFullYear().toString().slice(-2)}%`];
+      return buildFilters(d.getMonth(), d.getFullYear());
     } else {
       const d1 = new Date(startDate);
       const d2 = new Date(endDate);
-      const filters = [];
+      const filters: string[] = [];
       
-      // Get all months between d1 and d2
       let current = new Date(d1.getFullYear(), d1.getMonth(), 1);
       const last = new Date(d2.getFullYear(), d2.getMonth(), 1);
       
       while (current <= last) {
-        filters.push(`%${monthMap[current.getMonth()]}%${current.getFullYear().toString().slice(-2)}%`);
+        filters.push(...buildFilters(current.getMonth(), current.getFullYear()));
         current.setMonth(current.getMonth() + 1);
       }
       return filters;
@@ -139,7 +151,6 @@ export default function EcoDrivingPage() {
     setIsLoading(true);
     const mFilters = getMonthFilters();
     
-    // Fetch data for each required month in parallel
     const promises = mFilters.map(f => fetchEcoViolations({
       area: selectedArea,
       customer: selectedCustomer,
@@ -149,18 +160,21 @@ export default function EcoDrivingPage() {
     const results = await Promise.all(promises);
     const rawData = results.flat();
     
+    // Parse KEDUA format tanggal
+    const MONTH_MAP: Record<string, number> = { 
+      // Inggris (format lama)
+      'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
+      'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11,
+      // Indonesia (format baru)
+      'Mei': 4, 'Agu': 7, 'Agt': 7, 'Okt': 9, 'Des': 11
+    };
+
     const filtered = rawData.filter(v => {
       if (!v.tanggal) return false;
-      // Handle "01 Mei 2026" or "01-Mei-26"
-      const parts = v.tanggal.split(/[\s-]/); 
+      const parts = v.tanggal.split(/[\s-]/); // Split by space OR hyphen
       if (parts.length !== 3) return false;
       
-      const monthMap: any = { 
-        'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'Mei': 4, 'Jun': 5, 
-        'Jul': 6, 'Agu': 7, 'Agt': 7, 'Sep': 8, 'Okt': 9, 'Nov': 10, 'Des': 11 
-      };
-      
-      const monthIdx = monthMap[parts[1]];
+      const monthIdx = MONTH_MAP[parts[1]];
       if (monthIdx === undefined) return false;
       
       const rawYear = parseInt(parts[2]);
@@ -176,7 +190,6 @@ export default function EcoDrivingPage() {
         return d >= start && d <= end;
       }
     }).map(v => {
-      // Data Pre-Processing Optimization: Calculate types once on load to avoid string scanning on every filter click
       const j = v.jenis_peringatan?.toLowerCase() || '';
       let optType = 'Lainnya';
       if (j.includes('akselerasi')) optType = 'Akselerasi';
