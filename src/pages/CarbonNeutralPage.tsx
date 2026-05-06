@@ -81,10 +81,10 @@ export default function CarbonNeutralPage() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 w-full"
+        className="flex flex-wrap items-end gap-3 w-full"
       >
         {/* Date Picker */}
-        <div className="flex-1 sm:flex-initial">
+        <div className="flex-1 min-w-[140px] sm:flex-initial">
           <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
             <Calendar className="w-3.5 h-3.5 inline mr-2" />
             Tanggal
@@ -95,7 +95,7 @@ export default function CarbonNeutralPage() {
             onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
             onMouseDown={(e) => e.preventDefault()}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all shadow-sm select-none"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all shadow-sm select-none"
           />
         </div>
 

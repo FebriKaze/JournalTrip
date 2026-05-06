@@ -324,14 +324,14 @@ export default function LeadTimePage() {
             </div>
           </div>
           
-          <div className="flex flex-col xs:flex-row items-stretch gap-2 w-full lg:w-auto shrink-0">
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 flex-1 min-w-0">
-              <div className="flex flex-1 items-center gap-1 px-2 py-1.5 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 min-w-0 overflow-hidden">
-                <Calendar className="w-3 h-3 text-blue-500 shrink-0" />
-                <div className="flex items-center gap-1 w-full min-w-0 overflow-hidden">
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[8px] font-bold focus:ring-0 text-slate-700 dark:text-slate-200 p-0 w-full" />
-                  <span className="text-slate-300">/</span>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[8px] font-bold focus:ring-0 text-slate-700 dark:text-slate-200 p-0 w-full" />
+          <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full lg:w-auto shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/40 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 flex-1 min-w-0">
+              <div className="flex flex-1 items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 min-w-0 overflow-hidden">
+                <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <div className="flex items-center gap-2 w-full min-w-0 overflow-hidden">
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 p-0 w-full min-w-0" />
+                  <span className="text-slate-300 font-bold">-</span>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 p-0 w-full min-w-0" />
                 </div>
               </div>
             </div>

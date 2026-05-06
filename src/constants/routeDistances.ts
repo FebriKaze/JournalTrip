@@ -17,7 +17,9 @@ export const ROUTE_DISTANCES: Record<string, number> = {
   'NKRW → PTB': 90.8,
 
   // === TMMIN ROUTES ===
-  // Bos tambahin rute-rute TMMIN di sini
+  'POOL → KCY': 3.0,
+  'KCY → PTB': 92.0,
+  'KCY → IKT': 81.6,
 
   // === NGORO ROUTES ===
   // Bos tambahin rute-rute NGORO di sini

@@ -295,9 +295,9 @@ export default function EcoDrivingPage() {
               </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
               {filterMode === 'month' ? (
-                <div className="relative group w-full sm:w-auto">
+                <div className="relative group w-full sm:w-44">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <Calendar className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                   </div>
@@ -307,27 +307,27 @@ export default function EcoDrivingPage() {
                     onChange={(e) => setSelectedMonth(e.target.value)}
                     onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
                     onMouseDown={(e) => e.preventDefault()}
-                    className="w-full sm:w-auto pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-emerald-500/50 outline-none uppercase tracking-widest transition-all cursor-pointer shadow-sm select-none"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-emerald-500/50 outline-none uppercase tracking-widest transition-all cursor-pointer shadow-sm select-none"
                   />
                 </div>
               ) : (
-                <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-sm">
+                <div className="flex items-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
                     onMouseDown={(e) => e.preventDefault()}
-                    className="flex-1 sm:w-auto sm:flex-none px-2 py-1 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
+                    className="flex-1 min-w-0 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
                   />
-                  <span className="text-slate-400 font-bold text-xs">-</span>
+                  <span className="text-slate-400 font-bold text-xs shrink-0">-</span>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
                     onMouseDown={(e) => e.preventDefault()}
-                    className="flex-1 sm:w-auto sm:flex-none px-2 py-1 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
+                    className="flex-1 min-w-0 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
                   />
                 </div>
               )}

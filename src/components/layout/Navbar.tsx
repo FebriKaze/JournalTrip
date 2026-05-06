@@ -165,7 +165,7 @@ export default function Navbar({
           whileTap={{ scale: 0.9 }}
           onClick={handleExportPDF}
           disabled={isExporting}
-          className="relative p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm outline-none ring-0 disabled:opacity-50"
+          className="hidden md:flex relative p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm outline-none ring-0 disabled:opacity-50"
           title="Export current page to PDF"
         >
           {isExporting ? (

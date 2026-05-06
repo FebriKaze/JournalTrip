@@ -125,8 +125,8 @@ export default function FleetMonitoringPage() {
   return (
     <div className="space-y-8 pb-12">
       {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+        <div className="shrink-0">
           <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
             Fleet Monitoring
             <span className="text-xs bg-red-600 text-white px-3 py-1 rounded-full animate-pulse">LIVE</span>
@@ -134,7 +134,7 @@ export default function FleetMonitoringPage() {
           <p className="text-sm font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Real-time status armada & jadwal</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-stretch sm:items-center gap-3 w-full xl:w-auto">
           {/* Area Filter - Responsive */}
           <div className="relative group">
             {/* Desktop Buttons */}

@@ -135,7 +135,7 @@
 
   /* Pastikan konten melebar full */
   .max-w-7xl {
-    max-w-none !important;
+    max-width: none !important;
     width: 100% !important;
   }
 
