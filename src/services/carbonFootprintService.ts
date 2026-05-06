@@ -88,10 +88,14 @@ export async function fetchCarbonFootprintForDriver(
 
       const { co2Emissions, fuelConsumption, cost } = calculateCarbonFromDistance(distance);
 
+      const displayBongkar = (trip.pdc_bongkar && trip.pdc_bongkar !== '---') 
+        ? (['MJKT', 'MKJT'].includes(trip.pdc_bongkar) ? 'NGORO' : trip.pdc_bongkar) 
+        : (trip.area === 'NGORO' ? 'NGORO' : '---');
+
       return {
         id: trip.id,
         ritaseNo: trip.ritase_no,
-        route: `${trip.pdc_muat || '---'} → ${trip.pdc_bongkar || '---'}`,
+        route: `${trip.pdc_muat || '---'} → ${displayBongkar}`,
         distance,
         co2Emissions,
         fuelConsumption,

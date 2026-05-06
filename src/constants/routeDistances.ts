@@ -55,6 +55,9 @@ export const ROUTE_DISTANCES: Record<string, number> = {
   'NKRW → MJKT': 714.0,
   'NCBT → MJKT': 742.0,
   'NSTR → MJKT': 768.0,
+  'NKRW → MKJT': 714.0,
+  'NCBT → MKJT': 742.0,
+  'NSTR → MKJT': 768.0,
 
   // === SUMATERA ROUTES ===
   'NKRW → PALEMBANG': 596.0,

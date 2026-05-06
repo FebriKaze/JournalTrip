@@ -189,16 +189,6 @@ export default function CarbonNeutralPage() {
         </div>
       </motion.div>
 
-      <div className="rounded-3xl border border-amber-300 bg-amber-50/80 dark:bg-amber-900/20 dark:border-amber-700 p-4 text-sm text-amber-900 dark:text-amber-100 shadow-sm">
-        <div className="flex items-center gap-2 font-black uppercase tracking-wider text-xs">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white">!</span>
-          Sedang di-develop
-        </div>
-        <p className="mt-2 text-[11px] leading-5 text-amber-800 dark:text-amber-100">
-          Fitur Carbon Netral sedang dalam pengembangan.
-        </p>
-      </div>
-
       <AnimatePresence mode="wait">
         {isLoading ? (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
