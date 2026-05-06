@@ -8,7 +8,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import { fetchCarbonFootprintForDriver, CarbonSummary, treesEquivalent } from '../services/carbonFootprintService';
+import { fetchCarbonFootprintForDriver, CarbonSummary, treesEquivalent, fetchMonthlyCarbonTrend } from '../services/carbonFootprintService';
 import { fetchActiveDrivers } from '../services/dataFetcher';
 import { Driver } from '../types';
 
@@ -20,6 +20,7 @@ export default function CarbonNeutralPage() {
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [carbonData, setCarbonData] = useState<CarbonSummary | null>(null);
+  const [trendData, setTrendData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
   const [driverDropdownOpen, setDriverDropdownOpen] = useState(false);
@@ -61,6 +62,16 @@ export default function CarbonNeutralPage() {
     };
     loadCarbonData();
   }, [selectedDate, selectedDriverId, selectedArea]);
+
+  // Load trend data
+  useEffect(() => {
+    const loadTrend = async () => {
+      const year = new Date(selectedDate).getFullYear();
+      const data = await fetchMonthlyCarbonTrend(selectedArea, year);
+      setTrendData(data);
+    };
+    loadTrend();
+  }, [selectedDate, selectedArea]);
 
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
@@ -235,6 +246,36 @@ export default function CarbonNeutralPage() {
               />
             </div>
 
+            {/* Monthly Trend Chart */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50"
+            >
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-green-500" />
+                Tren Emisi CO₂ Bulanan ({selectedArea})
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="month" stroke="#64748b" />
+                  <YAxis stroke="#64748b" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4b5563', color: '#fff' }} />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="co2" 
+                    stroke="#10b981" 
+                    strokeWidth={3}
+                    name="CO₂ (kg)" 
+                    dot={{ fill: '#10b981', strokeWidth: 2 }}
+                    activeDot={{ r: 8 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </motion.div>
+
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Distance & Emissions Bar Chart */}
@@ -354,9 +395,11 @@ export default function CarbonNeutralPage() {
                 Informasi Carbon Footprint
               </h4>
               <ul className="space-y-2 text-sm text-green-800 dark:text-green-200">
-                <li>• CO₂ dihitung berdasarkan jarak perjalanan (100g CO₂/km untuk truck standar)</li>
+                <li>• CO₂ dihitung berdasarkan standar Heavy Truck Car Carrier (~880g CO₂/km)</li>
+                <li>• Jarak dihitung otomatis <b>BOLAK-BALIK (x2)</b> (Pool → PDC → Tujuan → Pool)</li>
+                <li>• Estimasi konsumsi bahan bakar 1 liter untuk 3 km (33 L/100km)</li>
                 <li>• 1 pohon menyerap ~20kg CO₂ per tahun</li>
-                <li>• Biaya bahan bakar menggunakan harga standar Rp 7.500/liter</li>
+                <li>• Biaya bahan bakar menggunakan rata-rata harga Rp 6.800/liter</li>
               </ul>
             </motion.div>
           </motion.div>
