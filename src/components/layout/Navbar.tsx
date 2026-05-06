@@ -21,6 +21,7 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   '/leadtime': { title: 'LeadTime Center', sub: 'Performance & Delay Analytics' },
   '/drivers': { title: 'Drivers Registry', sub: 'Data Master Pengemudi' },
   '/eco': { title: 'Eco Driving', sub: 'Safety Analytics Dashboard' },
+  '/carbon': { title: 'Carbon Neutral', sub: 'Carbon Footprint & Environmental Impact' },
 };
 
 export default function Navbar({
@@ -56,7 +57,7 @@ export default function Navbar({
       border-b border-slate-200/60 dark:border-slate-800/60
       h-16 flex items-center px-4 md:px-6 shadow-sm
       transition-all duration-500 gap-4
-      ${isSidebarCollapsed ? 'md:left-[72px]' : 'md:left-64'} left-0
+      ${isSidebarCollapsed ? 'md:left-18' : 'md:left-64'} left-0
     `}>
 
       {/* ── Hamburger (mobile) ── */}

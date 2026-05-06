@@ -10,6 +10,7 @@ import DriverDetailPage from './pages/DriverDetailPage';
 import FleetMonitoringPage from './pages/FleetMonitoringPage';
 import EcoDrivingPage from './pages/EcoDrivingPage';
 import LeadTimePage from './pages/LeadTimePage';
+import CarbonNeutralPage from './pages/CarbonNeutralPage';
 import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
@@ -162,10 +163,10 @@ export default function App() {
                         exit={{ opacity: 0 }}
                         className="space-y-8 animate-pulse"
                       >
-                        <div className="h-48 bg-slate-100 dark:bg-slate-800/50 rounded-[32px]" />
+                        <div className="h-48 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                          <div className="lg:col-span-2 h-96 bg-slate-100 dark:bg-slate-800/50 rounded-[32px]" />
-                          <div className="h-96 bg-slate-100 dark:bg-slate-800/50 rounded-[32px]" />
+                          <div className="lg:col-span-2 h-96 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
+                          <div className="h-96 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
                         </div>
                       </motion.div>
                     ) : (
@@ -197,6 +198,7 @@ export default function App() {
                 <Route path="/monitoring" element={<FleetMonitoringPage />} />
                 <Route path="/leadtime" element={<LeadTimePage />} />
                 <Route path="/eco" element={<EcoDrivingPage />} />
+                <Route path="/carbon" element={<CarbonNeutralPage />} />
                 <Route path="/drivers" element={<DriversPage />} />
                 <Route path="/drivers/:id" element={<DriverDetailPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

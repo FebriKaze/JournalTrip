@@ -92,6 +92,12 @@ export default function EcoDrivingPage() {
   const [rankPage, setRankPage] = useState(1);
   const rankPerPage = 10;
 
+  // Load data on mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Reload data when filters change
   useEffect(() => {
     loadData();
   }, [filterMode, selectedMonth, startDate, endDate, selectedArea, selectedCustomer]);
@@ -256,7 +262,7 @@ export default function EcoDrivingPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── HEADER & FILTERS ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-[32px] p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-4xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex items-center gap-4 shrink-0">
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
@@ -438,7 +444,7 @@ export default function EcoDrivingPage() {
           >
             {/* ── SUMMARY STATS ── */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border border-slate-100 dark:border-slate-800 hover:border-emerald-500 transition-colors cursor-pointer" onClick={() => { setCfDriver(null); setCfType(null); setCfDate(null); }}>
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 hover:border-emerald-500 transition-colors cursor-pointer" onClick={() => { setCfDriver(null); setCfType(null); setCfDate(null); }}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Pelanggaran</p>
                   <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center">
@@ -447,7 +453,7 @@ export default function EcoDrivingPage() {
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{totalViolations}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Akselerasi' ? 'border-blue-800 ring-2 ring-blue-800/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-800'}`} onClick={() => setCfType(cfType === 'Akselerasi' ? null : 'Akselerasi')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Akselerasi' ? 'border-blue-800 ring-2 ring-blue-800/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-800'}`} onClick={() => setCfType(cfType === 'Akselerasi' ? null : 'Akselerasi')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Akselerasi</p>
                   <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-900 flex items-center justify-center">
@@ -456,7 +462,7 @@ export default function EcoDrivingPage() {
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('akselerasi')}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Perlambatan' ? 'border-blue-600 ring-2 ring-blue-600/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-600'}`} onClick={() => setCfType(cfType === 'Perlambatan' ? null : 'Perlambatan')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Perlambatan' ? 'border-blue-600 ring-2 ring-blue-600/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-600'}`} onClick={() => setCfType(cfType === 'Perlambatan' ? null : 'Perlambatan')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rem Mendadak</p>
                   <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
@@ -465,7 +471,7 @@ export default function EcoDrivingPage() {
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('perlambatan')}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Kecepatan' ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-400'}`} onClick={() => setCfType(cfType === 'Kecepatan' ? null : 'Kecepatan')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Kecepatan' ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-400'}`} onClick={() => setCfType(cfType === 'Kecepatan' ? null : 'Kecepatan')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overspeed</p>
                   <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-400 flex items-center justify-center">
@@ -474,7 +480,7 @@ export default function EcoDrivingPage() {
                 </div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('kecepatan')}</p>
               </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-[24px] shadow-sm border transition-colors cursor-pointer ${cfType === 'Tikungan' ? 'border-blue-300 ring-2 ring-blue-300/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-300'}`} onClick={() => setCfType(cfType === 'Tikungan' ? null : 'Tikungan')}>
+              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Tikungan' ? 'border-blue-300 ring-2 ring-blue-300/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-300'}`} onClick={() => setCfType(cfType === 'Tikungan' ? null : 'Tikungan')}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tikungan Tajam</p>
                   <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-300 flex items-center justify-center">
@@ -488,7 +494,7 @@ export default function EcoDrivingPage() {
             {/* ── CHARTS SECTION ── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Daily Trend Chart */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800">
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-4xl shadow-sm border border-slate-100 dark:border-slate-800">
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Pelanggaran per Hari</h3>
                 <div className="h-72 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
@@ -574,7 +580,7 @@ export default function EcoDrivingPage() {
               </div>
 
               {/* Pie Chart */}
-              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-4xl shadow-sm border border-slate-100 dark:border-slate-800">
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Persentase Pelanggaran</h3>
                 <div className="h-64 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
@@ -588,7 +594,7 @@ export default function EcoDrivingPage() {
                         paddingAngle={5}
                         dataKey="value"
                         stroke="none"
-                        onClick={(data) => setCfType(cfType === data.name ? null : data.name)}
+                        onClick={(data: any) => data.name && setCfType(cfType === data.name ? null : data.name)}
                         className="cursor-pointer outline-none"
                       >
                         {pieData.map((entry, index) => (
@@ -631,7 +637,7 @@ export default function EcoDrivingPage() {
             {/* ── MAP & RANKING SECTION ── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Map View */}
-              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 lg:col-span-2 flex flex-col">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-4xl shadow-sm border border-slate-100 dark:border-slate-800 lg:col-span-2 flex flex-col">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
                     <MapPin className="w-5 h-5 text-emerald-600" />
@@ -645,7 +651,7 @@ export default function EcoDrivingPage() {
                   </div>
                 </div>
                 
-                <div className="flex-1 min-h-[400px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0">
+                <div className="flex-1 min-h-96 w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0">
                   <MapContainer 
                     center={[-2.5489, 118.0149]} 
                     zoom={5} 
@@ -697,7 +703,7 @@ export default function EcoDrivingPage() {
                             }}
                           >
                             <Popup className="custom-popup">
-                              <div className="p-1 min-w-[200px]">
+                              <div className="p-1 min-w-52">
                                 <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black uppercase mb-2 ${
                                   iconKey.includes('Akselerasi') ? 'bg-blue-900 text-blue-100' :
                                   iconKey.includes('Perlambatan') ? 'bg-blue-600 text-blue-50' :
@@ -720,7 +726,7 @@ export default function EcoDrivingPage() {
               </div>
 
               {/* Ranking Table */}
-              <div className="bg-white dark:bg-slate-900 rounded-[32px] overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
+              <div className="bg-white dark:bg-slate-900 rounded-4xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
                 <div className="p-6 md:p-8 pb-4 border-b border-slate-100 dark:border-slate-800">
                   <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                     <Shield className="w-5 h-5 text-emerald-500" />
@@ -804,7 +810,7 @@ export default function EcoDrivingPage() {
             </div>
 
             {/* ── TOP 10 VIOLATORS (FULL WIDTH) ── */}
-            <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 mt-6">
+            <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-4xl shadow-sm border border-slate-100 dark:border-slate-800 mt-6">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
                   <Activity className="w-5 h-5 text-emerald-600" />
@@ -813,7 +819,7 @@ export default function EcoDrivingPage() {
                   Top 10 Violators
                 </h3>
               </div>
-              <div className="h-[350px] w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
+              <div className="h-87.5 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                 <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
                   <BarChart data={driverBarData} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }} style={{ outline: 'none' }} className="focus:outline-none">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" opacity={0.3} />

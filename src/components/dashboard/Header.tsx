@@ -136,7 +136,7 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl max-w-xl w-full border dark:border-slate-800"
+              className="relative bg-white dark:bg-slate-900 rounded-4xl md:rounded-5xl overflow-hidden shadow-2xl max-w-xl w-full border dark:border-slate-800"
             >
               {/* Premium Modal Header */}
               <div className="h-24 md:h-40 bg-slate-900 dark:bg-black relative overflow-hidden">
@@ -167,7 +167,7 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
               </div>
 
               <div className="p-6 md:p-10 -mt-6 md:-mt-10 relative z-20">
-                <div className="bg-white dark:bg-slate-900 rounded-[24px] md:rounded-[32px] p-2 shadow-xl border border-slate-100 dark:border-slate-800">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl md:rounded-4xl p-2 shadow-xl border border-slate-100 dark:border-slate-800">
                   <div className="aspect-16/10 bg-slate-50 dark:bg-slate-800/50 rounded-[20px] md:rounded-[28px] overflow-hidden border border-slate-100 dark:border-slate-800 relative group">
                     {driver.simPhotoUrl ? (
                       <img 
