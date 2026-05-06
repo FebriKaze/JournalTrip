@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Shield, Activity, Calendar, MapPin, Map, Leaf, ChevronDown,
-  ChevronLeft, ChevronRight, BarChart3, AlertTriangle, AlertCircle, Filter, FilterX, Route
+  ChevronLeft, ChevronRight, BarChart3, AlertTriangle, AlertCircle, Filter, FilterX, Route, Clock
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -68,10 +68,11 @@ const MapUpdater = ({ violations }: { violations: EcoViolation[] }) => {
 
 
 export default function EcoDrivingPage() {
-  const [filterMode, setFilterMode] = useState<'month' | 'range'>('month');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(1)).toISOString().split('T')[0]); 
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const now = new Date();
+    const [filterMode, setFilterMode] = useState<'month' | 'range'>('month');
+    const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`); // YYYY-MM Lokal
+    const [startDate, setStartDate] = useState(new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA')); // YYYY-MM-DD
+    const [endDate, setEndDate] = useState(now.toLocaleDateString('en-CA')); // YYYY-MM-DD Lokal
   const [selectedArea, setSelectedArea] = useState('ALL');
   const [selectedCustomer, setSelectedCustomer] = useState('ALL');
   const [violations, setViolations] = useState<EcoViolation[]>([]);
@@ -92,12 +93,7 @@ export default function EcoDrivingPage() {
   const [rankPage, setRankPage] = useState(1);
   const rankPerPage = 10;
 
-  // Load data on mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Reload data when filters change
+  // Reload data when filters change (also handles initial load)
   useEffect(() => {
     loadData();
   }, [filterMode, selectedMonth, startDate, endDate, selectedArea, selectedCustomer]);
@@ -260,7 +256,7 @@ export default function EcoDrivingPage() {
   }).length;
 
   return (
-    <div className="space-y-6 pb-20">
+    <div id="pdf-export-content" className="space-y-6 pb-20">
       {/* ── HEADER & FILTERS ── */}
       <div className="bg-white dark:bg-slate-900 rounded-4xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -651,7 +647,7 @@ export default function EcoDrivingPage() {
                   </div>
                 </div>
                 
-                <div className="flex-1 min-h-96 w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0">
+                <div className="flex-1 min-h-125 w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0">
                   <MapContainer 
                     center={[-2.5489, 118.0149]} 
                     zoom={5} 
@@ -725,87 +721,156 @@ export default function EcoDrivingPage() {
                 </div>
               </div>
 
-              {/* Ranking Table */}
-              <div className="bg-white dark:bg-slate-900 rounded-4xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
-                <div className="p-6 md:p-8 pb-4 border-b border-slate-100 dark:border-slate-800">
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-emerald-500" />
-                    Driver Rankings
-                  </h3>
-                </div>
-                <div className="flex-1 overflow-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10 shadow-sm">
-                        <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Rank</th>
-                        <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Driver</th>
-                        <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {rankings.slice((rankPage - 1) * rankPerPage, rankPage * rankPerPage).map((r, i) => {
-                        const rankNum = (rankPage - 1) * rankPerPage + i + 1;
-                        return (
-                          <tr 
-                            key={i} 
-                            onClick={() => setCfDriver(cfDriver === r.driver ? null : r.driver)}
-                            className={`transition-colors cursor-pointer ${cfDriver === r.driver ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}
-                          >
-                            <td className="px-6 py-3">
-                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-[10px] font-black ${
-                                rankNum === 1 ? 'bg-red-100 text-red-600' :
-                                rankNum === 2 ? 'bg-orange-100 text-orange-600' :
-                                rankNum === 3 ? 'bg-amber-100 text-amber-600' :
-                                'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                              }`}>
-                                {rankNum}
-                              </span>
-                            </td>
-                            <td className="px-6 py-3">
-                              <p className={`font-black ${cfDriver === r.driver ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>{r.driver}</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase">{r.plat}</p>
-                            </td>
-                            <td className="px-6 py-3 text-right">
-                              <span className="font-black text-slate-900 dark:text-white text-sm">{r.total}</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {rankings.length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-bold italic">
-                            No violations found for this period.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                
-                {/* Pagination */}
-                {rankings.length > rankPerPage && (
-                  <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex justify-between items-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">
-                      Total: {rankings.length}
-                    </p>
-                    <div className="flex gap-2">
-                      <button 
-                        disabled={rankPage === 1}
-                        onClick={() => setRankPage(p => p - 1)}
-                        className="p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm disabled:opacity-50 text-slate-600 dark:text-slate-300 hover:text-emerald-600 transition-colors"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button 
-                        disabled={rankPage >= Math.ceil(rankings.length / rankPerPage)}
-                        onClick={() => setRankPage(p => p + 1)}
-                        className="p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm disabled:opacity-50 text-slate-600 dark:text-slate-300 hover:text-emerald-600 transition-colors"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
+              {/* Ranking Table & Detailed Log */}
+              <div className="space-y-6">
+                {/* Ranking Table */}
+                <div className="bg-white dark:bg-slate-900 rounded-4xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-100">
+                  <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-emerald-500" />
+                      Driver Rankings
+                    </h3>
                   </div>
-                )}
+                  <div className="flex-1 overflow-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="sticky top-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
+                        <tr className="bg-slate-50 dark:bg-slate-800/50">
+                          <th className="px-4 py-3 font-black text-slate-400 uppercase tracking-widest text-[9px]">Rank</th>
+                          <th className="px-4 py-3 font-black text-slate-400 uppercase tracking-widest text-[9px]">Driver</th>
+                          <th className="px-4 py-3 font-black text-slate-400 uppercase tracking-widest text-[9px] text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {rankings.slice((rankPage - 1) * rankPerPage, rankPage * rankPerPage).map((r, i) => {
+                          const rankNum = (rankPage - 1) * rankPerPage + i + 1;
+                          return (
+                            <tr 
+                              key={i} 
+                              onClick={() => setCfDriver(cfDriver === r.driver ? null : r.driver)}
+                              className={`transition-colors cursor-pointer ${cfDriver === r.driver ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}
+                            >
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-[10px] font-black ${
+                                  rankNum === 1 ? 'bg-red-100 text-red-600' :
+                                  rankNum === 2 ? 'bg-orange-100 text-orange-600' :
+                                  rankNum === 3 ? 'bg-amber-100 text-amber-600' :
+                                  'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                }`}>
+                                  {rankNum}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <p className={`font-black truncate max-w-30 ${cfDriver === r.driver ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>{r.driver}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase">{r.plat}</p>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <span className="font-black text-slate-900 dark:text-white text-sm">{r.total}</span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {rankings.length > rankPerPage && (
+                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex justify-between items-center">
+                      <div className="flex gap-1">
+                        <button disabled={rankPage === 1} onClick={() => setRankPage(p => p - 1)} className="p-1 bg-white dark:bg-slate-700 rounded shadow-sm disabled:opacity-50"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                        <button disabled={rankPage >= Math.ceil(rankings.length / rankPerPage)} onClick={() => setRankPage(p => p + 1)} className="p-1 bg-white dark:bg-slate-700 rounded shadow-sm disabled:opacity-50"><ChevronRight className="w-3.5 h-3.5" /></button>
+                      </div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{rankPage}/{Math.ceil(rankings.length / rankPerPage)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Detailed Incident Log */}
+                <div className="bg-white dark:bg-slate-900 rounded-4xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-100">
+                  <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-800/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <Activity className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Incident Logs</h3>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Latest abnormalities</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-[8px] font-black text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                      {activeViolations.length} ITEMS
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 overflow-auto p-4 space-y-3 custom-scrollbar">
+                    {activeViolations.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center space-y-3 opacity-40">
+                        <Shield className="w-10 h-10 text-slate-300" />
+                        <p className="text-[10px] font-black uppercase tracking-widest italic">Safe operations, no incidents</p>
+                      </div>
+                    ) : (
+                      activeViolations.slice(0, 50).map((v, i) => (
+                        <motion.div 
+                          key={i} 
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.02 }}
+                          onClick={() => {
+                            setCfDriver(cfDriver === v.pengemudi ? null : v.pengemudi);
+                            // Optional: Zoom map to this specific incident
+                            if (v.koordinat) {
+                              const [lat, lng] = v.koordinat.split(',').map((c: string) => parseFloat(c.trim()));
+                              const mapEl = document.querySelector('.leaflet-container');
+                              if (mapEl && (mapEl as any)._leaflet_map) {
+                                (mapEl as any)._leaflet_map.flyTo([lat, lng], 16, { duration: 1.5 });
+                              }
+                            }
+                          }}
+                          className={`group relative p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                            cfDriver === v.pengemudi 
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 shadow-lg shadow-blue-500/10' 
+                              : 'bg-white dark:bg-slate-800/40 border-slate-100 dark:border-slate-700/50 hover:border-blue-400/50 hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2.5">
+                            <div className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-wider ${
+                              v.jenis_peringatan?.includes('Akselerasi') ? 'bg-blue-900 text-blue-100' :
+                              v.jenis_peringatan?.includes('Perlambatan') ? 'bg-blue-600 text-blue-50' :
+                              v.jenis_peringatan?.includes('Kecepatan') ? 'bg-blue-400 text-blue-900' :
+                              'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                            }`}>
+                              {v.jenis_peringatan}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                              <Clock className="w-2.5 h-2.5" />
+                              <span className="text-[8px] font-black tracking-tighter uppercase">{v.tanggal}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-black text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors uppercase leading-none">
+                              {v.pengemudi}
+                            </p>
+                            <div className="flex items-start gap-2 text-slate-500 dark:text-slate-400">
+                              <MapPin className="w-3 h-3 shrink-0 mt-0.5 text-red-500/50" />
+                              <p className="text-[9px] font-bold leading-relaxed line-clamp-2 italic">
+                                {v.lokasi}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Decoration line */}
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-transparent group-hover:bg-blue-500 rounded-full transition-all duration-300" />
+                        </motion.div>
+                      ))
+                    )}
+                    {activeViolations.length > 50 && (
+                      <div className="py-4 flex flex-col items-center gap-2">
+                        <div className="h-px w-12 bg-slate-100 dark:bg-slate-800" />
+                        <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.2em]">Showing latest 50 logs</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

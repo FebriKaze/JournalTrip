@@ -272,7 +272,7 @@ export default function FleetMonitoringPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="bg-white dark:bg-slate-900 p-4 rounded-[24px] shadow-sm border border-slate-200/60 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-2 group hover:shadow-md transition-all"
+            className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-2 group hover:shadow-md transition-all"
           >
             <div className={`p-3 rounded-2xl ${item.bg} dark:bg-slate-800 group-hover:scale-110 transition-transform`}>
               <item.icon className={`w-5 h-5 ${item.color}`} />
@@ -527,7 +527,7 @@ export default function FleetMonitoringPage() {
                     
                     <div className="relative space-y-8 pl-4">
                       {/* Timeline Line */}
-                      <div className="absolute left-[23px] top-4 bottom-4 w-0.5 bg-slate-100 dark:bg-slate-800" />
+                      <div className="absolute left-5.75 top-4 bottom-4 w-0.5 bg-slate-100 dark:bg-slate-800" />
                       
                       {selectedDriver.allTrips.map((trip: any, idx: number) => (
                         <div key={idx} className="relative flex gap-6">

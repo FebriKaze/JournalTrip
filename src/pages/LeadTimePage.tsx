@@ -310,7 +310,7 @@ export default function LeadTimePage() {
   return (
     <div className="flex flex-col gap-4 sm:gap-10 pb-20 w-full max-w-[100vw] overflow-x-hidden px-1 sm:px-4 lg:px-6 box-border">
       {/* ── HEADER SECTION ── */}
-      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-3 sm:p-8 rounded-2xl sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 mt-1 sm:mt-0 w-full max-w-full overflow-hidden box-border">
+      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-3 sm:p-8 rounded-[20px] sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 mt-1 sm:mt-0 w-full max-w-full overflow-hidden box-border">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6">
           <div className="flex items-center gap-3 sm:gap-5 min-w-0 max-w-full overflow-hidden">
             <div className="w-9 h-9 sm:w-16 sm:h-16 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 shrink-0">
@@ -335,7 +335,7 @@ export default function LeadTimePage() {
                 </div>
               </div>
             </div>
-            <div className="relative w-full lg:w-[150px] shrink-0">
+            <div className="relative w-full lg:w-37.5 shrink-0">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-500 z-10" />
               <select value={area} onChange={(e) => { setArea(e.target.value); setCurrentPage(1); }} className="w-full pl-8 pr-8 py-2.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-[8px] font-black focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-200 appearance-none cursor-pointer uppercase transition-all">
                 {areas.map(a => <option key={a} value={a}>{a === 'ALL' ? 'ALL AREA' : a}</option>)}
@@ -348,7 +348,7 @@ export default function LeadTimePage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-10">
-          {[1,2,3].map(i => <div key={i} className="h-[300px] sm:h-[400px] bg-slate-100 dark:bg-slate-800/50 rounded-[24px] sm:rounded-[32px] animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-75 sm:h-100 bg-slate-100 dark:bg-slate-800/50 rounded-3xl sm:rounded-4xl animate-pulse" />)}
         </div>
       ) : (
         <div className="flex flex-col gap-6 sm:gap-12 w-full max-w-full overflow-hidden box-border">
@@ -393,7 +393,7 @@ export default function LeadTimePage() {
                 <LegendItem color={STATUS_COLORS.advance} label="Rate (%)" isLine />
               </div>
             </div>
-            <div className="h-[200px] sm:h-[400px] w-full min-w-0 overflow-hidden relative">
+            <div className="h-50 sm:h-100 w-full min-w-0 overflow-hidden relative">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <ComposedChart data={stats?.trend} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.1} />
@@ -426,23 +426,23 @@ export default function LeadTimePage() {
                   </button>
                 )}
               </div>
-              <div className="relative w-full lg:w-[250px] shrink-0">
+              <div className="relative w-full lg:w-62.5 shrink-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <input type="text" placeholder="Quick search..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-[9px] font-bold focus:ring-2 focus:ring-blue-500 shadow-inner uppercase" />
               </div>
             </div>
             
             <div className="w-full overflow-x-auto scrollbar-hide max-w-full block">
-              <table className="w-full text-left min-w-[600px] border-collapse table-fixed">
+              <table className="w-full text-left min-w-150 border-collapse table-fixed">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-400 uppercase text-[7px] sm:text-[9px] font-black tracking-widest border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-4 py-5 w-[100px]">Tgl / Area</th>
-                    <th className="px-4 py-5 w-[120px]">Driver Info</th>
-                    <th className="px-4 py-5 w-[100px]">Vehicle</th>
-                    <th className="px-4 py-5 w-[100px]">OutPool</th>
-                    <th className="px-4 py-5 w-[100px]">InPDC</th>
-                    <th className="px-4 py-5 w-[100px]">Delivery</th>
-                    <th className="px-4 py-5 w-[60px] text-right pr-6 sm:pr-10">Timeline</th>
+                    <th className="px-4 py-5 w-25">Tgl / Area</th>
+                    <th className="px-4 py-5 w-30">Driver Info</th>
+                    <th className="px-4 py-5 w-25">Vehicle</th>
+                    <th className="px-4 py-5 w-25">OutPool</th>
+                    <th className="px-4 py-5 w-25">InPDC</th>
+                    <th className="px-4 py-5 w-25">Delivery</th>
+                    <th className="px-4 py-5 w-15 text-right pr-6 sm:pr-10">Timeline</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -538,7 +538,7 @@ export default function LeadTimePage() {
                 </div>
               </div>
               
-              <div className="space-y-7 sm:space-y-10 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800 overflow-hidden">
+              <div className="space-y-7 sm:space-y-10 relative before:absolute before:left-4.25 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800 overflow-hidden">
                 {getTimelineEvents(selectedTrip).map((event, i) => (
                   <div key={i} className="flex gap-4 sm:gap-6 relative z-10 group min-w-0 overflow-hidden">
                     <div className={`w-9 h-9 rounded-full bg-white dark:bg-slate-900 border-4 ${event.actual ? 'border-blue-50 dark:border-blue-900/40' : 'border-slate-50 dark:border-slate-800'} flex items-center justify-center shadow-sm transition-all shrink-0`}>
@@ -587,7 +587,7 @@ function StageBox({ title, icon, stats, eff, stage, activeFilter, setActiveFilte
   const isInPdc = title === 'IN-PDC';
   
   return (
-    <div className="bg-white dark:bg-slate-900/60 rounded-2xl sm:rounded-[32px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 p-3 sm:p-8 flex flex-col h-full hover:border-blue-500/30 transition-all duration-500 group overflow-hidden w-full max-w-full box-border">
+    <div className="bg-white dark:bg-slate-900/60 rounded-2xl sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 p-3 sm:p-8 flex flex-col h-full hover:border-blue-500/30 transition-all duration-500 group overflow-hidden w-full max-w-full box-border">
       <div className="flex items-center gap-2.5 sm:gap-4 mb-4 sm:mb-8 overflow-hidden">
         <div className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
           {icon}
@@ -611,7 +611,7 @@ function StageBox({ title, icon, stats, eff, stage, activeFilter, setActiveFilte
       </div>
       
       <div className="h-28 sm:h-56 relative flex items-center justify-center mt-auto overflow-hidden w-full max-w-full">
-        <div className="w-28 h-28 sm:w-full sm:h-full sm:max-w-[200px] shrink-0">
+        <div className="w-28 h-28 sm:w-full sm:h-full sm:max-w-50 shrink-0">
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <PieChart>
               <Pie data={stats?.chartData} cx="50%" cy="50%" innerRadius="70%" outerRadius="95%" paddingAngle={8} dataKey="value" animationDuration={1000}>
@@ -677,8 +677,8 @@ function StatusBadge({ status, label }: { status: string, label: string }) {
   const isDanger = status === 'Delay';
   return (
     <div className={`inline-flex flex-col px-1.5 py-0.5 rounded-md text-[7px] sm:text-[10px] font-black tracking-widest border transition-all shadow-sm overflow-hidden ${isSuccess ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : isWarning ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : isDanger ? 'bg-red-500/10 text-red-600 border-red-500/20' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
-      <span className="uppercase truncate max-w-[40px] sm:max-w-none">{status}</span>
-      <span className="text-[6px] sm:text-[8px] opacity-60 truncate max-w-[40px] sm:max-w-[80px] font-black uppercase mt-0.5">{label || '-'}</span>
+      <span className="uppercase truncate max-w-10 sm:max-w-none">{status}</span>
+      <span className="text-[6px] sm:text-[8px] opacity-60 truncate max-w-10 sm:max-w-20 font-black uppercase mt-0.5">{label || '-'}</span>
     </div>
   );
 }
@@ -709,7 +709,7 @@ function LegendItem({ color, label, isLine }: any) {
 function CustomTrendTooltip({ active, payload, label }: any) {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-900/95 backdrop-blur-md p-3 sm:p-4 rounded-xl shadow-2xl border border-slate-800 min-w-[110px] sm:min-w-[160px] overflow-hidden">
+      <div className="bg-slate-900/95 backdrop-blur-md p-3 sm:p-4 rounded-xl shadow-2xl border border-slate-800 min-w-27.5 sm:min-w-40 overflow-hidden">
         <p className="text-[7px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-800 pb-1.5 truncate">{label}</p>
         <div className="space-y-1.5 overflow-hidden">
           {payload.map((p: any, i: number) => (

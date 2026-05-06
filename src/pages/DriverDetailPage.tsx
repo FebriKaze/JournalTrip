@@ -364,7 +364,7 @@ export default function DriverDetailPage() {
               </div>
 
               {/* Ritase History List with Min Height for Stability */}
-              <div className="space-y-8 min-h-[850px]">
+              <div className="space-y-8 min-h-212.5">
                 {Object.keys(groupedRitases).length > 0 ? (
                   (Object.entries(groupedRitases) as [string, (Ritase & { tanggal: string })[]][]).map(([date, trips]) => (
                     <div key={date} className="space-y-3">

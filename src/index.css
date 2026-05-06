@@ -89,6 +89,69 @@
     background: #475569;
   }
 
+/* ── PRINT STYLES ── */
+@media print {
+  /* Atur Halaman */
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Sembunyiin elemen yang nggak perlu di PDF */
+  .no-print,
+  button:not(.export-keep),
+  input[type="date"],
+  select,
+  .leaflet-control-zoom,
+  .leaflet-control-attribution {
+    display: none !important;
+  }
+
+  /* Rapiin Layout Utama */
+  nav {
+    position: static !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border-bottom: 2px solid #f1f5f9 !important;
+  }
+
+  aside {
+    position: static !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border-right: 2px solid #f1f5f9 !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* Pastikan konten melebar full */
+  .max-w-7xl {
+    max-w-none !important;
+    width: 100% !important;
+  }
+
+  /* Paksa background muncul di print */
+  * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hindari pemotongan card di tengah */
+  .rounded-4xl, .rounded-3xl, .bg-white {
+    break-inside: avoid;
+  }
+}
+
 @layer components {
   .glass-effect {
     background-color: rgba(255, 255, 255, 0.7);

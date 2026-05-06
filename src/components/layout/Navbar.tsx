@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import html2pdf from 'html2pdf.js';
+import { jsPDF } from 'jspdf';
+import * as htmlToImage from 'html-to-image';
 
 interface NavbarProps {
   selectedDate: string;
@@ -51,27 +52,61 @@ export default function Navbar({
   const isDay = selectedShift === 'Day';
   const isDashboard = location.pathname === '/';
 
+  const [isExporting, setIsExporting] = useState(false);
+
   const handleExportPDF = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
     try {
-      const element = document.getElementById('pdf-export-content');
-      if (!element) return;
+      const appElement = document.body;
+      const sidebarElement = document.querySelector('aside'); // Ambil element sidebar
       
-      // Add a class temporarily to adjust styles for PDF if needed
-      element.classList.add('exporting-pdf');
-      
-      const opt = {
-        margin:       10,
-        filename:     `JournalTrip_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-        image:        { type: 'png' as const, quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'landscape' as const }
-      };
-      
-      await html2pdf().set(opt).from(element).save();
-      
-      element.classList.remove('exporting-pdf');
+      // 1. Pre-export setup
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      if (isDarkMode) document.documentElement.classList.remove('dark');
+
+      // 2. FORCE SIDEBAR FULL HEIGHT (Agar tidak kepotong)
+      const originalSidebarHeight = sidebarElement ? (sidebarElement as HTMLElement).style.height : '';
+      if (sidebarElement) {
+        (sidebarElement as HTMLElement).style.height = `${appElement.scrollHeight}px`;
+      }
+
+      // 3. Kasih waktu stabilisasi
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 4. Capture menggunakan JPEG (Lebih kecil dari PNG)
+      const dataUrl = await htmlToImage.toJpeg(appElement, {
+        quality: 0.8, // Kompresi 80% (Seimbang antara kualitas & size)
+        backgroundColor: '#ffffff',
+        width: appElement.clientWidth,
+        height: appElement.scrollHeight,
+        pixelRatio: 1.5 // Sedikit turunkan density biar file ringan tapi tetap tajam
+      });
+
+      // 5. PDF Setup
+      const pdfWidth = appElement.clientWidth * 0.264583;
+      const pdfHeight = appElement.scrollHeight * 0.264583;
+
+      const pdf = new jsPDF({
+        orientation: pdfWidth > pdfHeight ? 'l' : 'p',
+        unit: 'mm',
+        format: [pdfHeight, pdfWidth]
+      });
+
+      pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`JournalTrip_Report_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.pdf`);
+
+      // 6. RESTORE UI
+      if (sidebarElement) {
+        (sidebarElement as HTMLElement).style.height = originalSidebarHeight;
+      }
+      if (isDarkMode) document.documentElement.classList.add('dark');
+
     } catch (error) {
       console.error('Error exporting PDF:', error);
+      alert('Gagal export PDF. Silakan coba kembali.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -129,10 +164,15 @@ export default function Navbar({
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={handleExportPDF}
-          className="relative p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm outline-none ring-0"
+          disabled={isExporting}
+          className="relative p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm outline-none ring-0 disabled:opacity-50"
           title="Export current page to PDF"
         >
-          <Download className="w-4 h-4" />
+          {isExporting ? (
+            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
         </motion.button>
 
         {/* Theme Toggle */}

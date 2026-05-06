@@ -7,4 +7,3 @@ coverage/
 .env*
 !.env.example
 scratch/
-PDF_EXPORT_GUIDE.md
