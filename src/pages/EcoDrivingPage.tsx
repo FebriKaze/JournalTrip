@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Shield, Activity, Calendar, MapPin, Map, Leaf, ChevronDown,
+  Shield, Activity, Calendar, MapPin, Map as MapIcon, Leaf, ChevronDown,
   ChevronLeft, ChevronRight, BarChart3, AlertTriangle, AlertCircle, Filter, FilterX, Route, Clock
 } from 'lucide-react';
 import { 
@@ -116,17 +116,24 @@ export default function EcoDrivingPage() {
   }, [violations]);
 
   const getMonthFilters = () => {
-    // DATABASE PUNYA 2 FORMAT:
+    // DATABASE PUNYA BANYAK FORMAT:
     // Lama: "21-Jan-26"  → strip, Inggris, tahun 2 digit
     // Baru: "01 Mei 2026" → spasi, Indonesia, tahun 4 digit
+    // Kadang ada juga format lain.
     const monthEN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     
     const buildFilters = (month: number, year: number) => {
       const y2 = year.toString().slice(-2);
+      const mEN = monthEN[month];
+      const mID = monthID[month];
       return [
-        `%-${monthEN[month]}-${y2}`,       // Format lama: %-Jan-26
-        `% ${monthID[month]} ${year}`       // Format baru: % Mei 2026
+        `%-${mEN}-${y2}`,       // 21-May-26
+        `%-${mID}-${y2}`,       // 21-Mei-26
+        `% ${mEN} ${year}`,     // 21 May 2026
+        `% ${mID} ${year}`,     // 21 Mei 2026
+        `% ${mEN} ${y2}`,       // 21 May 26
+        `% ${mID} ${y2}`,       // 21 Mei 26
       ];
     };
 
@@ -145,39 +152,56 @@ export default function EcoDrivingPage() {
         filters.push(...buildFilters(current.getMonth(), current.getFullYear()));
         current.setMonth(current.getMonth() + 1);
       }
-      return filters;
+      return [...new Set(filters)]; // Unique only
     }
   };
 
   const loadData = async () => {
     setIsLoading(true);
-    const mFilters = getMonthFilters();
-    
-    const promises = mFilters.map(f => fetchEcoViolations({
-      area: selectedArea,
-      customer: selectedCustomer,
-      monthFilter: f
-    }));
-    
-    const results = await Promise.all(promises);
-    const rawData = results.flat();
-    
-    // Parse KEDUA format tanggal
-    const MONTH_MAP: Record<string, number> = { 
-      // Inggris (format lama)
-      'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
-      'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11,
-      // Indonesia (format baru)
-      'Mei': 4, 'Agu': 7, 'Agt': 7, 'Okt': 9, 'Des': 11
-    };
-
-    const filtered = rawData.filter(v => {
-      if (!v.tanggal) return false;
-      const parts = v.tanggal.split(/[\s-]/); // Split by space OR hyphen
-      if (parts.length !== 3) return false;
+    try {
+      const mFilters = getMonthFilters();
       
-      const monthIdx = MONTH_MAP[parts[1]];
-      if (monthIdx === undefined) return false;
+      const promises = mFilters.map(f => fetchEcoViolations({
+        area: selectedArea,
+        customer: selectedCustomer,
+        monthFilter: f
+      }));
+      
+      const results = await Promise.all(promises);
+      const allRawData = results.flat();
+      
+      // Deduplicate by ID to prevent double counting if multiple filters match same record
+      const rawData = Array.from(new Map(allRawData.map((v: EcoViolation) => [v.id, v])).values());
+      
+      // Map komprehensif untuk semua kemungkinan nama bulan (ID & EN)
+      const MONTH_MAP: Record<string, number> = { 
+        'Jan': 0, 'January': 0, 'Januari': 0,
+        'Feb': 1, 'February': 1, 'Februari': 1,
+        'Mar': 2, 'March': 2, 'Maret': 2,
+        'Apr': 3, 'April': 3,
+        'May': 4, 'Mei': 4,
+        'Jun': 5, 'June': 5, 'Juni': 5,
+        'Jul': 6, 'July': 6, 'Juli': 6,
+        'Aug': 7, 'August': 7, 'Agustus': 7, 'Agu': 7, 'Agt': 7,
+        'Sep': 8, 'September': 8,
+        'Oct': 9, 'October': 9, 'Oktober': 9, 'Okt': 9,
+        'Nov': 10, 'November': 10,
+        'Dec': 11, 'December': 11, 'Desember': 11, 'Des': 11
+      };
+
+      const filtered = (rawData as EcoViolation[]).filter((v: EcoViolation) => {
+        if (!v.tanggal) return false;
+        // Handle "-" or " " as separators
+        const parts = v.tanggal.split(/[\s-]/); 
+        if (parts.length !== 3) return false;
+        
+        // Month parsing
+        let mStr = parts[1];
+        // Handle title case or uppercase
+        mStr = mStr.charAt(0).toUpperCase() + mStr.slice(1).toLowerCase();
+        const monthIdx = MONTH_MAP[mStr] ?? MONTH_MAP[parts[1]];
+        
+        if (monthIdx === undefined) return false;
       
       const rawYear = parseInt(parts[2]);
       const fullYear = rawYear < 100 ? 2000 + rawYear : rawYear;
@@ -191,7 +215,7 @@ export default function EcoDrivingPage() {
         const end = new Date(endDate); end.setHours(23,59,59,999);
         return d >= start && d <= end;
       }
-    }).map(v => {
+      }).map((v: EcoViolation) => {
       const j = v.jenis_peringatan?.toLowerCase() || '';
       let optType = 'Lainnya';
       if (j.includes('akselerasi')) optType = 'Akselerasi';
@@ -202,8 +226,12 @@ export default function EcoDrivingPage() {
     });
     
     setViolations(filtered);
-    setIsLoading(false);
     setRankPage(1);
+    } catch (err) {
+      console.error("Error loading eco data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
 

@@ -53,13 +53,21 @@ export async function fetchCarbonFootprintForDriver(
   area: string = 'JBK'
 ): Promise<CarbonSummary | null> {
   try {
-    const { data: trips, error } = await supabase
+    let query = supabase
       .from('trips')
       .select('*')
       .eq('tanggal', selectedDate)
-      .eq('driver_id', driverId)
-      .eq('area', area)
-      .order('ritase_no', { ascending: true });
+      .eq('driver_id', driverId);
+
+    if (area && area !== 'ALL') {
+      if (area === 'TAM') {
+        query = query.in('area', ['JBK', 'NGORO', 'SUMATERA']);
+      } else {
+        query = query.eq('area', area);
+      }
+    }
+
+    const { data: trips, error } = await query.order('ritase_no', { ascending: true });
 
     if (error) throw error;
     if (!trips || trips.length === 0) {
@@ -75,7 +83,7 @@ export async function fetchCarbonFootprintForDriver(
 
     const footprints: CarbonFootprint[] = trips.map((trip: any, idx: number) => {
       // Ambil jarak 1 arah dari mapping rute, lalu kali 2 untuk bolak-balik (Pool -> PDC -> Tujuan -> Pool)
-      const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar);
+      const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar, trip.area);
       const distance = oneWayDistance * 2;
 
       const { co2Emissions, fuelConsumption, cost } = calculateCarbonFromDistance(distance);
@@ -123,7 +131,8 @@ export async function fetchFleetCarbonData(date: string, area: string = 'JBK'): 
       .eq('tanggal', date)
       .eq('area', area)
       .order('driver_id', { ascending: true })
-      .order('ritase_no', { ascending: true });
+      .order('ritase_no', { ascending: true })
+      .limit(2000);
 
     if (error) throw error;
 
@@ -132,7 +141,7 @@ export async function fetchFleetCarbonData(date: string, area: string = 'JBK'): 
     if (trips && trips.length > 0) {
       trips.forEach((trip: any) => {
         const driverId = trip.driver_id;
-        const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar);
+        const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar, area);
         const distance = oneWayDistance * 2;
 
         if (!driverMap.has(driverId)) {
@@ -190,14 +199,42 @@ export async function fetchMonthlyCarbonTrend(area: string, year: number) {
     const startDate = `${year}-01-01`;
     const endDate = `${year}-12-31`;
 
-    const { data: trips, error } = await supabase
-      .from('trips')
-      .select('tanggal, pdc_muat, pdc_bongkar')
-      .eq('area', area)
-      .gte('tanggal', startDate)
-      .lte('tanggal', endDate);
+    let allTrips: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
 
-    if (error) throw error;
+    while (hasMore) {
+      let query = supabase
+        .from('trips')
+        .select('tanggal, pdc_muat, pdc_bongkar, area')
+        .gte('tanggal', startDate)
+        .lte('tanggal', endDate);
+
+      if (area && area !== 'ALL') {
+        if (area === 'TAM') {
+          query = query.in('area', ['JBK', 'NGORO', 'SUMATERA']);
+        } else {
+          query = query.eq('area', area);
+        }
+      }
+
+      const { data: trips, error } = await query.range(from, from + PAGE_SIZE - 1);
+
+      if (error) throw error;
+      
+      if (trips && trips.length > 0) {
+        allTrips = [...allTrips, ...trips];
+        from += PAGE_SIZE;
+        // Jika data yang didapat kurang dari PAGE_SIZE, berarti sudah habis
+        if (trips.length < PAGE_SIZE) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+      
+      // Safety break untuk menghindari infinite loop
+      if (from > 20000) hasMore = false;
+    }
 
     const monthlyData: Record<string, number> = {};
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -205,13 +242,13 @@ export async function fetchMonthlyCarbonTrend(area: string, year: number) {
     // Initialize months
     months.forEach(m => monthlyData[m] = 0);
 
-    if (trips && trips.length > 0) {
-      trips.forEach((trip: any) => {
+    if (allTrips.length > 0) {
+      allTrips.forEach((trip: any) => {
         if (!trip.tanggal) return;
         const monthIdx = new Date(trip.tanggal).getMonth();
         const monthName = months[monthIdx];
         
-        const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar);
+        const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar, trip.area);
         const distance = oneWayDistance * 2;
         const { co2Emissions } = calculateCarbonFromDistance(distance);
         

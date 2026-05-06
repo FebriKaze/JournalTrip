@@ -48,8 +48,15 @@ export async function fetchActiveDrivers(selectedDate: string, area: string = 'J
           no_polisi
         )
       `)
-      .eq('tanggal', selectedDate)
-      .eq('area', area);
+      .eq('tanggal', selectedDate);
+
+    if (area && area !== 'ALL') {
+      if (area === 'TAM') {
+        query = query.in('area', ['JBK', 'NGORO', 'SUMATERA']);
+      } else {
+        query = query.eq('area', area);
+      }
+    }
 
     if (shift) {
       query = query.ilike('shift', `%${shift}%`);
@@ -262,7 +269,8 @@ export async function fetchFleetMonitoringData(date: string) {
           no_polisi
         )
       `)
-      .eq('tanggal', date);
+      .eq('tanggal', date)
+      .limit(2000);
     
     if (tError) throw tError;
     

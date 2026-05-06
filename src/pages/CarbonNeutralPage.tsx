@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Leaf, Droplets, Fuel, DollarSign, Zap, TreePine, TrendingUp,
-  Calendar, MapPin, Route as RouteIcon, Edit2, Check, X, ChevronDown
+  Calendar, MapPin, Route as RouteIcon, Edit2, Check, X, ChevronDown,
+  BarChart2, PieChart as PieIcon
 } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -16,7 +17,7 @@ const COLORS = ['#10b981', '#059669', '#047857', '#065f46'];
 
 export default function CarbonNeutralPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedArea, setSelectedArea] = useState('JBK');
+  const [selectedArea, setSelectedArea] = useState('ALL');
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [carbonData, setCarbonData] = useState<CarbonSummary | null>(null);
@@ -27,7 +28,7 @@ export default function CarbonNeutralPage() {
   const areaRef = useRef<HTMLDivElement>(null);
   const driverRef = useRef<HTMLDivElement>(null);
 
-  const areas = ['JBK', 'NGORO', 'SUMATERA', 'TMMIN'];
+  const areas = ['ALL', 'TAM', 'TMMIN', 'JBK', 'NGORO', 'SUMATERA'];
 
   // Click outside handlers
   useEffect(() => {
@@ -245,59 +246,80 @@ export default function CarbonNeutralPage() {
                 bgColor="bg-red-50 dark:bg-red-900/20"
               />
             </div>
-
+            
             {/* Monthly Trend Chart */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50"
+              className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50 shadow-sm"
             >
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-500" />
-                Tren Emisi CO₂ Bulanan ({selectedArea})
-              </h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-widest">
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  Tren Emisi CO₂ Bulanan ({selectedArea})
+                </h3>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+                  Tahun {new Date(selectedDate).getFullYear()}
+                </div>
+              </div>
+              
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4b5563', color: '#fff' }} />
-                  <Legend />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} opacity={0.5} />
+                  <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    tick={{ fontSize: 10, fontWeight: 'bold' }} 
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatValue}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                      borderColor: '#e2e8f0', 
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                      fontSize: '11px',
+                      fontWeight: 'bold'
+                    }}
+                    itemStyle={{ color: '#1e293b' }}
+                    formatter={(value: number) => [`${formatValue(value)} CO₂`, 'Total Emisi']}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="co2" 
                     stroke="#10b981" 
-                    strokeWidth={3}
+                    strokeWidth={4}
                     name="CO₂ (kg)" 
-                    dot={{ fill: '#10b981', strokeWidth: 2 }}
-                    activeDot={{ r: 8 }}
+                    dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 8, strokeWidth: 0 }}
+                    animationDuration={2000}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </motion.div>
-
+            
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Distance & Emissions Bar Chart */}
+              {/* Emissions Bar Chart */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50"
+                className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50 shadow-sm"
               >
                 <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
-                  <RouteIcon className="w-5 h-5" />
-                  Per Ritase
+                  <BarChart2 className="w-5 h-5 text-orange-500" />
+                  CO₂ per Ritase
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={carbonData.footprints}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="ritaseNo" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4b5563' }} />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="distance" fill="#10b981" name="Jarak (km)" />
-                    <Bar yAxisId="right" dataKey="co2Emissions" fill="#f59e0b" name="CO₂ (kg)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="ritaseNo" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                    <YAxis tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4b5563', borderRadius: '8px' }} />
+                    <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                    <Bar dataKey="co2Emissions" fill="#f59e0b" name="CO₂ (kg)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </motion.div>
@@ -306,11 +328,11 @@ export default function CarbonNeutralPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50"
+                className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50 shadow-sm"
               >
                 <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Kontribusi CO₂ per Ritase
+                  <PieIcon className="w-5 h-5 text-emerald-500" />
+                  Kontribusi CO₂
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -318,16 +340,16 @@ export default function CarbonNeutralPage() {
                       data={carbonData.footprints}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
+                      labelLine={true}
                       label={({ ritaseNo, co2Emissions }: any) => `${ritaseNo}: ${co2Emissions.toFixed(1)}kg`}
-                      outerRadius={100}
-                      fill="#8884d8"
+                      outerRadius={80}
                       dataKey="co2Emissions"
                     >
                       {carbonData.footprints.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4b5563', borderRadius: '8px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </motion.div>
@@ -419,6 +441,12 @@ export default function CarbonNeutralPage() {
     </div>
   );
 }
+
+const formatValue = (val: number) => {
+  if (val >= 1000000) return `${(val / 1000000).toFixed(1)} jt`;
+  if (val >= 1000) return `${(val / 1000).toFixed(1)} rb`;
+  return val.toString();
+};
 
 interface SummaryCardProps {
   icon: React.ComponentType<{ className?: string }>;

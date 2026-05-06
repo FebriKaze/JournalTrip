@@ -27,7 +27,7 @@ export const leadtimeService = {
     if (endDate) query = query.lte('tanggal', endDate);
     if (area && area !== 'ALL') query = query.eq('area', area);
 
-    const { data, error } = await query;
+    const { data, error } = await query.limit(5000);
     if (error) throw error;
     return data as LeadTimeData[];
   }
