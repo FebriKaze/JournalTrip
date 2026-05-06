@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { getRouteDistance } from '../constants/routeDistances';
 
 export interface CarbonFootprint {
+  id: string;
   ritaseNo: string | number;
   route: string;
   distance: number; // in km
@@ -77,6 +78,7 @@ export async function fetchCarbonFootprintForDriver(
       const { co2Emissions, fuelConsumption, cost } = calculateCarbonFromDistance(distance);
 
       return {
+        id: trip.id,
         ritaseNo: trip.ritase_no,
         route: `${trip.pdc_muat || '---'} → ${trip.pdc_bongkar || '---'}`,
         distance,
@@ -144,6 +146,7 @@ export async function fetchFleetCarbonData(date: string, area: string = 'JBK'): 
         const { co2Emissions, fuelConsumption, cost } = calculateCarbonFromDistance(distance);
 
         summary.footprints.push({
+          id: trip.id,
           ritaseNo: trip.ritase_no,
           route: `${trip.pdc_muat || '---'} → ${trip.pdc_bongkar || '---'}`,
           distance,
@@ -172,4 +175,22 @@ export async function fetchFleetCarbonData(date: string, area: string = 'JBK'): 
  */
 export function treesEquivalent(co2Kg: number): number {
   return Math.round((co2Kg / 20) * 100) / 100;
+}
+
+/**
+ * Update the distance (jarak) for a specific trip in the database
+ */
+export async function updateTripDistance(tripId: string, distanceKm: number): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('trips')
+      .update({ jarak: distanceKm })
+      .eq('id', tripId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating trip distance:', error);
+    return false;
+  }
 }

@@ -21,8 +21,6 @@ export default function CarbonNeutralPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [carbonData, setCarbonData] = useState<CarbonSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editingDistance, setEditingDistance] = useState<string>('');
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
   const [driverDropdownOpen, setDriverDropdownOpen] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
@@ -314,7 +312,6 @@ export default function CarbonNeutralPage() {
                     <th className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">CO₂ (kg)</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Bahan Bakar (L)</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">Biaya (IDR)</th>
-                    <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -327,19 +324,9 @@ export default function CarbonNeutralPage() {
                         {footprint.route}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {editingIndex === idx ? (
-                          <input
-                            type="number"
-                            value={editingDistance}
-                            onChange={(e) => setEditingDistance(e.target.value)}
-                            className="w-20 px-2 py-1 rounded border border-green-500 dark:border-green-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-right"
-                            autoFocus
-                          />
-                        ) : (
-                          <span className="text-slate-900 dark:text-slate-100 font-medium">
-                            {footprint.distance.toFixed(2)}
-                          </span>
-                        )}
+                        <span className="text-slate-900 dark:text-slate-100 font-medium">
+                          {footprint.distance.toFixed(2)}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-right text-green-600 dark:text-green-400 font-semibold">
                         {footprint.co2Emissions.toFixed(2)}
@@ -349,34 +336,6 @@ export default function CarbonNeutralPage() {
                       </td>
                       <td className="px-4 py-3 text-right text-red-600 dark:text-red-400 font-semibold">
                         Rp {(footprint.cost / 1000).toFixed(0)}k
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {editingIndex === idx ? (
-                          <div className="flex gap-2 justify-center">
-                            <button
-                              onClick={() => setEditingIndex(null)}
-                              className="p-1 hover:bg-green-100 dark:hover:bg-green-900/20 rounded transition-colors"
-                            >
-                              <Check className="w-4 h-4 text-green-600" />
-                            </button>
-                            <button
-                              onClick={() => setEditingIndex(null)}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
-                            >
-                              <X className="w-4 h-4 text-red-600" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setEditingIndex(idx);
-                              setEditingDistance(footprint.distance.toString());
-                            }}
-                            className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4 text-blue-600" />
-                          </button>
-                        )}
                       </td>
                     </tr>
                   ))}
@@ -398,7 +357,6 @@ export default function CarbonNeutralPage() {
                 <li>• CO₂ dihitung berdasarkan jarak perjalanan (100g CO₂/km untuk truck standar)</li>
                 <li>• 1 pohon menyerap ~20kg CO₂ per tahun</li>
                 <li>• Biaya bahan bakar menggunakan harga standar Rp 7.500/liter</li>
-                <li>• Edit jarak di kolom "Jarak (km)" untuk update perhitungan</li>
               </ul>
             </motion.div>
           </motion.div>
