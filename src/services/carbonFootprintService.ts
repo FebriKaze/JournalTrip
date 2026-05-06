@@ -195,14 +195,16 @@ export function treesEquivalent(co2Kg: number): number {
 }
 
 /**
- * Fetch monthly carbon trend for a specific area in a given year
+ * Fetch carbon trend for a specific area/driver in a given date range
  */
-export async function fetchMonthlyCarbonTrend(area: string, year: number) {
+export async function fetchCarbonTrend(
+  area: string, 
+  startDate: string, 
+  endDate: string, 
+  granularity: 'daily' | 'monthly' = 'monthly',
+  driverId?: string
+) {
   try {
-    // Fetch trips for the year and area
-    const startDate = `${year}-01-01`;
-    const endDate = `${year}-12-31`;
-
     let allTrips: any[] = [];
     let from = 0;
     const PAGE_SIZE = 1000;
@@ -214,6 +216,11 @@ export async function fetchMonthlyCarbonTrend(area: string, year: number) {
         .select('tanggal, pdc_muat, pdc_bongkar, area')
         .gte('tanggal', startDate)
         .lte('tanggal', endDate);
+
+      // Filter by driver if provided
+      if (driverId) {
+        query = query.eq('driver_id', driverId);
+      }
 
       if (area && area !== 'ALL') {
         if (area === 'TAM') {
@@ -230,46 +237,69 @@ export async function fetchMonthlyCarbonTrend(area: string, year: number) {
       if (trips && trips.length > 0) {
         allTrips = [...allTrips, ...trips];
         from += PAGE_SIZE;
-        // Jika data yang didapat kurang dari PAGE_SIZE, berarti sudah habis
         if (trips.length < PAGE_SIZE) hasMore = false;
       } else {
         hasMore = false;
       }
       
-      // Safety break untuk menghindari infinite loop
       if (from > 20000) hasMore = false;
     }
 
-    const monthlyData: Record<string, number> = {};
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const aggregatedData: Record<string, number> = {};
+    const labels: string[] = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Initialize months
-    months.forEach(m => monthlyData[m] = 0);
+    if (granularity === 'daily') {
+      const current = new Date(startDate);
+      const end = new Date(endDate);
+      while (current <= end) {
+        const label = current.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        labels.push(label);
+        aggregatedData[label] = 0;
+        current.setDate(current.getDate() + 1);
+      }
+    } else {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const current = new Date(start.getFullYear(), start.getMonth(), 1);
+      const monthsLimit = new Date(end.getFullYear(), end.getMonth(), 1);
+      
+      while (current <= monthsLimit) {
+        const label = `${monthNames[current.getMonth()]} ${current.getFullYear().toString().slice(2)}`;
+        labels.push(label);
+        aggregatedData[label] = 0;
+        current.setMonth(current.getMonth() + 1);
+      }
+    }
 
     if (allTrips.length > 0) {
       allTrips.forEach((trip: any) => {
         if (!trip.tanggal) return;
-        const monthIdx = new Date(trip.tanggal).getMonth();
-        const monthName = months[monthIdx];
+        const d = new Date(trip.tanggal);
+        let label = '';
         
-        const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar, trip.area);
-        const distance = oneWayDistance * 2;
-        const { co2Emissions } = calculateCarbonFromDistance(distance);
+        if (granularity === 'daily') {
+          label = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        } else {
+          label = `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
+        }
         
-        if (monthName) {
-          monthlyData[monthName] += co2Emissions;
+        if (aggregatedData[label] !== undefined) {
+          const oneWayDistance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar, trip.area);
+          const distance = oneWayDistance * 2;
+          const { co2Emissions } = calculateCarbonFromDistance(distance);
+          aggregatedData[label] += co2Emissions;
         }
       });
     }
 
-    // Format for Recharts
-    return months.map(month => ({
-      month,
-      co2: Math.round(monthlyData[month] * 100) / 100
+    return labels.map(label => ({
+      label,
+      co2: Math.round(aggregatedData[label] * 100) / 100
     }));
 
   } catch (error) {
-    console.error('Error fetching monthly carbon trend:', error);
+    console.error('Error fetching carbon trend:', error);
     return [];
   }
 }

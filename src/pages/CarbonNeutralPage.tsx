@@ -9,7 +9,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import { fetchCarbonFootprintForDriver, CarbonSummary, treesEquivalent, fetchMonthlyCarbonTrend } from '../services/carbonFootprintService';
+import { fetchCarbonFootprintForDriver, CarbonSummary, treesEquivalent, fetchCarbonTrend } from '../services/carbonFootprintService';
 import { fetchActiveDrivers } from '../services/dataFetcher';
 import { Driver } from '../types';
 
@@ -22,6 +22,10 @@ export default function CarbonNeutralPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [carbonData, setCarbonData] = useState<CarbonSummary | null>(null);
   const [trendData, setTrendData] = useState<any[]>([]);
+  const [trendStartDate, setTrendStartDate] = useState(`${new Date().getFullYear()}-01-01`);
+  const [trendEndDate, setTrendEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [granularity, setGranularity] = useState<'daily' | 'monthly'>('monthly');
+  const [trendMode, setTrendMode] = useState<'area' | 'driver'>('area');
   const [isLoading, setIsLoading] = useState(false);
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
   const [driverDropdownOpen, setDriverDropdownOpen] = useState(false);
@@ -67,12 +71,12 @@ export default function CarbonNeutralPage() {
   // Load trend data
   useEffect(() => {
     const loadTrend = async () => {
-      const year = new Date(selectedDate).getFullYear();
-      const data = await fetchMonthlyCarbonTrend(selectedArea, year);
+      const driverId = trendMode === 'driver' ? selectedDriverId : undefined;
+      const data = await fetchCarbonTrend(selectedArea, trendStartDate, trendEndDate, granularity, driverId);
       setTrendData(data);
     };
     loadTrend();
-  }, [selectedDate, selectedArea]);
+  }, [trendStartDate, trendEndDate, selectedArea, granularity, trendMode, selectedDriverId]);
 
   const selectedDriver = drivers.find(d => d.id === selectedDriverId);
 
@@ -243,20 +247,93 @@ export default function CarbonNeutralPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800/50 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-widest">
-                  <TrendingUp className="w-5 h-5 text-green-500" />
-                  Tren Emisi CO₂ Bulanan ({selectedArea})
-                </h3>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-                  Tahun {new Date(selectedDate).getFullYear()}
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-widest">
+                    <TrendingUp className="w-5 h-5 text-green-500" />
+                    Tren Emisi CO₂
+                  </h3>
+                  
+                  {/* Mode Toggle */}
+                  <div className="flex p-1 bg-slate-200/50 dark:bg-slate-800 rounded-xl">
+                    <button
+                      onClick={() => setTrendMode('area')}
+                      className={`px-3 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${
+                        trendMode === 'area' 
+                          ? 'bg-white dark:bg-slate-700 text-green-600 shadow-sm' 
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      Per Area ({selectedArea})
+                    </button>
+                    <button
+                      disabled={!selectedDriverId}
+                      onClick={() => setTrendMode('driver')}
+                      className={`px-3 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all disabled:opacity-30 ${
+                        trendMode === 'driver' 
+                          ? 'bg-white dark:bg-slate-700 text-green-600 shadow-sm' 
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      Per Driver ({selectedDriver?.name?.split(' ')[0] || 'Selected'})
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Granularity Toggle */}
+                  <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                    <button
+                      onClick={() => setGranularity('daily')}
+                      className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                        granularity === 'daily' 
+                          ? 'bg-white dark:bg-slate-700 text-green-600 shadow-sm' 
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      Harian
+                    </button>
+                    <button
+                      onClick={() => setGranularity('monthly')}
+                      className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                        granularity === 'monthly' 
+                          ? 'bg-white dark:bg-slate-700 text-green-600 shadow-sm' 
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      Bulanan
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={trendStartDate}
+                      onChange={(e) => setTrendStartDate(e.target.value)}
+                      className="px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg border-none focus:ring-1 focus:ring-green-500"
+                    />
+                    <span className="text-slate-400 text-xs">-</span>
+                    <input
+                      type="date"
+                      value={trendEndDate}
+                      onChange={(e) => setTrendEndDate(e.target.value)}
+                      className="px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg border-none focus:ring-1 focus:ring-green-500"
+                    />
+                  </div>
                 </div>
               </div>
               
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} opacity={0.5} />
-                  <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                  <XAxis 
+                    dataKey="label" 
+                    stroke="#94a3b8" 
+                    tick={{ fontSize: 10, fontWeight: 'bold' }} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    interval={granularity === 'daily' ? 'preserveStartEnd' : 0}
+                  />
                   <YAxis 
                     stroke="#94a3b8" 
                     tick={{ fontSize: 10, fontWeight: 'bold' }} 

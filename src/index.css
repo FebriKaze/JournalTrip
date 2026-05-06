@@ -141,7 +141,6 @@
 
   /* Paksa background muncul di print */
   * {
-    color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
