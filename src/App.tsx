@@ -150,7 +150,7 @@ export default function App() {
             onThemeToggle={toggleTheme}
           />
 
-          <main className="pt-16 min-h-screen">
+          <main id="pdf-export-content" className="pt-16 min-h-screen">
             <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
               <Routes>
                 <Route path="/" element={

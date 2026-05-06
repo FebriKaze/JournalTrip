@@ -67,7 +67,7 @@ export default function DriversPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {isLoading ? (
           [...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-slate-900 rounded-[32px] p-6 shadow-sm space-y-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-4xl p-6 shadow-sm space-y-6 animate-pulse">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800" />
                 <div className="space-y-2">
@@ -86,7 +86,7 @@ export default function DriversPage() {
             key={driver.id} 
             to={`/drivers/${driver.name.replace(/\s+/g, '-')}`}
             state={{ driver }}
-            className="group bg-white dark:bg-slate-900 rounded-[32px] p-6 hover:shadow-xl hover:shadow-red-500/5 transition-all duration-300 shadow-sm relative overflow-hidden outline-none ring-0"
+            className="group bg-white dark:bg-slate-900 rounded-4xl p-6 hover:shadow-xl hover:shadow-red-500/5 transition-all duration-300 shadow-sm relative overflow-hidden outline-none ring-0"
           >
             {/* Hover Background Accent */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-red-500/5 to-transparent rounded-bl-full translate-x-8 -translate-y-8 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-500" />
@@ -136,7 +136,7 @@ export default function DriversPage() {
       </div>
 
       {filteredDrivers.length === 0 && !isLoading && (
-        <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-[32px] border-2 border-dashed border-slate-200 dark:border-slate-800">
+        <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-4xl border-2 border-dashed border-slate-200 dark:border-slate-800">
           <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <User className="w-8 h-8 text-slate-200" />
           </div>

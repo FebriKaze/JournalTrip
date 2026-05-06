@@ -286,7 +286,7 @@ export default function FleetMonitoringPage() {
       </div>
 
       {/* ── MONITORING TABLE (Desktop) & CARDS (Mobile) ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm overflow-hidden border border-slate-200/60 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-4xl shadow-sm overflow-hidden border border-slate-200/60 dark:border-slate-800">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div 
@@ -490,12 +490,12 @@ export default function FleetMonitoringPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 w-full max-w-3xl max-h-[90vh] rounded-[32px] shadow-2xl overflow-y-auto border border-slate-200/60 dark:border-slate-800"
+              className="relative bg-white dark:bg-slate-900 w-full max-w-3xl max-h-[90vh] rounded-4xl shadow-2xl overflow-y-auto border border-slate-200/60 dark:border-slate-800"
             >
               <div className="p-5 md:p-8">
                 <div className="flex justify-between items-start mb-6 md:mb-10">
                   <div className="flex items-center gap-4 md:gap-5">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center overflow-hidden">
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-3xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center overflow-hidden">
                       {selectedDriver.avatar_url ? (
                         <img src={selectedDriver.avatar_url} alt={selectedDriver.driverName} className="w-full h-full object-cover" />
                       ) : (
@@ -584,7 +584,7 @@ export default function FleetMonitoringPage() {
                   {/* Info Sidebar */}
                   <div className="lg:col-span-2 space-y-6">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-3">Monitoring Guide</h4>
-                    <div className="p-5 bg-blue-50/50 dark:bg-blue-500/5 rounded-[24px] border border-blue-100/50 dark:border-blue-900/20">
+                    <div className="p-5 bg-blue-50/50 dark:bg-blue-500/5 rounded-3xl border border-blue-100/50 dark:border-blue-900/20">
                       <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 mb-4 uppercase tracking-widest">Parameter Logic</p>
                       <ul className="space-y-4">
                         <li className="flex gap-3">

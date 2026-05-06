@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import html2pdf from 'html2pdf.js';
 
 interface NavbarProps {
   selectedDate: string;
@@ -49,6 +50,30 @@ export default function Navbar({
   const pageInfo = getPageInfo();
   const isDay = selectedShift === 'Day';
   const isDashboard = location.pathname === '/';
+
+  const handleExportPDF = async () => {
+    try {
+      const element = document.getElementById('pdf-export-content');
+      if (!element) return;
+      
+      // Add a class temporarily to adjust styles for PDF if needed
+      element.classList.add('exporting-pdf');
+      
+      const opt = {
+        margin:       10,
+        filename:     `JournalTrip_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        image:        { type: 'png' as const, quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'landscape' as const }
+      };
+      
+      await html2pdf().set(opt).from(element).save();
+      
+      element.classList.remove('exporting-pdf');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+    }
+  };
 
   return (
     <nav className={`
@@ -99,6 +124,16 @@ export default function Navbar({
 
       {/* ── Right Controls ── */}
       <div className="flex items-center gap-2 md:gap-3">
+
+        {/* Export PDF Button */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={handleExportPDF}
+          className="relative p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm outline-none ring-0"
+          title="Export current page to PDF"
+        >
+          <Download className="w-4 h-4" />
+        </motion.button>
 
         {/* Theme Toggle */}
         <motion.button

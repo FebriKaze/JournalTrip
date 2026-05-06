@@ -310,7 +310,7 @@ export default function LeadTimePage() {
   return (
     <div className="flex flex-col gap-4 sm:gap-10 pb-20 w-full max-w-[100vw] overflow-x-hidden px-1 sm:px-4 lg:px-6 box-border">
       {/* ── HEADER SECTION ── */}
-      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-3 sm:p-8 rounded-[20px] sm:rounded-[32px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 mt-1 sm:mt-0 w-full max-w-full overflow-hidden box-border">
+      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-3 sm:p-8 rounded-2xl sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 mt-1 sm:mt-0 w-full max-w-full overflow-hidden box-border">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6">
           <div className="flex items-center gap-3 sm:gap-5 min-w-0 max-w-full overflow-hidden">
             <div className="w-9 h-9 sm:w-16 sm:h-16 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 shrink-0">
@@ -587,7 +587,7 @@ function StageBox({ title, icon, stats, eff, stage, activeFilter, setActiveFilte
   const isInPdc = title === 'IN-PDC';
   
   return (
-    <div className="bg-white dark:bg-slate-900/60 rounded-[16px] sm:rounded-[32px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 p-3 sm:p-8 flex flex-col h-full hover:border-blue-500/30 transition-all duration-500 group overflow-hidden w-full max-w-full box-border">
+    <div className="bg-white dark:bg-slate-900/60 rounded-2xl sm:rounded-[32px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 p-3 sm:p-8 flex flex-col h-full hover:border-blue-500/30 transition-all duration-500 group overflow-hidden w-full max-w-full box-border">
       <div className="flex items-center gap-2.5 sm:gap-4 mb-4 sm:mb-8 overflow-hidden">
         <div className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
           {icon}

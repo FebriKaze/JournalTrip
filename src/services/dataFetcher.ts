@@ -287,9 +287,7 @@ export async function fetchFleetMonitoringData(date: string) {
       const driverTrips = trips
         .filter(t => t.driver_id === dId)
         .sort((a, b) => {
-          const timeA = a.plan_dccp || '00:00:00';
-          const timeB = b.plan_dccp || '00:00:00';
-          return timeA.localeCompare(timeB);
+          return parseRit(a.ritase_no) - parseRit(b.ritase_no);
         });
       
       const firstTrip = driverTrips[0];

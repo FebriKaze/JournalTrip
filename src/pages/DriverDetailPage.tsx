@@ -140,7 +140,7 @@ export default function DriverDetailPage() {
         {/* Back button skeleton */}
         <div className="w-32 h-6 bg-slate-200 dark:bg-slate-800 rounded-lg" />
         
-        <div className="bg-white dark:bg-slate-900 rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl pb-12">
+        <div className="bg-white dark:bg-slate-900 rounded-4xl md:rounded-6xl overflow-hidden shadow-2xl pb-12">
           {/* Hero background skeleton */}
           <div className="h-40 md:h-64 bg-slate-100 dark:bg-slate-800" />
           
@@ -188,7 +188,7 @@ export default function DriverDetailPage() {
       </button>
 
       {/* ── PROFILE HERO ── */}
-      <div className="relative bg-white dark:bg-slate-900 rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl">
+      <div className="relative bg-white dark:bg-slate-900 rounded-4xl md:rounded-6xl overflow-hidden shadow-2xl">
         {/* Header Background */}
         <div className="h-40 md:h-64 bg-linear-to-br from-red-600 via-red-700 to-red-900 dark:bg-linear-to-br dark:from-slate-900 dark:via-slate-950 dark:to-black relative overflow-hidden">
           <div className="absolute inset-0 hidden dark:block bg-[radial-gradient(at_top_right,rgba(220,38,38,0.2)_0%,transparent_50%)]" />
@@ -389,7 +389,7 @@ export default function DriverDetailPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="py-20 text-center bg-slate-50 dark:bg-slate-800/20 rounded-[32px] border-2 border-dashed border-slate-200 dark:border-slate-800">
+                  <div className="py-20 text-center bg-slate-50 dark:bg-slate-800/20 rounded-4xl border-2 border-dashed border-slate-200 dark:border-slate-800">
                     <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Search className="w-8 h-8 text-slate-300" />
                     </div>
@@ -476,7 +476,7 @@ export default function DriverDetailPage() {
               <div className="p-8">
                 <div className="flex justify-between items-start mb-8">
                   <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-[24px] bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-3xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
                       <Activity className="w-8 h-8 text-orange-600" />
                     </div>
                     <div>
@@ -494,7 +494,7 @@ export default function DriverDetailPage() {
 
                 {/* Analysis Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-                  <div className="lg:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800/60">
+                  <div className="lg:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-4xl border border-slate-100 dark:border-slate-800/60">
                     <div className="flex items-center justify-between mb-6">
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Violation Trend</h4>
                       <div className="flex gap-4">
@@ -570,7 +570,7 @@ export default function DriverDetailPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="p-5 bg-sky-50 dark:bg-sky-950/20 rounded-[24px] border border-sky-100 dark:border-sky-900/30">
+                    <div className="p-5 bg-sky-50 dark:bg-sky-950/20 rounded-3xl border border-sky-100 dark:border-sky-900/30">
                       <p className="text-[10px] font-black text-sky-600 uppercase mb-1">Most Frequent</p>
                       <h5 className="text-sm font-black text-slate-900 dark:text-white truncate">
                         {(() => {
@@ -580,7 +580,7 @@ export default function DriverDetailPage() {
                         })()}
                       </h5>
                     </div>
-                    <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-[24px] border border-slate-100 dark:border-slate-800">
+                    <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
                       <p className="text-[10px] font-black text-slate-400 uppercase mb-4">Violation Breakdown</p>
                       <div className="space-y-3">
                         {['Akselerasi', 'Perlambatan', 'Kecepatan', 'Tikungan'].map(cat => {
@@ -605,7 +605,7 @@ export default function DriverDetailPage() {
 
                 {/* History Table */}
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Historical Events</h4>
-                <div className="bg-slate-50 dark:bg-slate-800/30 rounded-[32px] overflow-hidden border border-slate-100 dark:border-slate-800 mb-6">
+                <div className="bg-slate-50 dark:bg-slate-800/30 rounded-4xl overflow-hidden border border-slate-100 dark:border-slate-800 mb-6">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-100 dark:bg-slate-800">
