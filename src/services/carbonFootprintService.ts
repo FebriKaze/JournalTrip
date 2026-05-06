@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getRouteDistance } from '../constants/routeDistances';
 
 export interface CarbonFootprint {
   ritaseNo: string | number;
@@ -70,8 +71,8 @@ export async function fetchCarbonFootprintForDriver(
     }
 
     const footprints: CarbonFootprint[] = trips.map((trip: any, idx: number) => {
-      // User provides distance in km
-      const distance = trip.jarak || 0; // jarak field in km
+      // Ambil jarak dari mapping rute (pdc_muat → pdc_bongkar)
+      const distance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar);
 
       const { co2Emissions, fuelConsumption, cost } = calculateCarbonFromDistance(distance);
 
@@ -126,7 +127,7 @@ export async function fetchFleetCarbonData(date: string, area: string = 'JBK'): 
     if (trips && trips.length > 0) {
       trips.forEach((trip: any) => {
         const driverId = trip.driver_id;
-        const distance = trip.jarak || 0;
+        const distance = getRouteDistance(trip.pdc_muat, trip.pdc_bongkar);
 
         if (!driverMap.has(driverId)) {
           driverMap.set(driverId, {
