@@ -4,10 +4,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, User, Search, PanelLeftClose, PanelLeft,
-  Route, Leaf, Users, ChevronRight, BarChart3, Clock, TreePine
+  Route, Leaf, Users, ChevronRight, BarChart3, Clock, TreePine,
+  Activity
 } from 'lucide-react';
 import { Driver } from '../../types';
 import Logo from '../../image/Logo.png';
+import Logo1 from '../../image/logo1.png';
 
 interface SidebarProps {
   drivers: Driver[];
@@ -25,6 +27,7 @@ const NAV_ITEMS: { id: string; label: string; icon: ReactNode; sub?: string; pat
   { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking', path: '/' },
   { id: 'monitoring', label: 'Monitoring', icon: <BarChart3 className="w-5 h-5" />, sub: 'Fleet Status', path: '/monitoring' },
   { id: 'leadtime', label: 'LeadTime', icon: <Clock className="w-5 h-5" />, sub: 'Performance', path: '/leadtime' },
+  { id: 'tenko', label: 'Tenko', icon: <Activity className="w-5 h-5" />, sub: 'Health Check', path: '/tenko' },
   { id: 'eco', label: 'Eco Driving', icon: <Leaf className="w-5 h-5" />, sub: 'Safety Analytics', path: '/eco' },
   { id: 'carbon', label: 'Carbon Neutral', icon: <TreePine className="w-5 h-5" />, sub: 'Carbon Footprint', path: '/carbon' },
   { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi', path: '/drivers' },
@@ -87,9 +90,10 @@ export default function Sidebar({
         <div className={`h-19 flex items-center border-b border-slate-100 dark:border-slate-800 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-4 gap-3'}`}>
           <div className="w-15 h-15 shrink-0 flex items-center justify-center overflow-hidden p-1">
               <img 
-                src={Logo} 
+                src={isCollapsed ? Logo1 : Logo} 
                 alt="K Line" 
-                className="w-full h-full object-contain" 
+                className="w-full h-full object-contain transition-all duration-500" 
+                title="K Line"
               />
             </div>
           {!isCollapsed && (

@@ -11,6 +11,7 @@ import FleetMonitoringPage from './pages/FleetMonitoringPage';
 import EcoDrivingPage from './pages/EcoDrivingPage';
 import LeadTimePage from './pages/LeadTimePage';
 import CarbonNeutralPage from './pages/CarbonNeutralPage';
+import TenkoPage from './pages/TenkoPage';
 import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
@@ -199,6 +200,7 @@ export default function App() {
                 <Route path="/leadtime" element={<LeadTimePage />} />
                 <Route path="/eco" element={<EcoDrivingPage />} />
                 <Route path="/carbon" element={<CarbonNeutralPage />} />
+                <Route path="/tenko" element={<TenkoPage />} />
                 <Route path="/drivers" element={<DriversPage />} />
                 <Route path="/drivers/:id" element={<DriverDetailPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
