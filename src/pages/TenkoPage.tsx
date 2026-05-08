@@ -3,14 +3,16 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity, Heart, Thermometer, Wine, Eye, Moon, AlertCircle,
   Calendar, MapPin, Search, ChevronDown, CheckCircle2, XCircle,
-  TrendingUp, BarChart3, PieChart as PieIcon, ClipboardList
+  TrendingUp, BarChart3, PieChart as PieIcon, ClipboardList,
+  Building2, Users
 } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ComposedChart, Area
+  ComposedChart, Area as ReArea
 } from 'recharts';
-import { fetchTenkoData, fetchTenkoTrend, TenkoSummary, TenkoRecord } from '../services/tenkoService';
+import * as tenkoService from '../services/tenkoService';
+import { TenkoSummary, TenkoRecord } from '../services/tenkoService';
 
 const COLORS = {
   normal: '#10b981',
@@ -23,37 +25,71 @@ const COLORS = {
 const TENSI_COLORS = ['#10b981', '#f59e0b', '#ef4444'];
 
 export default function TenkoPage() {
+  const [selectedCustomer, setSelectedCustomer] = useState('ALL');
+  const [personnelType, setPersonnelType] = useState('ALL'); // ALL, DRIVER, ASST
+  const [customers, setCustomers] = useState<string[]>(['ALL']);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedArea, setSelectedArea] = useState('ALL');
   const [summary, setSummary] = useState<TenkoSummary | null>(null);
   const [trendData, setTrendData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  // Cross-filter state (Looker-style)
+  const [crossFilter, setCrossFilter] = useState<{ tensiStatus: string | null; date: string | null }>({ tensiStatus: null, date: null });
 
-  const areas = ['ALL', 'TAM', 'TMMIN', 'JBK', 'NGORO', 'SUMATERA'];
+  const toggleCrossFilter = (key: 'tensiStatus' | 'date', value: string) => {
+    setCrossFilter(prev => ({ ...prev, [key]: prev[key] === value ? null : value }));
+  };
+  const clearCrossFilters = () => setCrossFilter({ tensiStatus: null, date: null });
 
+  // 1. Fetch Dynamic Customers once
+  useEffect(() => {
+    const loadCustomers = async () => {
+      const dynamicCustomers = await tenkoService.fetchUniqueCustomers();
+      setCustomers(dynamicCustomers);
+    };
+    loadCustomers();
+  }, []);
+
+  // 2. Fetch Data when filters change
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
-      const [dataSummary, trend] = await Promise.all([
-        fetchTenkoData(startDate, endDate, selectedArea),
-        fetchTenkoTrend(startDate, endDate, selectedArea)
-      ]);
-      setSummary(dataSummary);
-      setTrendData(trend);
-      setIsLoading(false);
+      setLoading(true);
+      setCrossFilter({ tensiStatus: null, date: null }); // reset cross-filter on main filter change
+      const data = await tenkoService.fetchTenkoData(startDate, endDate, selectedCustomer);
+      let filteredRaw = data.raw || [];
+      if (personnelType === 'DRIVER') filteredRaw = filteredRaw.filter(r => !r.is_assistant);
+      else if (personnelType === 'ASST') filteredRaw = filteredRaw.filter(r => r.is_assistant);
+      const newSummary = tenkoService.calculateSummary(filteredRaw);
+      setSummary(newSummary);
+      setTrendData(data.trends);
+      setLoading(false);
     };
     loadData();
-  }, [startDate, endDate, selectedArea]);
+  }, [startDate, endDate, selectedCustomer, personnelType]);
 
-  const filteredRecords = useMemo(() => {
+  // Apply cross-filters on top of main filtered data
+  const crossFilteredRecords = useMemo(() => {
     if (!summary?.raw) return [];
-    return summary.raw.filter(r => 
-      r.driver_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.nopol.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [summary, searchQuery]);
+    return summary.raw.filter(r => {
+      if (crossFilter.tensiStatus) {
+        if (crossFilter.tensiStatus === 'Normal' && (r.sistolik >= 140 || r.diastolik >= 90 || r.sistolik < 90 || r.diastolik < 60)) return false;
+        if (crossFilter.tensiStatus === 'Hipertensi' && !(r.sistolik >= 140 || r.diastolik >= 90)) return false;
+        if (crossFilter.tensiStatus === 'Hipotensi' && !(r.sistolik < 90 || r.diastolik < 60)) return false;
+      }
+      if (crossFilter.date && r.tanggal !== crossFilter.date) return false;
+      if (searchQuery && !r.nama_driver?.toLowerCase().includes(searchQuery.toLowerCase()) && !r.nopol?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      return true;
+    });
+  }, [summary, crossFilter, searchQuery]);
+
+  const filteredRecords = crossFilteredRecords;
+
+  // Cross-filtered summary for charts
+  const crossSummary = useMemo(() => {
+    if (!crossFilter.tensiStatus && !crossFilter.date) return summary;
+    return tenkoService.calculateSummary(crossFilteredRecords);
+  }, [crossFilteredRecords, crossFilter, summary]);
 
   const tensiPieData = useMemo(() => {
     if (!summary) return [];
@@ -63,6 +99,15 @@ export default function TenkoPage() {
       { name: 'Hipertensi', value: summary.tensi.hipertensi }
     ];
   }, [summary]);
+
+  const hasActiveCrossFilter = crossFilter.tensiStatus !== null || crossFilter.date !== null;
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 25;
+  useEffect(() => setCurrentPage(1), [crossFilter, searchQuery]);
+  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE);
+  const paginatedRecords = filteredRecords.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-8 pb-20 px-1">
@@ -121,13 +166,27 @@ export default function TenkoPage() {
             </div>
 
             <div className="relative group">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
               <select 
-                value={selectedArea}
-                onChange={(e) => setSelectedArea(e.target.value)}
-                className="pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-black focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer uppercase transition-all shadow-sm"
+                value={selectedCustomer}
+                onChange={(e) => setSelectedCustomer(e.target.value)}
+                className="pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer uppercase transition-all shadow-sm"
               >
-                {areas.map(a => <option key={a} value={a}>{a === 'ALL' ? 'ALL AREA' : a}</option>)}
+                {customers.map(c => <option key={c} value={c}>{c === 'ALL' ? 'ALL CUSTOMER' : c}</option>)}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+
+            <div className="relative group">
+              <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+              <select 
+                value={personnelType}
+                onChange={(e) => setPersonnelType(e.target.value)}
+                className="pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black focus:ring-2 focus:ring-emerald-500/50 appearance-none cursor-pointer uppercase transition-all shadow-sm"
+              >
+                <option value="ALL">ALL PERSONNEL</option>
+                <option value="DRIVER">DRIVERS ONLY</option>
+                <option value="ASST">ASSISTANTS ONLY</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
@@ -135,41 +194,30 @@ export default function TenkoPage() {
         </div>
       </motion.div>
 
+      {/* ── CROSS-FILTER CHIPS ── */}
+      {hasActiveCrossFilter && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 flex-wrap">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Filters:</span>
+          {crossFilter.tensiStatus && (
+            <button onClick={() => toggleCrossFilter('tensiStatus', crossFilter.tensiStatus!)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-[10px] font-black text-blue-500 uppercase hover:bg-blue-500/20 transition-all">
+              <Heart className="w-3 h-3" /> Tensi: {crossFilter.tensiStatus} <XCircle className="w-3 h-3" />
+            </button>
+          )}
+          {crossFilter.date && (
+            <button onClick={() => toggleCrossFilter('date', crossFilter.date!)} className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-xl text-[10px] font-black text-purple-500 uppercase hover:bg-purple-500/20 transition-all">
+              <Calendar className="w-3 h-3" /> Tanggal: {crossFilter.date} <XCircle className="w-3 h-3" />
+            </button>
+          )}
+          <button onClick={clearCrossFilters} className="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase transition-colors">Clear All ×</button>
+        </motion.div>
+      )}
+
       {/* ── SUMMARY CARDS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          icon={Activity} 
-          label="Total Checkups" 
-          value={summary?.totalCheckups || 0} 
-          sub="Drivers verified"
-          color="text-blue-500"
-          bgColor="bg-blue-500/10"
-        />
-        <StatCard 
-          icon={Heart} 
-          label="Abnormal Tensi" 
-          value={(summary?.tensi.hipertensi || 0) + (summary?.tensi.hipotensi || 0)} 
-          sub="Requires monitoring"
-          color="text-red-500"
-          bgColor="bg-red-500/10"
-          trend={summary ? `${((((summary.tensi.hipertensi + summary.tensi.hipotensi) / summary.totalCheckups) || 0) * 100).toFixed(1)}%` : '0%'}
-        />
-        <StatCard 
-          icon={Thermometer} 
-          label="Body Temp Alert" 
-          value={summary?.suhu.demam || 0} 
-          sub="Over 37.5°C"
-          color="text-orange-500"
-          bgColor="bg-orange-500/10"
-        />
-        <StatCard 
-          icon={Wine} 
-          label="Alcohol Check" 
-          value={summary?.alkohol.positif || 0} 
-          sub="Positive cases"
-          color={summary?.alkohol.positif ? 'text-red-600' : 'text-emerald-500'}
-          bgColor={summary?.alkohol.positif ? 'bg-red-500/10' : 'bg-emerald-500/10'}
-        />
+        <StatCard icon={Activity} label="Total Checkups" value={crossSummary?.totalCheckups || 0} sub={hasActiveCrossFilter ? 'Filtered results' : 'Drivers verified'} color="text-blue-500" bgColor="bg-blue-500/10" />
+        <StatCard icon={Heart} label="Abnormal Tensi" value={(crossSummary?.tensi.hipertensi || 0) + (crossSummary?.tensi.hipotensi || 0)} sub="Requires monitoring" color="text-red-500" bgColor="bg-red-500/10" trend={crossSummary ? `${((((crossSummary.tensi.hipertensi + crossSummary.tensi.hipotensi) / (crossSummary.totalCheckups || 1)) || 0) * 100).toFixed(1)}%` : '0%'} />
+        <StatCard icon={Thermometer} label="Body Temp Alert" value={crossSummary?.suhu.demam || 0} sub="Over 37.5°C" color="text-orange-500" bgColor="bg-orange-500/10" />
+        <StatCard icon={Wine} label="Alcohol Check" value={crossSummary?.alkohol.positif || 0} sub="Positive cases" color={crossSummary?.alkohol.positif ? 'text-red-600' : 'text-emerald-500'} bgColor={crossSummary?.alkohol.positif ? 'bg-red-500/10' : 'bg-emerald-500/10'} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -195,24 +243,19 @@ export default function TenkoPage() {
 
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={trendData}>
+              <ComposedChart data={trendData} onClick={(e: any) => { if (e?.activeLabel) toggleCrossFilter('date', e.activeLabel); }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.1} />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
-                  tickFormatter={(val: string) => val.split('-').slice(1).reverse().join('/')}
-                />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} tickFormatter={(val: string) => val.split('-').slice(1).reverse().join('/')} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="normal" stackId="a" fill={COLORS.normal} barSize={40} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="hipotensi" stackId="a" fill={COLORS.warning} barSize={40} />
-                <Bar dataKey="hipertensi" stackId="a" fill={COLORS.danger} barSize={40} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="normal" stackId="a" fill={COLORS.normal} barSize={40} radius={[0,0,0,0]} cursor="pointer" opacity={1} />
+                <Bar dataKey="hipotensi" stackId="a" fill={COLORS.warning} barSize={40} cursor="pointer" />
+                <Bar dataKey="hipertensi" stackId="a" fill={COLORS.danger} barSize={40} radius={[6,6,0,0]} cursor="pointer" />
                 <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+          {crossFilter.date && <p className="text-center text-[10px] font-black text-purple-500 uppercase mt-2">📅 Filtered: {crossFilter.date} — Klik bar lain untuk ganti, atau hapus di chip atas</p>}
         </motion.div>
 
         {/* ── DISTRIBUTION PIE ── */}
@@ -227,15 +270,20 @@ export default function TenkoPage() {
               <PieChart>
                 <Pie
                   data={tensiPieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={90}
-                  paddingAngle={8}
-                  dataKey="value"
+                  cx="50%" cy="50%"
+                  innerRadius={70} outerRadius={90}
+                  paddingAngle={8} dataKey="value"
+                  onClick={(entry: any) => toggleCrossFilter('tensiStatus', entry.name)}
+                  cursor="pointer"
                 >
                   {tensiPieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={TENSI_COLORS[index % TENSI_COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={TENSI_COLORS[index % TENSI_COLORS.length]}
+                      opacity={crossFilter.tensiStatus ? (crossFilter.tensiStatus === entry.name ? 1 : 0.35) : 1}
+                      stroke={crossFilter.tensiStatus === entry.name ? '#ffffff' : 'transparent'}
+                      strokeWidth={3}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -346,16 +394,20 @@ export default function TenkoPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredRecords.map((r, idx) => (
+              {paginatedRecords.map((r, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-all">
                   <td className="px-8 py-5">
-                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase">{r.driver_name}</p>
+                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase">{r.nama_driver}</p>
                     <p className="text-[10px] font-bold text-blue-500 uppercase mt-1">{r.nopol} • {r.no_lambung}</p>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${
-                        r.sistolik >= 140 ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
+                        (r.sistolik >= 140 || r.diastolik >= 90)
+                          ? 'bg-red-500/10 text-red-500'
+                          : (r.sistolik < 90 || r.diastolik < 60)
+                          ? 'bg-amber-500/10 text-amber-500'
+                          : 'bg-emerald-500/10 text-emerald-500'
                       }`}>
                         {r.tensi}
                       </span>
@@ -372,13 +424,13 @@ export default function TenkoPage() {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
-                      <StatusBadge label="Alc" ok={r.alkohol === '0%' || r.alkohol?.toLowerCase().includes('negatif')} />
+                      <StatusBadge label="Alc" ok={Number(r.alkohol) === 0} />
                       <StatusBadge label="Eye" ok={r.mata === 'OK'} />
                       <StatusBadge label="Fat" ok={r.fatigue === 'NORMAL'} />
                     </div>
                   </td>
                   <td className="px-8 py-5 text-right">
-                    {r.sistolik < 150 && r.suhu_tubuh < 37.8 && r.alkohol.includes('0') ? (
+                    {r.sistolik < 140 && r.diastolik < 90 && r.suhu_tubuh < 37.5 && Number(r.alkohol) === 0 ? (
                       <span className="flex items-center justify-end gap-1.5 text-[10px] font-black text-emerald-500 uppercase">
                         <CheckCircle2 className="w-3.5 h-3.5" /> FIT TO DRIVE
                       </span>
@@ -393,6 +445,37 @@ export default function TenkoPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-8 py-5 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-[10px] font-black text-slate-400 uppercase">
+              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)} of {filteredRecords.length} records
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+              >← Prev</button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const page = currentPage <= 3 ? i + 1 : currentPage + i - 2;
+                if (page < 1 || page > totalPages) return null;
+                return (
+                  <button key={page} onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-xl text-[10px] font-black transition-all ${
+                      currentPage === page ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                    }`}>{page}</button>
+                );
+              })}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+              >Next →</button>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
