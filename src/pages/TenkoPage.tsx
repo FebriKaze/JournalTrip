@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity, Heart, Thermometer, Wine, Eye, Moon, AlertCircle,
@@ -34,7 +34,6 @@ export default function TenkoPage() {
   const [trendData, setTrendData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  // Cross-filter state (Looker-style)
   const [crossFilter, setCrossFilter] = useState<{ tensiStatus: string | null; date: string | null }>({ tensiStatus: null, date: null });
 
   const toggleCrossFilter = (key: 'tensiStatus' | 'date', value: string) => {
@@ -42,7 +41,6 @@ export default function TenkoPage() {
   };
   const clearCrossFilters = () => setCrossFilter({ tensiStatus: null, date: null });
 
-  // 1. Fetch Dynamic Customers once
   useEffect(() => {
     const loadCustomers = async () => {
       const dynamicCustomers = await tenkoService.fetchUniqueCustomers();
@@ -51,11 +49,10 @@ export default function TenkoPage() {
     loadCustomers();
   }, []);
 
-  // 2. Fetch Data when filters change
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      setCrossFilter({ tensiStatus: null, date: null }); // reset cross-filter on main filter change
+      setCrossFilter({ tensiStatus: null, date: null });
       const data = await tenkoService.fetchTenkoData(startDate, endDate, selectedCustomer);
       let filteredRaw = data.raw || [];
       if (personnelType === 'DRIVER') filteredRaw = filteredRaw.filter(r => !r.is_assistant);
@@ -68,7 +65,6 @@ export default function TenkoPage() {
     loadData();
   }, [startDate, endDate, selectedCustomer, personnelType]);
 
-  // Apply cross-filters on top of main filtered data
   const crossFilteredRecords = useMemo(() => {
     if (!summary?.raw) return [];
     return summary.raw.filter(r => {
@@ -83,9 +79,6 @@ export default function TenkoPage() {
     });
   }, [summary, crossFilter, searchQuery]);
 
-  const filteredRecords = crossFilteredRecords;
-
-  // Cross-filtered summary for charts
   const crossSummary = useMemo(() => {
     if (!crossFilter.tensiStatus && !crossFilter.date) return summary;
     return tenkoService.calculateSummary(crossFilteredRecords);
@@ -102,99 +95,46 @@ export default function TenkoPage() {
 
   const hasActiveCrossFilter = crossFilter.tensiStatus !== null || crossFilter.date !== null;
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 25;
+  const ITEMS_PER_PAGE = 10;
   useEffect(() => setCurrentPage(1), [crossFilter, searchQuery]);
-  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE);
-  const paginatedRecords = filteredRecords.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(crossFilteredRecords.length / ITEMS_PER_PAGE);
+  const paginatedRecords = crossFilteredRecords.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-8 pb-20 px-1">
-      {/* ── UNDER DEVELOPMENT BANNER ── */}
-      <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center gap-3"
-      >
-        <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center shrink-0">
-          <AlertCircle className="w-5 h-5 text-amber-500" />
-        </div>
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center gap-3">
+        <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center shrink-0"><AlertCircle className="w-5 h-5 text-amber-500" /></div>
         <div>
           <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Dalam proses develop</p>
-          <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mt-0.5">
-            Halaman Tenko sedang dalam tahap develop ya
-          </p>
+          <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mt-0.5">Halaman Tenko sedang dalam tahap develop ya</p>
         </div>
       </motion.div>
 
-      {/* ── HEADER & FILTERS ── */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-blue-500/5"
-      >
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-blue-500/5 relative z-50 overflow-visible">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 overflow-visible">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-              <Activity className="w-6 h-6 text-white" />
-            </div>
+            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20"><Activity className="w-6 h-6 text-white" /></div>
             <div>
               <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Tenko Daily Dashboard</h1>
-              <p className="text-xs text-slate-500 font-bold flex items-center gap-1 mt-1 uppercase tracking-widest">
-                <ClipboardList className="w-3 h-3" /> Driver Health & Safety Check
-              </p>
+              <p className="text-xs text-slate-500 font-bold flex items-center gap-1 mt-1 uppercase tracking-widest"><ClipboardList className="w-3 h-3" /> Driver Health & Safety Check</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto overflow-visible">
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/50">
               <Calendar className="w-4 h-4 text-blue-500 ml-2" />
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200" 
-              />
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200" />
               <span className="text-slate-400 font-bold">-</span>
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200" 
-              />
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200" />
             </div>
 
-            <div className="relative group">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
-              <select 
-                value={selectedCustomer}
-                onChange={(e) => setSelectedCustomer(e.target.value)}
-                className="pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer uppercase transition-all shadow-sm"
-              >
-                {customers.map(c => <option key={c} value={c}>{c === 'ALL' ? 'ALL CUSTOMER' : c}</option>)}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
-
-            <div className="relative group">
-              <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
-              <select 
-                value={personnelType}
-                onChange={(e) => setPersonnelType(e.target.value)}
-                className="pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black focus:ring-2 focus:ring-emerald-500/50 appearance-none cursor-pointer uppercase transition-all shadow-sm"
-              >
-                <option value="ALL">ALL PERSONNEL</option>
-                <option value="DRIVER">DRIVERS ONLY</option>
-                <option value="ASST">ASSISTANTS ONLY</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
+            <CustomerDropdown customers={customers} selected={selectedCustomer} onChange={setSelectedCustomer} />
+            <PersonnelDropdown value={personnelType} onChange={setPersonnelType} />
           </div>
         </div>
       </motion.div>
 
-      {/* ── CROSS-FILTER CHIPS ── */}
       {hasActiveCrossFilter && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 flex-wrap">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Filters:</span>
@@ -212,7 +152,6 @@ export default function TenkoPage() {
         </motion.div>
       )}
 
-      {/* ── SUMMARY CARDS ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard icon={Activity} label="Total Checkups" value={crossSummary?.totalCheckups || 0} sub={hasActiveCrossFilter ? 'Filtered results' : 'Drivers verified'} color="text-blue-500" bgColor="bg-blue-500/10" />
         <StatCard icon={Heart} label="Abnormal Tensi" value={(crossSummary?.tensi.hipertensi || 0) + (crossSummary?.tensi.hipotensi || 0)} sub="Requires monitoring" color="text-red-500" bgColor="bg-red-500/10" trend={crossSummary ? `${((((crossSummary.tensi.hipertensi + crossSummary.tensi.hipotensi) / (crossSummary.totalCheckups || 1)) || 0) * 100).toFixed(1)}%` : '0%'} />
@@ -221,17 +160,10 @@ export default function TenkoPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* ── TENSI ANALYSIS ── */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="xl:col-span-2 bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm"
-        >
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="xl:col-span-2 bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                <Heart className="w-6 h-6 text-red-500" /> Blood Pressure Analysis
-              </h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2"><Heart className="w-6 h-6 text-red-500" /> Blood Pressure Analysis</h3>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Daily Systolic & Diastolic Monitoring</p>
             </div>
             <div className="flex items-center gap-4">
@@ -240,7 +172,6 @@ export default function TenkoPage() {
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#ef4444]" /><span className="text-[10px] font-black text-slate-400 uppercase">Hiper</span></div>
             </div>
           </div>
-
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={trendData} onClick={(e: any) => { if (e?.activeLabel) toggleCrossFilter('date', e.activeLabel); }}>
@@ -248,43 +179,22 @@ export default function TenkoPage() {
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} tickFormatter={(val: string) => val.split('-').slice(1).reverse().join('/')} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="normal" stackId="a" fill={COLORS.normal} barSize={40} radius={[0,0,0,0]} cursor="pointer" opacity={1} />
+                <Bar dataKey="normal" stackId="a" fill={COLORS.normal} barSize={40} cursor="pointer" />
                 <Bar dataKey="hipotensi" stackId="a" fill={COLORS.warning} barSize={40} cursor="pointer" />
                 <Bar dataKey="hipertensi" stackId="a" fill={COLORS.danger} barSize={40} radius={[6,6,0,0]} cursor="pointer" />
                 <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          {crossFilter.date && <p className="text-center text-[10px] font-black text-purple-500 uppercase mt-2">📅 Filtered: {crossFilter.date} — Klik bar lain untuk ganti, atau hapus di chip atas</p>}
         </motion.div>
 
-        {/* ── DISTRIBUTION PIE ── */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm flex flex-col items-center justify-center"
-        >
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm flex flex-col items-center justify-center">
           <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-8 text-center">Tensi Percentage</h3>
           <div className="h-[250px] w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={tensiPieData}
-                  cx="50%" cy="50%"
-                  innerRadius={70} outerRadius={90}
-                  paddingAngle={8} dataKey="value"
-                  onClick={(entry: any) => toggleCrossFilter('tensiStatus', entry.name)}
-                  cursor="pointer"
-                >
-                  {tensiPieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={TENSI_COLORS[index % TENSI_COLORS.length]}
-                      opacity={crossFilter.tensiStatus ? (crossFilter.tensiStatus === entry.name ? 1 : 0.35) : 1}
-                      stroke={crossFilter.tensiStatus === entry.name ? '#ffffff' : 'transparent'}
-                      strokeWidth={3}
-                    />
-                  ))}
+                <Pie data={tensiPieData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={8} dataKey="value" onClick={(entry: any) => toggleCrossFilter('tensiStatus', entry.name)} cursor="pointer">
+                  {tensiPieData.map((entry, index) => <Cell key={`cell-${index}`} fill={TENSI_COLORS[index % TENSI_COLORS.length]} opacity={crossFilter.tensiStatus ? (crossFilter.tensiStatus === entry.name ? 1 : 0.35) : 1} stroke={crossFilter.tensiStatus === entry.name ? '#ffffff' : 'transparent'} strokeWidth={3} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
@@ -297,10 +207,7 @@ export default function TenkoPage() {
           <div className="grid grid-cols-1 w-full gap-2 mt-8">
             {tensiPieData.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TENSI_COLORS[idx] }} />
-                  <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase">{item.name}</span>
-                </div>
+                <div className="flex items-center gap-3"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TENSI_COLORS[idx] }} /><span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase">{item.name}</span></div>
                 <span className="text-xs font-black text-slate-900 dark:text-white">{item.value}</span>
               </div>
             ))}
@@ -308,62 +215,7 @@ export default function TenkoPage() {
         </motion.div>
       </div>
 
-      {/* ── SECONDARY HEALTH GRIDS ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Suhu & Alcohol Grid */}
-        <div className="space-y-8">
-          <HealthMiniCard 
-            title="Body Temperature" 
-            icon={Thermometer} 
-            data={[
-              { label: 'Normal (< 37.5°C)', value: summary?.suhu.normal || 0, color: 'bg-emerald-500' },
-              { label: 'Demam (≥ 37.5°C)', value: summary?.suhu.demam || 0, color: 'bg-red-500' }
-            ]} 
-          />
-          <HealthMiniCard 
-            title="Alcohol Screening" 
-            icon={Wine} 
-            data={[
-              { label: 'Negative (0%)', value: summary?.alkohol.negatif || 0, color: 'bg-emerald-500' },
-              { label: 'Positive (> 0%)', value: summary?.alkohol.positif || 0, color: 'bg-red-600' }
-            ]} 
-          />
-        </div>
-
-        {/* Fatigue & Rest Time Grid */}
-        <div className="space-y-8">
-          <HealthMiniCard 
-            title="Fatigue Status" 
-            icon={Moon} 
-            data={[
-              { label: 'Normal / Fit', value: summary?.fatigue.normal || 0, color: 'bg-blue-500' },
-              { label: 'Fatigue / Lelah', value: summary?.fatigue.lelah || 0, color: 'bg-orange-500' }
-            ]} 
-          />
-          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-purple-500" /> Eyes & Focus
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 text-center">
-                <p className="text-2xl font-black text-emerald-600">{(summary?.totalCheckups || 0) - (summary?.raw.filter(r => r.mata !== 'OK').length || 0)}</p>
-                <p className="text-[10px] font-black text-emerald-600 uppercase mt-1 tracking-widest">Vision OK</p>
-              </div>
-              <div className="p-4 bg-red-500/10 rounded-2xl border border-red-500/20 text-center">
-                <p className="text-2xl font-black text-red-600">{summary?.raw.filter(r => r.mata !== 'OK').length || 0}</p>
-                <p className="text-[10px] font-black text-red-600 uppercase mt-1 tracking-widest">Abnormal</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── DETAILED TABLE ── */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl shadow-blue-500/5"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl shadow-blue-500/5">
         <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Tenko Detailed Records</h3>
@@ -371,16 +223,9 @@ export default function TenkoPage() {
           </div>
           <div className="relative w-full lg:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Cari driver atau nopol..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/40 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-blue-500 shadow-inner uppercase" 
-            />
+            <input type="text" placeholder="Cari driver atau nopol..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/40 border-none rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-blue-500 shadow-inner uppercase" />
           </div>
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -402,42 +247,35 @@ export default function TenkoPage() {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${
-                        (r.sistolik >= 140 || r.diastolik >= 90)
-                          ? 'bg-red-500/10 text-red-500'
-                          : (r.sistolik < 90 || r.diastolik < 60)
-                          ? 'bg-amber-500/10 text-amber-500'
-                          : 'bg-emerald-500/10 text-emerald-500'
-                      }`}>
+                      <motion.span 
+                        animate={(r.sistolik >= 140 || r.diastolik >= 90 || r.sistolik < 90 || r.diastolik < 60) ? { 
+                          opacity: [1, 0.4, 1],
+                        } : {}}
+                        transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-black ${
+                          (r.sistolik >= 140 || r.diastolik >= 90) ? 'bg-red-500/10 text-red-500 shadow-lg shadow-red-500/20' : (r.sistolik < 90 || r.diastolik < 60) ? 'bg-amber-500/10 text-amber-500 shadow-lg shadow-amber-500/20' : 'bg-emerald-500/10 text-emerald-500'
+                        }`}>
                         {r.tensi}
-                      </span>
+                      </motion.span>
                       <span className="text-[10px] font-bold text-slate-400">mmHg</span>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <p className="text-xs font-black text-slate-700 dark:text-slate-300">{r.suhu_tubuh}°C</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{r.denyut_nadi} BPM</p>
-                  </td>
-                  <td className="px-6 py-5">
-                    <p className="text-xs font-black text-slate-700 dark:text-slate-300">{r.oxygen_saturation}% O₂</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{r.rest_time}h Rest</p>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <StatusBadge label="Alc" ok={Number(r.alkohol) === 0} />
-                      <StatusBadge label="Eye" ok={r.mata === 'OK'} />
-                      <StatusBadge label="Fat" ok={r.fatigue === 'NORMAL'} />
-                    </div>
-                  </td>
+                  <td className="px-6 py-5"><p className="text-xs font-black text-slate-700 dark:text-slate-300">{r.suhu_tubuh}°C</p><p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{r.denyut_nadi} BPM</p></td>
+                  <td className="px-6 py-5"><p className="text-xs font-black text-slate-700 dark:text-slate-300">{r.oxygen_saturation}% O₂</p><p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{r.rest_time}h Rest</p></td>
+                  <td className="px-6 py-5"><div className="flex items-center gap-2"><StatusBadge label="Alc" ok={Number(r.alkohol) === 0} /><StatusBadge label="Eye" ok={r.mata === 'OK'} /><StatusBadge label="Fat" ok={r.fatigue === 'NORMAL'} /></div></td>
                   <td className="px-8 py-5 text-right">
                     {r.sistolik < 140 && r.diastolik < 90 && r.suhu_tubuh < 37.5 && Number(r.alkohol) === 0 ? (
                       <span className="flex items-center justify-end gap-1.5 text-[10px] font-black text-emerald-500 uppercase">
                         <CheckCircle2 className="w-3.5 h-3.5" /> FIT TO DRIVE
                       </span>
                     ) : (
-                      <span className="flex items-center justify-end gap-1.5 text-[10px] font-black text-red-500 uppercase">
+                      <motion.span 
+                        animate={{ opacity: [1, 0.4, 1] }}
+                        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                        className="flex items-center justify-end gap-1.5 text-[10px] font-black text-red-500 uppercase"
+                      >
                         <AlertCircle className="w-3.5 h-3.5" /> UNFIT
-                      </span>
+                      </motion.span>
                     )}
                   </td>
                 </tr>
@@ -450,7 +288,7 @@ export default function TenkoPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-8 py-5 border-t border-slate-100 dark:border-slate-800">
             <p className="text-[10px] font-black text-slate-400 uppercase">
-              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)} of {filteredRecords.length} records
+              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, crossFilteredRecords.length)} of {crossFilteredRecords.length} records
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -483,61 +321,141 @@ export default function TenkoPage() {
 
 function StatCard({ icon: Icon, label, value, sub, color, bgColor, trend }: any) {
   return (
-    <motion.div 
-      whileHover={{ y: -5 }}
-      className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm"
-    >
-      <div className="flex items-start justify-between">
-        <div className={`w-12 h-12 ${bgColor} rounded-2xl flex items-center justify-center`}>
-          <Icon className={`w-6 h-6 ${color}`} />
-        </div>
-        {trend && (
-          <span className="text-[10px] font-black px-2 py-1 bg-red-500/10 text-red-500 rounded-lg">{trend}</span>
-        )}
-      </div>
-      <div className="mt-4">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-        <p className={`text-2xl font-black text-slate-900 dark:text-white mt-1`}>{value}</p>
-        <p className="text-[10px] font-bold text-slate-500 mt-1">{sub}</p>
-      </div>
+    <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex items-start justify-between"><div className={`w-12 h-12 ${bgColor} rounded-2xl flex items-center justify-center`}><Icon className={`w-6 h-6 ${color}`} /></div>{trend && <span className="text-[10px] font-black px-2 py-1 bg-red-500/10 text-red-500 rounded-lg">{trend}</span>}</div>
+      <div className="mt-4"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p><p className={`text-2xl font-black text-slate-900 dark:text-white mt-1`}>{value}</p><p className="text-[10px] font-bold text-slate-500 mt-1">{sub}</p></div>
     </motion.div>
-  );
-}
-
-function HealthMiniCard({ title, icon: Icon, data }: any) {
-  return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-      <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-blue-500" /> {title}
-      </h3>
-      <div className="space-y-4">
-        {data.map((item: any, idx: number) => (
-          <div key={idx} className="space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
-              <span className="text-slate-400">{item.label}</span>
-              <span className="text-slate-900 dark:text-white">{item.value}</span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${(item.value / (data[0].value + data[1].value)) * 100}%` }}
-                className={`h-full ${item.color}`} 
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
 function StatusBadge({ label, ok }: { label: string, ok: boolean }) {
   return (
-    <div className={`px-2 py-1 rounded-lg flex items-center gap-1 border ${
-      ok ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-500' : 'bg-red-500/5 border-red-500/20 text-red-500'
-    }`}>
-      <span className="text-[8px] font-black uppercase">{label}</span>
-      {ok ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
+    <div className={`px-2 py-1 rounded-lg flex items-center gap-1 border ${ok ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-500' : 'bg-red-500/5 border-red-500/20 text-red-500'}`}>
+      <span className="text-[8px] font-black uppercase">{label}</span>{ok ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
+    </div>
+  );
+}
+
+function CustomerDropdown({ customers, selected, onChange }: { customers: string[]; selected: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const filtered = customers.filter(c => c.toLowerCase().includes(search.toLowerCase()));
+  const CUSTOMER_COLORS: Record<string, string> = {
+    ALL: 'bg-slate-500', TAM: 'bg-blue-500', TMMIN: 'bg-red-500', YAMAHA: 'bg-indigo-500',
+    HONDA: 'bg-red-600', GEELY: 'bg-emerald-500', SUZUKI: 'bg-orange-500', ISUZU: 'bg-cyan-500',
+    MITSUBISHI: 'bg-violet-500', HYUNDAI: 'bg-blue-600', WULING: 'bg-rose-500',
+  };
+  const getColor = (c: string) => CUSTOMER_COLORS[c] || 'bg-slate-400';
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button onClick={() => setOpen(!open)} type="button"
+        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[140px]">
+        <div className={`w-2 h-2 rounded-full shrink-0 ${getColor(selected)}`} />
+        <span className="flex-1 text-left text-slate-700 dark:text-slate-200">{selected === 'ALL' ? 'ALL CUSTOMER' : selected}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-100 overflow-hidden"
+          >
+            <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari customer..."
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-[11px] font-bold border-none focus:ring-2 focus:ring-blue-500/30 outline-none" />
+              </div>
+            </div>
+            <div className="max-h-64 overflow-y-auto py-2">
+              {filtered.map(c => (
+                <button key={c} type="button" onClick={() => { onChange(c); setOpen(false); setSearch(''); }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60 ${selected === c ? 'bg-blue-50 dark:bg-blue-500/10' : ''}`}>
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(c)}`} />
+                  <span className={`text-[11px] font-black uppercase flex-1 ${selected === c ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                    {c === 'ALL' ? '✦ All Customers' : c}
+                  </span>
+                  {selected === c && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function PersonnelDropdown({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const options = [
+    { value: 'ALL', label: 'All Personnel', icon: Users, color: 'text-slate-500', bg: 'bg-slate-500/10', dot: 'bg-slate-400' },
+    { value: 'DRIVER', label: 'Drivers Only', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10', dot: 'bg-blue-500' },
+    { value: 'ASST', label: 'Assistants Only', icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10', dot: 'bg-emerald-500' },
+  ];
+  const current = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button onClick={() => setOpen(!open)} type="button"
+        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30 min-w-[150px]">
+        <div className={`w-2 h-2 rounded-full shrink-0 ${current.dot}`} />
+        <span className="flex-1 text-left text-slate-700 dark:text-slate-200">{current.label}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            className="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-100 overflow-hidden"
+          >
+            <div className="p-2">
+              {options.map(opt => {
+                const Icon = opt.icon;
+                return (
+                  <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all ${
+                      value === opt.value ? `${opt.bg} ${opt.color}` : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-300'
+                    }`}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${opt.bg}`}>
+                      <Icon className={`w-4 h-4 ${opt.color}`} />
+                    </div>
+                    <p className="text-[11px] font-black uppercase flex-1">{opt.label}</p>
+                    {value === opt.value && <CheckCircle2 className={`w-4 h-4 shrink-0 ${opt.color}`} />}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
