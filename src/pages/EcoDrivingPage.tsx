@@ -116,7 +116,7 @@ export default function EcoDrivingPage() {
     setCfDate(null);
   }, [violations]);
 
-  const getMonthFilters = (monthStr?: string) => {
+  const getMonthFilters = (monthStr?: string, customStart?: Date, customEnd?: Date) => {
     const monthEN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     
@@ -130,6 +130,17 @@ export default function EcoDrivingPage() {
         `% ${mEN} ${y2}`, `% ${mID} ${y2}`,
       ];
     };
+
+    if (customStart && customEnd) {
+      const filters: string[] = [];
+      let current = new Date(customStart.getFullYear(), customStart.getMonth(), 1);
+      const last = new Date(customEnd.getFullYear(), customEnd.getMonth(), 1);
+      while (current <= last) {
+        filters.push(...buildFilters(current.getMonth(), current.getFullYear()));
+        current.setMonth(current.getMonth() + 1);
+      }
+      return [...new Set(filters)];
+    }
 
     if (filterMode === 'month') {
       const targetStr = monthStr || selectedMonth;
@@ -223,7 +234,24 @@ export default function EcoDrivingPage() {
         }).map(optimize);
         setPrevViolations(prevFiltered);
       } else {
-        setPrevViolations([]);
+        const start = new Date(startDate); start.setHours(0,0,0,0);
+        const end = new Date(endDate); end.setHours(23,59,59,999);
+        const diff = end.getTime() - start.getTime();
+        const prevEnd = new Date(start.getTime() - 86400000);
+        const prevStart = new Date(prevEnd.getTime() - diff);
+        
+        const prevFilters = getMonthFilters(undefined, prevStart, prevEnd);
+        const prevResults = await Promise.all(prevFilters.map(f => fetchEcoViolations({
+          area: selectedArea, customer: selectedCustomer, monthFilter: f
+        })));
+        
+        const prevRaw = Array.from(new Map(prevResults.flat().map((v: EcoViolation) => [v.id, v])).values());
+        const prevFiltered = (prevRaw as EcoViolation[]).filter(v => {
+          const vd = parseViolationDate(v.tanggal);
+          return vd && vd >= prevStart && vd <= prevEnd;
+        }).map(optimize);
+        
+        setPrevViolations(prevFiltered);
       }
       setRankPage(1);
     } catch (err) {
