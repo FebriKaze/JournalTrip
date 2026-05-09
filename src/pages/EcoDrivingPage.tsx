@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Shield, Activity, Calendar, MapPin, Map as MapIcon, Leaf, ChevronDown,
-  ChevronLeft, ChevronRight, BarChart3, AlertTriangle, AlertCircle, Filter, FilterX, Route, Clock
+  Shield, Activity, Calendar, MapPin, Map as MapIcon, Leaf, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight, BarChart3, AlertTriangle, AlertCircle, Filter, FilterX, Route, Clock, RefreshCw
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -33,10 +33,10 @@ const createCustomIcon = (color: string) => {
 };
 
 const iconMap = {
-  'Akselerasi Mendadak': createCustomIcon('#1e3a8a'), // navy
-  'Perlambatan Mendadak': createCustomIcon('#3b82f6'), // blue-medium
-  'Kecepatan Melebihi Batas': createCustomIcon('#60a5fa'), // blue-light
-  'Tikungan Tajam': createCustomIcon('#93c5fd'), // blue-young
+  'Akselerasi Mendadak': createCustomIcon('#3b82f6'), // Blue
+  'Perlambatan Mendadak': createCustomIcon('#f59e0b'), // Amber
+  'Kecepatan Melebihi Batas': createCustomIcon('#ef4444'), // Red
+  'Tikungan Tajam': createCustomIcon('#8b5cf6'), // Purple
   'default': createCustomIcon('#64748b'), // slate-500
 };
 
@@ -76,6 +76,7 @@ export default function EcoDrivingPage() {
   const [selectedArea, setSelectedArea] = useState('ALL');
   const [selectedCustomer, setSelectedCustomer] = useState('ALL');
   const [violations, setViolations] = useState<EcoViolation[]>([]);
+  const [prevViolations, setPrevViolations] = useState<EcoViolation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Custom Dropdown State
@@ -115,11 +116,7 @@ export default function EcoDrivingPage() {
     setCfDate(null);
   }, [violations]);
 
-  const getMonthFilters = () => {
-    // DATABASE PUNYA BANYAK FORMAT:
-    // Lama: "21-Jan-26"  → strip, Inggris, tahun 2 digit
-    // Baru: "01 Mei 2026" → spasi, Indonesia, tahun 4 digit
-    // Kadang ada juga format lain.
+  const getMonthFilters = (monthStr?: string) => {
     const monthEN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     
@@ -128,105 +125,107 @@ export default function EcoDrivingPage() {
       const mEN = monthEN[month];
       const mID = monthID[month];
       return [
-        `%-${mEN}-${y2}`,       // 21-May-26
-        `%-${mID}-${y2}`,       // 21-Mei-26
-        `% ${mEN} ${year}`,     // 21 May 2026
-        `% ${mID} ${year}`,     // 21 Mei 2026
-        `% ${mEN} ${y2}`,       // 21 May 26
-        `% ${mID} ${y2}`,       // 21 Mei 26
+        `%-${mEN}-${y2}`, `%-${mID}-${y2}`,
+        `% ${mEN} ${year}`, `% ${mID} ${year}`,
+        `% ${mEN} ${y2}`, `% ${mID} ${y2}`,
       ];
     };
 
     if (filterMode === 'month') {
-      const d = new Date(selectedMonth + '-01');
+      const targetStr = monthStr || selectedMonth;
+      const [y, m] = targetStr.split('-');
+      const d = new Date(parseInt(y), parseInt(m) - 1, 1);
       return buildFilters(d.getMonth(), d.getFullYear());
     } else {
       const d1 = new Date(startDate);
       const d2 = new Date(endDate);
       const filters: string[] = [];
-      
       let current = new Date(d1.getFullYear(), d1.getMonth(), 1);
       const last = new Date(d2.getFullYear(), d2.getMonth(), 1);
-      
       while (current <= last) {
         filters.push(...buildFilters(current.getMonth(), current.getFullYear()));
         current.setMonth(current.getMonth() + 1);
       }
-      return [...new Set(filters)]; // Unique only
+      return [...new Set(filters)];
     }
+  };
+
+  const parseViolationDate = (vDate: string) => {
+    const MONTH_MAP: Record<string, number> = { 
+      'Jan': 0, 'January': 0, 'Januari': 0, 'Feb': 1, 'February': 1, 'Februari': 1,
+      'Mar': 2, 'March': 2, 'Maret': 2, 'Apr': 3, 'April': 3, 'May': 4, 'Mei': 4,
+      'Jun': 5, 'June': 5, 'Juni': 5, 'Jul': 6, 'July': 6, 'Juli': 6,
+      'Aug': 7, 'August': 7, 'Agustus': 7, 'Agu': 7, 'Agt': 7, 'Sep': 8, 'September': 8,
+      'Oct': 9, 'October': 9, 'Oktober': 9, 'Okt': 9, 'Nov': 10, 'November': 10,
+      'Dec': 11, 'December': 11, 'Desember': 11, 'Des': 11
+    };
+    if (!vDate) return null;
+    const parts = vDate.split(/[\s-]/); 
+    if (parts.length !== 3) return null;
+    let mStr = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
+    const monthIdx = MONTH_MAP[mStr];
+    if (monthIdx === undefined) return null;
+    const rawYear = parseInt(parts[2]);
+    const fullYear = rawYear < 100 ? 2000 + rawYear : rawYear;
+    return new Date(fullYear, monthIdx, parseInt(parts[0]));
   };
 
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // 1. Fetch Current Period
       const mFilters = getMonthFilters();
-      
       const promises = mFilters.map(f => fetchEcoViolations({
-        area: selectedArea,
-        customer: selectedCustomer,
-        monthFilter: f
+        area: selectedArea, customer: selectedCustomer, monthFilter: f
       }));
-      
       const results = await Promise.all(promises);
-      const allRawData = results.flat();
+      const rawData = Array.from(new Map(results.flat().map((v: EcoViolation) => [v.id, v])).values());
       
-      // Deduplicate by ID to prevent double counting if multiple filters match same record
-      const rawData = Array.from(new Map(allRawData.map((v: EcoViolation) => [v.id, v])).values());
-      
-      // Map komprehensif untuk semua kemungkinan nama bulan (ID & EN)
-      const MONTH_MAP: Record<string, number> = { 
-        'Jan': 0, 'January': 0, 'Januari': 0,
-        'Feb': 1, 'February': 1, 'Februari': 1,
-        'Mar': 2, 'March': 2, 'Maret': 2,
-        'Apr': 3, 'April': 3,
-        'May': 4, 'Mei': 4,
-        'Jun': 5, 'June': 5, 'Juni': 5,
-        'Jul': 6, 'July': 6, 'Juli': 6,
-        'Aug': 7, 'August': 7, 'Agustus': 7, 'Agu': 7, 'Agt': 7,
-        'Sep': 8, 'September': 8,
-        'Oct': 9, 'October': 9, 'Oktober': 9, 'Okt': 9,
-        'Nov': 10, 'November': 10,
-        'Dec': 11, 'December': 11, 'Desember': 11, 'Des': 11
+      const optimize = (v: EcoViolation) => {
+        const j = v.jenis_peringatan?.toLowerCase() || '';
+        let optType = 'Lainnya';
+        if (j.includes('akselerasi')) optType = 'Akselerasi';
+        else if (j.includes('perlambatan')) optType = 'Perlambatan';
+        else if (j.includes('kecepatan')) optType = 'Kecepatan';
+        else if (j.includes('tikungan')) optType = 'Tikungan';
+        return { ...v, _optimizedType: optType };
       };
 
       const filtered = (rawData as EcoViolation[]).filter((v: EcoViolation) => {
-        if (!v.tanggal) return false;
-        // Handle "-" or " " as separators
-        const parts = v.tanggal.split(/[\s-]/); 
-        if (parts.length !== 3) return false;
-        
-        // Month parsing
-        let mStr = parts[1];
-        // Handle title case or uppercase
-        mStr = mStr.charAt(0).toUpperCase() + mStr.slice(1).toLowerCase();
-        const monthIdx = MONTH_MAP[mStr] ?? MONTH_MAP[parts[1]];
-        
-        if (monthIdx === undefined) return false;
-      
-      const rawYear = parseInt(parts[2]);
-      const fullYear = rawYear < 100 ? 2000 + rawYear : rawYear;
-      const d = new Date(fullYear, monthIdx, parseInt(parts[0]));
-      
+        const d = parseViolationDate(v.tanggal);
+        if (!d) return false;
+        if (filterMode === 'month') {
+          const [y, m] = selectedMonth.split('-');
+          const target = new Date(parseInt(y), parseInt(m) - 1, 1);
+          return d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear();
+        } else {
+          const start = new Date(startDate); start.setHours(0,0,0,0);
+          const end = new Date(endDate); end.setHours(23,59,59,999);
+          return d >= start && d <= end;
+        }
+      }).map(optimize);
+      setViolations(filtered);
+
+      // 2. Fetch Previous Period (Comparison)
       if (filterMode === 'month') {
-        const target = new Date(selectedMonth + '-01');
-        return d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear();
+        const [y, m] = selectedMonth.split('-');
+        const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+        d.setMonth(d.getMonth() - 1);
+        const prevMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const prevFilters = getMonthFilters(prevMonthStr);
+        const prevResults = await Promise.all(prevFilters.map(f => fetchEcoViolations({
+          area: selectedArea, customer: selectedCustomer, monthFilter: f
+        })));
+        const prevRaw = Array.from(new Map(prevResults.flat().map((v: EcoViolation) => [v.id, v])).values());
+        const prevFiltered = (prevRaw as EcoViolation[]).filter(v => {
+          const vd = parseViolationDate(v.tanggal);
+          return vd && vd.getMonth() === d.getMonth() && vd.getFullYear() === d.getFullYear();
+        }).map(optimize);
+        setPrevViolations(prevFiltered);
       } else {
-        const start = new Date(startDate); start.setHours(0,0,0,0);
-        const end = new Date(endDate); end.setHours(23,59,59,999);
-        return d >= start && d <= end;
+        setPrevViolations([]);
       }
-      }).map((v: EcoViolation) => {
-      const j = v.jenis_peringatan?.toLowerCase() || '';
-      let optType = 'Lainnya';
-      if (j.includes('akselerasi')) optType = 'Akselerasi';
-      else if (j.includes('perlambatan')) optType = 'Perlambatan';
-      else if (j.includes('kecepatan')) optType = 'Kecepatan';
-      else if (j.includes('tikungan')) optType = 'Tikungan';
-      return { ...v, _optimizedType: optType };
-    });
-    
-    setViolations(filtered);
-    setRankPage(1);
+      setRankPage(1);
     } catch (err) {
       console.error("Error loading eco data:", err);
     } finally {
@@ -263,7 +262,7 @@ export default function EcoDrivingPage() {
       const type = v._optimizedType || 'Lainnya';
       counts[type] = (counts[type] || 0) + 1;
     });
-    const colors: any = { 'Akselerasi': '#1e3a8a', 'Perlambatan': '#3b82f6', 'Kecepatan': '#60a5fa', 'Tikungan': '#93c5fd', 'Lainnya': '#64748b' };
+    const colors: any = { 'Akselerasi': '#3b82f6', 'Perlambatan': '#f59e0b', 'Kecepatan': '#ef4444', 'Tikungan': '#8b5cf6', 'Lainnya': '#64748b' };
     return Object.entries(counts).map(([name, value]) => ({ name, value, color: colors[name] }));
   }, [typeViolations]);
 
@@ -278,7 +277,11 @@ export default function EcoDrivingPage() {
 
   const totalViolations = activeViolations.length;
   
-  const countType = (typeStr: string) => typeViolations.filter(v => {
+  // Previous Period Filtering
+  const activePrevViolations = useMemo(() => prevViolations.filter(v => checkFilter(v, true, true, true)), [prevViolations, cfDriver, cfType, cfDate]);
+  const typePrevViolations = useMemo(() => prevViolations.filter(v => checkFilter(v, true, false, true)), [prevViolations, cfDriver, cfDate]);
+
+  const countType = (typeStr: string, dataset = typeViolations) => dataset.filter(v => {
     const t = v._optimizedType?.toLowerCase() || '';
     return typeStr === 'perlambatan' ? t === 'perlambatan' : t === typeStr;
   }).length;
@@ -430,6 +433,16 @@ export default function EcoDrivingPage() {
                   )}
                 </AnimatePresence>
               </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={loadData}
+                disabled={isLoading}
+                className="flex items-center justify-center p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shadow-sm shrink-0 group"
+                title="Refresh Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-500' : 'group-hover:-rotate-180 transition-transform duration-500'}`} />
+              </button>
             </div>
           </div>
         </div>
@@ -467,52 +480,60 @@ export default function EcoDrivingPage() {
             className="space-y-6"
           >
             {/* ── SUMMARY STATS ── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 hover:border-emerald-500 transition-colors cursor-pointer" onClick={() => { setCfDriver(null); setCfType(null); setCfDate(null); }}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Pelanggaran</p>
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 flex items-center justify-center">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                </div>
-                <p className="text-3xl font-black text-slate-900 dark:text-white">{totalViolations}</p>
-              </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Akselerasi' ? 'border-blue-800 ring-2 ring-blue-800/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-800'}`} onClick={() => setCfType(cfType === 'Akselerasi' ? null : 'Akselerasi')}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Akselerasi</p>
-                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-900 flex items-center justify-center">
-                    <Activity className="w-4 h-4" />
-                  </div>
-                </div>
-                <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('akselerasi')}</p>
-              </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Perlambatan' ? 'border-blue-600 ring-2 ring-blue-600/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-600'}`} onClick={() => setCfType(cfType === 'Perlambatan' ? null : 'Perlambatan')}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rem Mendadak</p>
-                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
-                    <AlertCircle className="w-4 h-4" />
-                  </div>
-                </div>
-                <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('perlambatan')}</p>
-              </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Kecepatan' ? 'border-blue-400 ring-2 ring-blue-400/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-400'}`} onClick={() => setCfType(cfType === 'Kecepatan' ? null : 'Kecepatan')}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overspeed</p>
-                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-400 flex items-center justify-center">
-                    <Activity className="w-4 h-4" />
-                  </div>
-                </div>
-                <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('kecepatan')}</p>
-              </div>
-              <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-colors cursor-pointer ${cfType === 'Tikungan' ? 'border-blue-300 ring-2 ring-blue-300/20' : 'border-slate-100 dark:border-slate-800 hover:border-blue-300'}`} onClick={() => setCfType(cfType === 'Tikungan' ? null : 'Tikungan')}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tikungan Tajam</p>
-                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-300 flex items-center justify-center">
-                    <Route className="w-4 h-4" />
-                  </div>
-                </div>
-                <p className="text-3xl font-black text-slate-900 dark:text-white">{countType('tikungan')}</p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <StatCard 
+                label="Total Pelanggaran" 
+                value={totalViolations} 
+                prevValue={activePrevViolations.length}
+                icon={AlertTriangle}
+                iconColor="text-slate-600"
+                iconBg="bg-slate-100 dark:bg-slate-800"
+                onClick={() => { setCfDriver(null); setCfType(null); setCfDate(null); }}
+              />
+              <StatCard 
+                label="Akselerasi" 
+                value={countType('akselerasi')} 
+                prevValue={countType('akselerasi', typePrevViolations)}
+                icon={Activity}
+                iconColor="text-blue-500"
+                iconBg="bg-blue-50 dark:bg-blue-900/20"
+                active={cfType === 'Akselerasi'}
+                activeColor="border-blue-500"
+                onClick={() => setCfType(cfType === 'Akselerasi' ? null : 'Akselerasi')}
+              />
+              <StatCard 
+                label="Rem Mendadak" 
+                value={countType('perlambatan')} 
+                prevValue={countType('perlambatan', typePrevViolations)}
+                icon={AlertCircle}
+                iconColor="text-amber-500"
+                iconBg="bg-amber-50 dark:bg-amber-900/20"
+                active={cfType === 'Perlambatan'}
+                activeColor="border-amber-500"
+                onClick={() => setCfType(cfType === 'Perlambatan' ? null : 'Perlambatan')}
+              />
+              <StatCard 
+                label="Overspeed" 
+                value={countType('kecepatan')} 
+                prevValue={countType('kecepatan', typePrevViolations)}
+                icon={Activity}
+                iconColor="text-red-500"
+                iconBg="bg-red-50 dark:bg-red-900/20"
+                active={cfType === 'Kecepatan'}
+                activeColor="border-red-500"
+                onClick={() => setCfType(cfType === 'Kecepatan' ? null : 'Kecepatan')}
+              />
+              <StatCard 
+                label="Tikungan Tajam" 
+                value={countType('tikungan')} 
+                prevValue={countType('tikungan', typePrevViolations)}
+                icon={Route}
+                iconColor="text-purple-500"
+                iconBg="bg-purple-50 dark:bg-purple-900/20"
+                active={cfType === 'Tikungan'}
+                activeColor="border-purple-500"
+                onClick={() => setCfType(cfType === 'Tikungan' ? null : 'Tikungan')}
+              />
             </div>
 
             {/* ── CHARTS SECTION ── */}
@@ -571,7 +592,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#1e3a8a" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#3b82f6" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                       <Bar 
@@ -579,7 +600,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#3b82f6" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#f59e0b" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                       <Bar 
@@ -587,7 +608,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#60a5fa" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#ef4444" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                       <Bar 
@@ -595,7 +616,7 @@ export default function EcoDrivingPage() {
                         onClick={(data: any) => setCfDate(cfDate === data.payload.date ? null : data.payload.date)} 
                       >
                         {dateTrend.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill="#93c5fd" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
+                          <Cell key={`cell-${index}`} fill="#8b5cf6" opacity={cfDate && cfDate !== entry.date ? 0.3 : 1} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -729,10 +750,10 @@ export default function EcoDrivingPage() {
                             <Popup className="custom-popup">
                               <div className="p-1 min-w-52">
                                 <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-black uppercase mb-2 ${
-                                  iconKey.includes('Akselerasi') ? 'bg-blue-900 text-blue-100' :
-                                  iconKey.includes('Perlambatan') ? 'bg-blue-600 text-blue-50' :
-                                  iconKey.includes('Kecepatan') ? 'bg-blue-400 text-blue-900' :
-                                  'bg-blue-200 text-blue-800'
+                                  iconKey.includes('Akselerasi') ? 'bg-blue-500 text-white' :
+                                  iconKey.includes('Perlambatan') ? 'bg-amber-500 text-white' :
+                                  iconKey.includes('Kecepatan') ? 'bg-red-500 text-white' :
+                                  'bg-purple-500 text-white'
                                 }`}>{v.jenis_peringatan}</span>
                                 <p className="text-[10px] text-slate-500 font-bold line-clamp-2">{v.lokasi}</p>
                                 <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
@@ -861,10 +882,10 @@ export default function EcoDrivingPage() {
                         >
                           <div className="flex justify-between items-start mb-2.5">
                             <div className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-wider ${
-                              v.jenis_peringatan?.includes('Akselerasi') ? 'bg-blue-900 text-blue-100' :
-                              v.jenis_peringatan?.includes('Perlambatan') ? 'bg-blue-600 text-blue-50' :
-                              v.jenis_peringatan?.includes('Kecepatan') ? 'bg-blue-400 text-blue-900' :
-                              'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                              v.jenis_peringatan?.includes('Akselerasi') ? 'bg-blue-500 text-white' :
+                              v.jenis_peringatan?.includes('Perlambatan') ? 'bg-amber-500 text-white' :
+                              v.jenis_peringatan?.includes('Kecepatan') ? 'bg-red-500 text-white' :
+                              'bg-purple-500 text-white'
                             }`}>
                               {v.jenis_peringatan}
                             </div>
@@ -967,3 +988,41 @@ export default function EcoDrivingPage() {
     </div>
   );
 }
+
+function StatCard({ label, value, prevValue, icon: Icon, iconColor, iconBg, active, activeColor, onClick }: any) {
+  const delta = value - (prevValue || 0);
+  const isUp = delta > 0;
+  const percentage = !prevValue ? (value > 0 ? 100 : 0) : Math.abs((delta / prevValue) * 100);
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-all cursor-pointer ${
+        active ? `${activeColor} ring-2 ring-opacity-20` : 'border-slate-100 dark:border-slate-800 hover:border-emerald-500'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
+        <div className={`w-8 h-8 rounded-full ${iconBg} ${iconColor} flex items-center justify-center shadow-sm`}>
+          <Icon className="w-4 h-4" />
+        </div>
+      </div>
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">{value}</p>
+        </div>
+        {prevValue !== undefined && (
+          <div className="flex flex-col items-end">
+            <div className={`flex items-center gap-0.5 text-[10px] font-black ${isUp ? 'text-emerald-500' : delta < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+              {isUp ? <ChevronUp className="w-3 h-3" /> : delta < 0 ? <ChevronDown className="w-3 h-3" /> : null}
+              {percentage.toFixed(1)}%
+            </div>
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">vs prev period</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+

@@ -1,34 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Calendar, 
-  MapPin, 
-  ChevronRight, 
-  ChevronDown,
-  Search, 
-  Filter, 
-  Clock, 
-  TrendingUp, 
-  AlertCircle,
-  Truck,
-  CheckCircle2,
-  Package,
-  ArrowUpRight,
-  ArrowDownRight,
-  Info,
-  Timer,
-  LayoutDashboard,
-  X,
-  ArrowRight,
-  ChevronLeft,
-  Circle,
-  Navigation,
-  Map as MapIcon,
-  Flag,
-  CalendarDays,
-  BarChart3,
-  ListFilter,
-  AlertTriangle
+  Calendar, MapPin, ChevronRight, ChevronDown, ChevronUp, Search, Filter, Clock, TrendingUp, AlertCircle,
+  Truck, CheckCircle2, Package, ArrowUpRight, ArrowDownRight, Info, Timer, LayoutDashboard, X, ArrowRight,
+  ChevronLeft, Circle, Navigation, Map as MapIcon, Flag, CalendarDays, BarChart3, ListFilter, AlertTriangle
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -92,6 +67,7 @@ export default function LeadTimePage() {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [area, setArea] = useState('ALL');
   const [data, setData] = useState<LeadTimeData[]>([]);
+  const [prevData, setPrevData] = useState<LeadTimeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -121,8 +97,23 @@ export default function LeadTimePage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // 1. Current Period
       const result = await leadtimeService.getLeadTimes(startDate, endDate, area);
       setData(result);
+
+      // 2. Previous Period (Same length)
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diff = end.getTime() - start.getTime();
+      const prevEnd = new Date(start.getTime() - 86400000);
+      const prevStart = new Date(prevEnd.getTime() - diff);
+      
+      const prevResult = await leadtimeService.getLeadTimes(
+        prevStart.toISOString().split('T')[0],
+        prevEnd.toISOString().split('T')[0],
+        area
+      );
+      setPrevData(prevResult);
     } catch (error) {
       console.error('Failed to fetch leadtime data:', error);
     }
@@ -238,6 +229,38 @@ export default function LeadTimePage() {
       trend: trendChartData
     };
   }, [data]);
+
+  const prevStats = useMemo(() => {
+    if (prevData.length === 0) return null;
+    const getStageStats = (stage: string) => {
+      const counts: Record<string, number> = { 'OnTime': 0, 'Delay': 0, 'Advance': 0 };
+      prevData.forEach(item => {
+        const status = getRowStatus(item, stage);
+        if (counts[status] !== undefined) counts[status]++;
+      });
+      const total = counts.OnTime + counts.Delay + counts.Advance;
+      const chartData = Object.entries(counts).map(([name, value]) => ({ 
+        name, value, percentage: total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'
+      }));
+      return { total, chartData };
+    };
+    return {
+      outpool: getStageStats('outpool'),
+      inpdc: getStageStats('inpdc'),
+      delivery: getStageStats('delivery')
+    };
+  }, [prevData]);
+
+  const prevPeriodText = useMemo(() => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diff = end.getTime() - start.getTime();
+    const prevEnd = new Date(start.getTime() - 86400000);
+    const prevStart = new Date(prevEnd.getTime() - diff);
+    
+    const fmt = (d: Date) => d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+    return `${fmt(prevStart)} - ${fmt(prevEnd)} ${prevEnd.getFullYear()}`;
+  }, [startDate, endDate]);
 
   const filteredData = useMemo(() => {
     let result = data;
@@ -368,9 +391,21 @@ export default function LeadTimePage() {
         <div className="flex flex-col gap-6 sm:gap-12 w-full max-w-full overflow-hidden box-border">
           {/* ── STAGE BOXES ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-10 w-full max-w-full overflow-hidden box-border">
-            <StageBox title="OUTPOOL" icon={<Truck />} stats={stats?.outpool} eff={calculateEfficiency('outpool')} stage="outpool" activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
-            <StageBox title="IN-PDC" icon={<Package />} stats={stats?.inpdc} eff={calculateEfficiency('inpdc')} stage="inpdc" activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
-            <StageBox title="DELIVERY" icon={<CheckCircle2 />} stats={stats?.delivery} eff={calculateEfficiency('delivery')} stage="delivery" activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
+            <StageBox 
+              title="OUTPOOL" icon={<Truck />} stats={stats?.outpool} prevStats={prevStats?.outpool}
+              eff={calculateEfficiency('outpool')} stage="outpool" activeFilter={activeFilter} setActiveFilter={setActiveFilter} 
+              prevPeriod={prevPeriodText}
+            />
+            <StageBox 
+              title="IN-PDC" icon={<Package />} stats={stats?.inpdc} prevStats={prevStats?.inpdc}
+              eff={calculateEfficiency('inpdc')} stage="inpdc" activeFilter={activeFilter} setActiveFilter={setActiveFilter} 
+              prevPeriod={prevPeriodText}
+            />
+            <StageBox 
+              title="DELIVERY" icon={<CheckCircle2 />} stats={stats?.delivery} prevStats={prevStats?.delivery}
+              eff={calculateEfficiency('delivery')} stage="delivery" activeFilter={activeFilter} setActiveFilter={setActiveFilter} 
+              prevPeriod={prevPeriodText}
+            />
           </div>
 
           {/* ── DELAY ANALYSIS CENTER ── */}
@@ -502,8 +537,6 @@ export default function LeadTimePage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
 
       {/* ── MODALS ── */}
       <AnimatePresence>
@@ -590,11 +623,13 @@ export default function LeadTimePage() {
           </div>
         )}
       </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }
 
-function StageBox({ title, icon, stats, eff, stage, activeFilter, setActiveFilter }: any) {
+function StageBox({ title, icon, stats, prevStats, eff, stage, activeFilter, setActiveFilter, prevPeriod }: any) {
   const onTimeData = stats?.chartData?.find((d: any) => d.name === 'OnTime');
   const delayData = stats?.chartData?.find((d: any) => d.name === 'Delay');
   const advanceData = stats?.chartData?.find((d: any) => d.name === 'Advance');
@@ -609,18 +644,46 @@ function StageBox({ title, icon, stats, eff, stage, activeFilter, setActiveFilte
         <h2 className="text-xs sm:text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase truncate">{title}</h2>
       </div>
       
-      {/* IMPROVED SCORECARD GRID: Better spacing and alignment on mobile */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-2 sm:gap-4 mb-6 sm:mb-10 w-full">
-        <StatusCard onClick={() => setActiveFilter({stage, status: 'OnTime'})} active={activeFilter?.stage === stage && activeFilter?.status === 'OnTime'} type="OnTime" eff={onTimeData?.percentage} count={onTimeData?.value} />
-        {isInPdc ? (
-          <>
-            <StatusCard onClick={() => setActiveFilter({stage, status: 'Advance'})} active={activeFilter?.stage === stage && activeFilter?.status === 'Advance'} type="Advance" eff={advanceData?.percentage} count={advanceData?.value} />
-            <div className="col-span-2">
-              <StatusCard onClick={() => setActiveFilter({stage, status: 'Delay'})} active={activeFilter?.stage === stage && activeFilter?.status === 'Delay'} type="Delay" eff={delayData?.percentage} count={delayData?.value} />
-            </div>
-          </>
-        ) : (
-          <StatusCard onClick={() => setActiveFilter({stage, status: 'Delay'})} active={activeFilter?.stage === stage && activeFilter?.status === 'Delay'} type="Delay" eff={delayData?.percentage} count={delayData?.value} />
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-6 sm:mb-10 w-full">
+        <StatusCard 
+          active={activeFilter?.stage === stage && activeFilter?.status === 'OnTime'}
+          onClick={() => setActiveFilter({stage, status: 'OnTime'})}
+          type="OnTime" 
+          eff={onTimeData?.percentage || '0%'} 
+          count={onTimeData?.value} 
+          prevCount={prevStats?.chartData?.find((d: any) => d.name === 'OnTime')?.value}
+          prevPeriod={prevPeriod}
+        />
+        {!isInPdc && (
+          <StatusCard 
+            active={activeFilter?.stage === stage && activeFilter?.status === 'Advance'}
+            onClick={() => setActiveFilter({stage, status: 'Advance'})}
+            type="Advance" 
+            eff={advanceData?.percentage || '0%'} 
+            count={advanceData?.value} 
+            prevCount={prevStats?.chartData?.find((d: any) => d.name === 'Advance')?.value}
+            prevPeriod={prevPeriod}
+          />
+        )}
+        <StatusCard 
+          active={activeFilter?.stage === stage && activeFilter?.status === 'Delay'}
+          onClick={() => setActiveFilter({stage, status: 'Delay'})}
+          type="Delay" 
+          eff={delayData?.percentage || '0%'} 
+          count={delayData?.value} 
+          prevCount={prevStats?.chartData?.find((d: any) => d.name === 'Delay')?.value}
+          prevPeriod={prevPeriod}
+        />
+        {isInPdc && (
+          <StatusCard 
+            active={activeFilter?.stage === stage && activeFilter?.status === 'Advance'}
+            onClick={() => setActiveFilter({stage, status: 'Advance'})}
+            type="Advance" 
+            eff={advanceData?.percentage || '0%'} 
+            count={advanceData?.value} 
+            prevCount={prevStats?.chartData?.find((d: any) => d.name === 'Advance')?.value}
+            prevPeriod={prevPeriod}
+          />
         )}
       </div>
       
@@ -673,14 +736,32 @@ function ReasonSection({ title, reasons, color, onSelect }: any) {
   );
 }
 
-function StatusCard({ onClick, active, type, eff, count }: any) {
+function StatusCard({ onClick, active, type, eff, count, prevCount, prevPeriod }: any) {
   const isDelay = type === 'Delay';
   const isAdvance = type === 'Advance';
+  
+  const delta = (count || 0) - (prevCount || 0);
+  const isUp = delta > 0;
+  const isGood = isDelay ? delta < 0 : delta > 0;
+  const isBad = isDelay ? delta > 0 : delta < 0;
+  const percentage = !prevCount ? (count > 0 ? 100 : 0) : Math.abs((delta / prevCount) * 100);
+
   return (
     <button onClick={onClick} className={`w-full rounded-xl border transition-all text-left shadow-sm p-3 overflow-hidden shrink-0 ${active ? (isDelay ? 'bg-red-600 text-white border-red-700' : isAdvance ? 'bg-amber-500 text-white border-amber-600' : 'bg-emerald-500 text-white border-emerald-600') : (isDelay ? 'bg-red-50 dark:bg-red-500/5 border-red-100 dark:border-red-500/20' : isAdvance ? 'bg-amber-50 dark:bg-amber-500/5 border-amber-100 dark:border-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-500/20')}`}>
-      <span className={`block text-[6px] sm:text-[10px] font-black uppercase tracking-widest mb-1.5 truncate ${active ? 'opacity-90' : (isDelay ? 'text-red-500' : isAdvance ? 'text-amber-500' : 'text-emerald-600')}`}>{type}</span>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className={`block text-[6px] sm:text-[9px] font-black uppercase tracking-widest truncate ${active ? 'opacity-90' : (isDelay ? 'text-red-500' : isAdvance ? 'text-amber-500' : 'text-emerald-600')}`}>{type}</span>
+        {prevCount !== undefined && (
+          <div className={`flex items-center gap-0.5 text-[8px] font-black ${active ? 'text-white' : (isGood ? 'text-emerald-500' : isBad ? 'text-red-500' : 'text-slate-400')}`}>
+            {isUp ? <ChevronUp className="w-2.5 h-2.5" /> : delta < 0 ? <ChevronDown className="w-2.5 h-2.5" /> : null}
+            {percentage.toFixed(0)}%
+          </div>
+        )}
+      </div>
       <div className={`text-[11px] sm:text-2xl font-black uppercase tracking-tighter leading-none truncate`}>{eff || '0%'}</div>
-      <div className={`text-[7px] sm:text-[9px] font-bold opacity-70 uppercase mt-2 truncate tracking-tight`}>{count || 0} Trips</div>
+      <div className={`flex items-center justify-between mt-2`}>
+        <div className={`text-[7px] sm:text-[9px] font-bold opacity-70 uppercase truncate tracking-tight`}>{count || 0} Trips</div>
+        {prevCount !== undefined && <div className="text-[6px] opacity-40 font-black uppercase tracking-tighter shrink-0">{prevPeriod || 'vs prev'}</div>}
+      </div>
     </button>
   );
 }
