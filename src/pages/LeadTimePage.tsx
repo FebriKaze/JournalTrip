@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, MapPin, ChevronRight, ChevronDown, ChevronUp, Search, Filter, Clock, TrendingUp, AlertCircle,
@@ -66,6 +67,11 @@ export default function LeadTimePage() {
   });
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [area, setArea] = useState('ALL');
+  const [filterMode, setFilterMode] = useState<'month'|'range'>('month');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [data, setData] = useState<LeadTimeData[]>([]);
   const [prevData, setPrevData] = useState<LeadTimeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,7 +83,7 @@ export default function LeadTimePage() {
   const [selectedReason, setSelectedReason] = useState<{title: string, reason: string, count: number} | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<LeadTimeData | null>(null);
 
-  const areas = ['ALL', 'JBK', 'NGORO', 'TMMIN', 'SUMATERA'];
+  const areas = ['ALL', 'JBK', 'NGORO', 'TMMIN', 'SUMATERA', 'PADANG', 'SULAWESI', 'KALIMANTAN'];
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -92,21 +98,40 @@ export default function LeadTimePage() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate, area]);
+  }, [startDate, endDate, area, filterMode, selectedMonth]);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
+      let currentStart, currentEnd;
+      if (filterMode === 'month') {
+        const [y, m] = selectedMonth.split('-');
+        currentStart = new Date(parseInt(y), parseInt(m) - 1, 1);
+        currentEnd = new Date(parseInt(y), parseInt(m), 0);
+      } else {
+        currentStart = new Date(startDate);
+        currentEnd = new Date(endDate);
+      }
+
       // 1. Current Period
-      const result = await leadtimeService.getLeadTimes(startDate, endDate, area);
+      const result = await leadtimeService.getLeadTimes(
+        currentStart.toISOString().split('T')[0],
+        currentEnd.toISOString().split('T')[0],
+        area
+      );
       setData(result);
 
-      // 2. Previous Period (Same length)
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diff = end.getTime() - start.getTime();
-      const prevEnd = new Date(start.getTime() - 86400000);
-      const prevStart = new Date(prevEnd.getTime() - diff);
+      // 2. Previous Period
+      let prevStart, prevEnd;
+      if (filterMode === 'month') {
+        const [y, m] = selectedMonth.split('-');
+        prevStart = new Date(parseInt(y), parseInt(m) - 2, 1);
+        prevEnd = new Date(parseInt(y), parseInt(m) - 1, 0);
+      } else {
+        const diff = currentEnd.getTime() - currentStart.getTime();
+        prevEnd = new Date(currentStart.getTime() - 86400000);
+        prevStart = new Date(prevEnd.getTime() - diff);
+      }
       
       const prevResult = await leadtimeService.getLeadTimes(
         prevStart.toISOString().split('T')[0],
@@ -157,7 +182,8 @@ export default function LeadTimePage() {
       let val = '';
       if (areaName === 'JBK') val = (findExactOrInclude(points, ['LeadTime Delivery']) || findExactOrInclude(info, ['Leadtime delivery'])).toLowerCase();
       else if (areaName === 'NGORO') val = findExactOrInclude(info, ['Status Leadtime Delivery']).toLowerCase();
-      else if (areaName === 'TMMIN') val = findExactOrInclude(info, ['Status Leadtime']).toLowerCase();
+      else if (areaName === 'TMMIN') val = (findExactOrInclude(points, ['LeadTime Delivery', 'Leadtime delivery']) || findExactOrInclude(info, ['Status Leadtime'])).toLowerCase();
+      else if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) val = findExactOrInclude(info, ['Status Leadtime']).toLowerCase();
       else if (areaName === 'SUMATERA') {
         const durationStr = findExactOrInclude(points, ['LeadTime Delivery']);
         if (!durationStr || durationStr === '-' || durationStr.length < 2) return 'Unknown';
@@ -252,15 +278,22 @@ export default function LeadTimePage() {
   }, [prevData]);
 
   const prevPeriodText = useMemo(() => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diff = end.getTime() - start.getTime();
-    const prevEnd = new Date(start.getTime() - 86400000);
-    const prevStart = new Date(prevEnd.getTime() - diff);
+    let prevStart, prevEnd;
+    if (filterMode === 'month') {
+      const [y, m] = selectedMonth.split('-');
+      prevStart = new Date(parseInt(y), parseInt(m) - 2, 1);
+      prevEnd = new Date(parseInt(y), parseInt(m) - 1, 0);
+    } else {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diff = end.getTime() - start.getTime();
+      prevEnd = new Date(start.getTime() - 86400000);
+      prevStart = new Date(prevEnd.getTime() - diff);
+    }
     
     const fmt = (d: Date) => d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
     return `${fmt(prevStart)} - ${fmt(prevEnd)} ${prevEnd.getFullYear()}`;
-  }, [startDate, endDate]);
+  }, [startDate, endDate, filterMode, selectedMonth]);
 
   const filteredData = useMemo(() => {
     let result = data;
@@ -308,7 +341,8 @@ export default function LeadTimePage() {
       const areaName = item.area?.toUpperCase();
       if (areaName === 'JBK') return points['LeadTime Delivery'] || info['Leadtime delivery'] || '-';
       if (areaName === 'NGORO') return info['Status Leadtime Delivery'] || '-';
-      if (areaName === 'TMMIN') return info['Status Leadtime'] || '-';
+      if (areaName === 'TMMIN') return points['LeadTime Delivery'] || points['Leadtime Delivery'] || info['Status Leadtime'] || '-';
+      if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) return info['Status Leadtime'] || '-';
       if (areaName === 'SUMATERA') return points['LeadTime Delivery'] || '-';
     }
     return '-';
@@ -334,7 +368,7 @@ export default function LeadTimePage() {
   return (
     <div className="flex flex-col gap-4 sm:gap-10 pb-20 w-full max-w-[100vw] overflow-x-hidden px-1 sm:px-4 lg:px-6 box-border">
       {/* ── HEADER SECTION ── */}
-      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-3 sm:p-8 rounded-[20px] sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 mt-1 sm:mt-0 w-full max-w-full overflow-hidden box-border">
+      <div className="isolate bg-white dark:bg-slate-900 p-3 sm:p-8 rounded-[20px] sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 mt-1 sm:mt-0 w-full max-w-full box-border overflow-visible">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6">
           <div className="flex items-center gap-3 sm:gap-5 min-w-0 max-w-full overflow-hidden">
             <div className="w-9 h-9 sm:w-16 sm:h-16 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 shrink-0">
@@ -348,37 +382,45 @@ export default function LeadTimePage() {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full lg:w-auto shrink-0">
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/40 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 flex-1 min-w-0">
-              <div className="flex flex-1 items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 min-w-0 overflow-hidden">
-                <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                <div className="flex items-center gap-2 w-full min-w-0 overflow-hidden">
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 p-0 w-full min-w-0" />
-                  <span className="text-slate-300 font-bold">-</span>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[10px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 p-0 w-full min-w-0" />
-                </div>
-              </div>
+          <div className="flex flex-row items-center gap-2 w-full lg:w-auto shrink-0">
+            {/* Toggle Bulan/Tanggal */}
+            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl shrink-0 border border-slate-200/50 dark:border-slate-700/50 h-[42px]">
+              <button 
+                onClick={() => setFilterMode('month')} 
+                className={`px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'month' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                Bulan
+              </button>
+              <button 
+                onClick={() => setFilterMode('range')} 
+                className={`px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'range' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              >
+                Tanggal
+              </button>
             </div>
             
-            <div className="flex items-center bg-slate-50 dark:bg-slate-800/40 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-full lg:w-48 group shrink-0">
-              <div className="relative flex-1 flex items-center bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden h-full">
-                <div className="absolute left-3 flex items-center justify-center pointer-events-none">
-                  <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                </div>
-                <select 
-                  value={area} 
-                  onChange={(e) => { setArea(e.target.value); setCurrentPage(1); }} 
-                  className="w-full pl-9 pr-8 py-2 bg-transparent border-none text-[10px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 appearance-none cursor-pointer uppercase transition-all"
-                >
-                  {areas.map(a => (
-                    <option key={a} value={a} className="font-bold">
-                      {a === 'ALL' ? 'ALL AREA' : a}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            {/* Date / Month Input */}
+            {filterMode === 'month' ? (
+              <div className="flex items-center h-[42px] px-3 gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm min-w-[160px]">
+                <Calendar className="w-4 h-4 text-blue-500 shrink-0" />
+                <input 
+                  type="month" 
+                  value={selectedMonth} 
+                  onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} 
+                  className="bg-transparent border-none text-[11px] font-black tracking-wide focus:ring-0 text-slate-800 dark:text-slate-100 appearance-none cursor-pointer uppercase w-full"
+                />
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center h-[42px] px-3 gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <Calendar className="w-4 h-4 text-blue-500 shrink-0" />
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-800 dark:text-slate-100 p-0 w-[95px]" />
+                <span className="text-slate-300 font-bold">—</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-800 dark:text-slate-100 p-0 w-[95px]" />
+              </div>
+            )}
+            
+            {/* Area Dropdown */}
+            <AreaDropdown areas={areas} selected={area} onChange={(val) => { setArea(val); setCurrentPage(1); }} />
           </div>
         </div>
       </div>
@@ -822,3 +864,107 @@ function CustomTrendTooltip({ active, payload, label }: any) {
   }
   return null;
 }
+
+function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        btnRef.current && !btnRef.current.contains(e.target as Node) &&
+        popupRef.current && !popupRef.current.contains(e.target as Node)
+      ) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+    }
+    setOpen(v => !v);
+  };
+
+  const filtered = areas.filter(a => a.toLowerCase().includes(search.toLowerCase()));
+  const AREA_COLORS: Record<string, string> = {
+    ALL: 'bg-slate-500', JBK: 'bg-blue-500', NGORO: 'bg-orange-500', TMMIN: 'bg-red-500', SUMATERA: 'bg-emerald-500',
+    PADANG: 'bg-violet-500', SULAWESI: 'bg-rose-500', KALIMANTAN: 'bg-cyan-500'
+  };
+  const getColor = (a: string) => AREA_COLORS[a] || 'bg-slate-400';
+  const isDark = document.documentElement.classList.contains('dark');
+
+  return (
+    <div className="relative flex">
+      <button ref={btnRef} onClick={handleOpen} type="button"
+        className="flex items-center gap-2 pl-3 pr-3 py-2.5 h-[42px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[150px]">
+        <div className={`w-2 h-2 rounded-full shrink-0 ${getColor(selected)}`} />
+        <span className="flex-1 text-left text-slate-700 dark:text-slate-200">{selected === 'ALL' ? 'ALL AREA' : selected}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              ref={popupRef}
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              style={{
+                position: 'fixed',
+                top: dropPos.top,
+                right: dropPos.right,
+                width: 256,
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                zIndex: 99999,
+                borderRadius: 16,
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{ padding: 12, borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#94a3b8' }} />
+                  <input
+                    autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari area..."
+                    style={{ width: '100%', paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8, backgroundColor: isDark ? '#1e293b' : '#f8fafc', border: 'none', borderRadius: 10, fontSize: 11, fontWeight: 700, outline: 'none', color: isDark ? '#e2e8f0' : '#1e293b' }}
+                  />
+                </div>
+              </div>
+              <div style={{ maxHeight: 256, overflowY: 'auto', paddingTop: 8, paddingBottom: 8 }}>
+                {filtered.map(a => (
+                  <button key={a} type="button" onClick={() => { onChange(a); setOpen(false); setSearch(''); }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 16px', textAlign: 'left', border: 'none', cursor: 'pointer',
+                      backgroundColor: selected === a ? (isDark ? 'rgba(59,130,246,0.1)' : '#eff6ff') : 'transparent',
+                    }}
+                    onMouseEnter={e => { if (selected !== a) (e.currentTarget as HTMLElement).style.backgroundColor = isDark ? 'rgba(30,41,59,0.6)' : '#f8fafc'; }}
+                    onMouseLeave={e => { if (selected !== a) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(a)}`} />
+                    <span style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase', flex: 1, color: selected === a ? (isDark ? '#93c5fd' : '#2563eb') : (isDark ? '#cbd5e1' : '#374151'), letterSpacing: '0.05em' }}>
+                      {a === 'ALL' ? '✦ ALL AREA' : a}
+                    </span>
+                    {selected === a && <CheckCircle2 style={{ width: 14, height: 14, color: '#3b82f6', flexShrink: 0 }} />}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+
