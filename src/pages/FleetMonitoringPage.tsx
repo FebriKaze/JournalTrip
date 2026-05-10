@@ -125,25 +125,24 @@ export default function FleetMonitoringPage() {
   return (
     <div className="space-y-8 pb-12">
       {/* ── HEADER ── */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="shrink-0">
           <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
             Fleet Monitoring
-            <span className="text-xs bg-red-600 text-white px-3 py-1 rounded-full animate-pulse">LIVE</span>
+            <span className="text-[10px] bg-red-600 text-white px-3 py-1 rounded-full animate-pulse tracking-widest font-black">LIVE</span>
           </h1>
-          <p className="text-sm font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Real-time status armada & jadwal</p>
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Real-time status armada & jadwal</p>
         </div>
         
-        <div className="flex flex-wrap items-stretch sm:items-center gap-3 w-full xl:w-auto">
-          {/* Area Filter - Responsive */}
-          <div className="relative group">
-            {/* Desktop Buttons */}
-            <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          {/* Area & Shift Filter - Responsive Group */}
+          <div className="grid grid-cols-1 sm:flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800 shadow-inner w-full sm:w-auto">
               {(['ALL', 'TAM', 'TMMIN'] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setSelectedArea(p)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${
+                  className={`flex-1 sm:w-16 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
                     selectedArea === p 
                       ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' 
                       : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
@@ -153,27 +152,13 @@ export default function FleetMonitoringPage() {
                 </button>
               ))}
             </div>
-            {/* Mobile Dropdown */}
-            <select 
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value as any)}
-              className="lg:hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 text-[10px] font-black focus:outline-none appearance-none shadow-sm dark:text-white"
-            >
-              <option value="ALL">AREA: ALL</option>
-              <option value="TAM">AREA: TAM</option>
-              <option value="TMMIN">AREA: TMMIN</option>
-            </select>
-          </div>
 
-          {/* Shift Filter - Responsive */}
-          <div className="relative group">
-            {/* Desktop Buttons */}
-            <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800 shadow-inner w-full sm:w-auto">
               {(['ALL', 'DAY', 'NIGHT'] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setSelectedShift(s)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${
+                  className={`flex-1 sm:w-16 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
                     selectedShift === s 
                       ? 'bg-white dark:bg-slate-800 text-red-600 shadow-sm' 
                       : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
@@ -183,77 +168,69 @@ export default function FleetMonitoringPage() {
                 </button>
               ))}
             </div>
-            {/* Mobile Dropdown */}
-            <select 
-              value={selectedShift}
-              onChange={(e) => setSelectedShift(e.target.value as any)}
-              className="lg:hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 text-[10px] font-black focus:outline-none appearance-none shadow-sm dark:text-white"
-            >
-              <option value="ALL">SHIFT: ALL</option>
-              <option value="DAY">SHIFT: DAY</option>
-              <option value="NIGHT">SHIFT: NIGHT</option>
-            </select>
           </div>
 
-          {/* Date Navigation Control */}
-          <div className="flex items-center bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <button 
-              onClick={() => {
-                const d = new Date(selectedDate);
-                d.setDate(d.getDate() - 1);
-                setSelectedDate(d.toISOString().split('T')[0]);
-              }}
-              className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors border-r border-slate-100 dark:border-slate-800"
-            >
-              <ArrowRight className="w-4 h-4 rotate-180" />
-            </button>
-            
-            <div 
-              onClick={() => dateInputRef.current?.showPicker()}
-              className="relative flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/cal"
-            >
-              <Calendar className="w-4 h-4 text-red-500" />
-              <span className="text-[10px] md:text-xs font-black text-slate-900 dark:text-white whitespace-nowrap">
-                {new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-              </span>
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            {/* Date Navigation Control */}
+            <div className="flex items-center bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden flex-1 sm:flex-none">
+              <button 
+                onClick={() => {
+                  const d = new Date(selectedDate);
+                  d.setDate(d.getDate() - 1);
+                  setSelectedDate(d.toISOString().split('T')[0]);
+                }}
+                className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors border-r border-slate-100 dark:border-slate-800"
+              >
+                <ArrowRight className="w-4 h-4 rotate-180" />
+              </button>
+              
+              <div 
+                onClick={() => dateInputRef.current?.showPicker()}
+                className="relative flex items-center gap-2 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/cal"
+              >
+                <Calendar className="w-3.5 h-3.5 text-red-500" />
+                <span className="text-[10px] font-black text-slate-900 dark:text-white whitespace-nowrap uppercase tracking-widest">
+                  {new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                </span>
+                <input 
+                  ref={dateInputRef}
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="absolute inset-0 opacity-0 pointer-events-auto cursor-pointer z-20"
+                />
+              </div>
+
+              <button 
+                onClick={() => {
+                  const d = new Date(selectedDate);
+                  d.setDate(d.getDate() + 1);
+                  setSelectedDate(d.toISOString().split('T')[0]);
+                }}
+                className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors border-l border-slate-100 dark:border-slate-800"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative group flex-1 sm:flex-none">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
               <input 
-                ref={dateInputRef}
-                type="date" 
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="absolute inset-0 opacity-0 pointer-events-auto cursor-pointer z-20"
+                type="text" 
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-white dark:bg-slate-900 rounded-xl pl-9 pr-4 py-2.5 text-[10px] font-black focus:outline-none shadow-sm border border-slate-200 dark:border-slate-800 dark:text-white w-full sm:w-32 lg:w-40 uppercase tracking-widest"
               />
             </div>
 
             <button 
-              onClick={() => {
-                const d = new Date(selectedDate);
-                d.setDate(d.getDate() + 1);
-                setSelectedDate(d.toISOString().split('T')[0]);
-              }}
-              className="p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors border-l border-slate-100 dark:border-slate-800"
+              onClick={loadData}
+              className="p-2.5 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-red-500 transition-all shrink-0"
             >
-              <ArrowRight className="w-4 h-4" />
+              <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
           </div>
-
-          <div className="relative group flex-1 md:flex-none">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-red-500 transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white dark:bg-slate-900 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold focus:outline-none shadow-sm border border-slate-200 dark:border-slate-800 dark:text-white w-full md:w-32 lg:w-40"
-            />
-          </div>
-
-          <button 
-            onClick={loadData}
-            className="p-2.5 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-red-500 transition-all"
-          >
-            <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
       </div>
 

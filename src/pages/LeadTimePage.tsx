@@ -368,59 +368,63 @@ export default function LeadTimePage() {
   return (
     <div className="flex flex-col gap-4 sm:gap-10 pb-20 w-full max-w-[100vw] overflow-x-hidden px-1 sm:px-4 lg:px-6 box-border">
       {/* ── HEADER SECTION ── */}
-      <div className="isolate bg-white dark:bg-slate-900 p-3 sm:p-8 rounded-[20px] sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 mt-1 sm:mt-0 w-full max-w-full box-border overflow-visible">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6">
-          <div className="flex items-center gap-3 sm:gap-5 min-w-0 max-w-full overflow-hidden">
-            <div className="w-9 h-9 sm:w-16 sm:h-16 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 shrink-0">
-              <Truck className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
+      <div className="isolate bg-white dark:bg-slate-900 p-4 md:p-8 rounded-3xl md:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm w-full box-border">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="flex items-center gap-4 sm:gap-5 w-full lg:w-auto">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 shrink-0">
+              <Truck className="w-6 h-6 md:w-8 md:h-8 text-white" />
             </div>
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <h1 className="text-sm sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-tight truncate">LeadTime Center</h1>
-              <p className="text-[8px] sm:text-sm text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1 mt-0.5 sm:mt-1 uppercase tracking-widest truncate">
-                <Timer className="w-2.5 h-2.5" /> Operational Analytics
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-tight truncate">LeadTime Center</h1>
+              <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1 mt-0.5 md:mt-1 uppercase tracking-widest truncate">
+                <Timer className="w-3.5 h-3.5" /> Operational Analytics
               </p>
             </div>
           </div>
           
-          <div className="flex flex-row items-center gap-2 w-full lg:w-auto shrink-0">
-            {/* Toggle Bulan/Tanggal */}
-            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl shrink-0 border border-slate-200/50 dark:border-slate-700/50 h-[42px]">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            {/* Filter Toggle Mode */}
+            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl shrink-0 border border-slate-200/50 dark:border-slate-700/50">
               <button 
                 onClick={() => setFilterMode('month')} 
-                className={`px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'month' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                className={`flex-1 sm:w-24 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'month' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Bulan
               </button>
               <button 
                 onClick={() => setFilterMode('range')} 
-                className={`px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'range' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                className={`flex-1 sm:w-24 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'range' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Tanggal
               </button>
             </div>
             
-            {/* Date / Month Input */}
-            {filterMode === 'month' ? (
-              <div className="flex items-center h-[42px] px-3 gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm min-w-[160px]">
-                <Calendar className="w-4 h-4 text-blue-500 shrink-0" />
-                <input 
-                  type="month" 
-                  value={selectedMonth} 
-                  onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} 
-                  className="bg-transparent border-none text-[11px] font-black tracking-wide focus:ring-0 text-slate-800 dark:text-slate-100 appearance-none cursor-pointer uppercase w-full"
-                />
+            <div className="grid grid-cols-1 sm:flex sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+              {/* Date / Month Input */}
+              {filterMode === 'month' ? (
+                <div className="flex items-center px-3 py-2 gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full sm:w-44">
+                  <Calendar className="w-4 h-4 text-blue-500 shrink-0" />
+                  <input 
+                    type="month" 
+                    value={selectedMonth} 
+                    onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }} 
+                    className="bg-transparent border-none text-[11px] font-black tracking-wide focus:ring-0 text-slate-800 dark:text-slate-100 appearance-none cursor-pointer uppercase w-full p-0"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center px-3 py-2 gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm w-full sm:w-auto justify-center">
+                  <Calendar className="w-4 h-4 text-blue-500 shrink-0" />
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-800 dark:text-slate-100 p-0 w-[95px] cursor-pointer" />
+                  <span className="text-slate-300 font-bold">—</span>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-800 dark:text-slate-100 p-0 w-[95px] cursor-pointer" />
+                </div>
+              )}
+              
+              {/* Area Dropdown */}
+              <div className="w-full sm:w-auto">
+                <AreaDropdown areas={areas} selected={area} onChange={(val) => { setArea(val); setCurrentPage(1); }} />
               </div>
-            ) : (
-              <div className="flex items-center h-[42px] px-3 gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                <Calendar className="w-4 h-4 text-blue-500 shrink-0" />
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-800 dark:text-slate-100 p-0 w-[95px]" />
-                <span className="text-slate-300 font-bold">—</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-800 dark:text-slate-100 p-0 w-[95px]" />
-              </div>
-            )}
-            
-            {/* Area Dropdown */}
-            <AreaDropdown areas={areas} selected={area} onChange={(val) => { setArea(val); setCurrentPage(1); }} />
+            </div>
           </div>
         </div>
       </div>

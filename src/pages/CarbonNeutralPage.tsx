@@ -86,110 +86,112 @@ export default function CarbonNeutralPage() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-wrap items-end gap-3 w-full"
+        className="flex flex-col lg:flex-row lg:items-end gap-4 w-full"
       >
-        {/* Date Picker */}
-        <div className="flex-1 min-w-[140px] sm:flex-initial">
-          <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-            <Calendar className="w-3.5 h-3.5 inline mr-2" />
-            Tanggal
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
-            onMouseDown={(e) => e.preventDefault()}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all shadow-sm select-none"
-          />
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex items-end gap-4 w-full">
+          {/* Date Picker */}
+          <div className="flex-1 min-w-0">
+            <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+              <Calendar className="w-3.5 h-3.5 inline mr-2" />
+              Tanggal
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
+              onMouseDown={(e) => e.preventDefault()}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all shadow-sm select-none"
+            />
+          </div>
 
-        {/* Area Dropdown */}
-        <div className="relative group" ref={areaRef}>
-          <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-            <MapPin className="w-3.5 h-3.5 inline mr-2" />
-            Area
-          </label>
-          <button
-            onClick={() => setAreaDropdownOpen(!areaDropdownOpen)}
-            className="w-full sm:w-40 flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
-          >
-            <span className="truncate">{selectedArea}</span>
-            <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${areaDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-          <AnimatePresence>
-            {areaDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute left-0 right-0 top-full mt-2 w-full sm:w-40 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
-              >
-                {areas.map(area => (
-                  <button
-                    key={area}
-                    onClick={() => { setSelectedArea(area); setAreaDropdownOpen(false); }}
-                    className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all ${
-                      selectedArea === area
-                        ? 'bg-green-500 text-white'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {area}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Driver Dropdown */}
-        <div className="relative group flex-1 sm:flex-initial" ref={driverRef}>
-          <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-            Driver
-          </label>
-          <button
-            onClick={() => setDriverDropdownOpen(!driverDropdownOpen)}
-            className="w-full sm:w-48 flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
-          >
-            <span className="truncate">
-              {drivers.find(d => d.id === selectedDriverId)?.name || 'Pilih Driver'}
-            </span>
-            <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${driverDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-          <AnimatePresence>
-            {driverDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 max-h-64 overflow-y-auto"
-              >
-                {drivers.length === 0 ? (
-                  <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic">
-                    No drivers available
-                  </div>
-                ) : (
-                  drivers.map(driver => (
+          {/* Area Dropdown */}
+          <div className="relative group min-w-0" ref={areaRef}>
+            <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+              <MapPin className="w-3.5 h-3.5 inline mr-2" />
+              Area
+            </label>
+            <button
+              onClick={() => setAreaDropdownOpen(!areaDropdownOpen)}
+              className="w-full sm:w-40 flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
+            >
+              <span className="truncate">{selectedArea}</span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${areaDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {areaDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="absolute left-0 right-0 top-full mt-2 w-full sm:w-40 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                >
+                  {areas.map(area => (
                     <button
-                      key={driver.id}
-                      onClick={() => { setSelectedDriverId(driver.id); setDriverDropdownOpen(false); }}
-                      className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all border-b border-slate-100 dark:border-slate-700 last:border-b-0 ${
-                        selectedDriverId === driver.id
+                      key={area}
+                      onClick={() => { setSelectedArea(area); setAreaDropdownOpen(false); }}
+                      className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all ${
+                        selectedArea === area
                           ? 'bg-green-500 text-white'
                           : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="truncate">{driver.name}</span>
-                        {driver.noPolisi && <span className="text-[9px] ml-2 px-2 py-1 bg-slate-200 dark:bg-slate-600 rounded truncate">{driver.noPolisi}</span>}
-                      </div>
+                      {area}
                     </button>
-                  ))
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Driver Dropdown */}
+          <div className="relative group lg:w-64" ref={driverRef}>
+            <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+              Driver
+            </label>
+            <button
+              onClick={() => setDriverDropdownOpen(!driverDropdownOpen)}
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
+            >
+              <span className="truncate">
+                {drivers.find(d => d.id === selectedDriverId)?.name || 'Pilih Driver'}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${driverDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {driverDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  className="absolute left-0 top-full mt-2 w-full sm:w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 max-h-64 overflow-y-auto"
+                >
+                  {drivers.length === 0 ? (
+                    <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic">
+                      No drivers available
+                    </div>
+                  ) : (
+                    drivers.map(driver => (
+                      <button
+                        key={driver.id}
+                        onClick={() => { setSelectedDriverId(driver.id); setDriverDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all border-b border-slate-100 dark:border-slate-700 last:border-b-0 ${
+                          selectedDriverId === driver.id
+                            ? 'bg-green-500 text-white'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="truncate">{driver.name}</span>
+                          {driver.noPolisi && <span className="text-[9px] ml-2 px-2 py-1 bg-slate-200 dark:bg-slate-600 rounded truncate shrink-0">{driver.noPolisi}</span>}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.div>
 

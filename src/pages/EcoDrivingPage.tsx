@@ -317,160 +317,75 @@ export default function EcoDrivingPage() {
   return (
     <div id="pdf-export-content" className="space-y-6 pb-20">
       {/* ── HEADER & FILTERS ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-4xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl md:rounded-4xl p-4 md:p-6 shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
-              <Leaf className="w-7 h-7 text-emerald-600" />
+          <div className="flex items-center gap-4 shrink-0 w-full lg:w-auto">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
+              <Leaf className="w-6 h-6 md:w-7 md:h-7 text-emerald-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Eco Driving</h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Fleet Safety Analytics</p>
+              <h1 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Eco Driving</h1>
+              <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 md:mt-1">Fleet Safety Analytics</p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-            {/* Filter Toggle Mode */}
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full sm:w-auto shadow-inner shrink-0">
-              <button
-                onClick={() => setFilterMode('month')}
-                className={`flex-1 sm:w-24 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
-                  filterMode === 'month' 
-                    ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
-              >
-                Bulan
-              </button>
-              <button
-                onClick={() => setFilterMode('range')}
-                className={`flex-1 sm:w-24 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
-                  filterMode === 'range' 
-                    ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
-              >
-                Tanggal
-              </button>
+              <button onClick={() => setFilterMode('month')} className={`flex-1 sm:w-24 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'month' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Bulan</button>
+              <button onClick={() => setFilterMode('range')} className={`flex-1 sm:w-24 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${filterMode === 'range' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Tanggal</button>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            <div className="grid grid-cols-1 sm:flex sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
               {filterMode === 'month' ? (
                 <div className="relative group w-full sm:w-44">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <Calendar className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
-                  </div>
-                  <input
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
-                    onMouseDown={(e) => e.preventDefault()}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-emerald-500/50 outline-none uppercase tracking-widest transition-all cursor-pointer shadow-sm select-none"
-                  />
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none"><Calendar className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" /></div>
+                  <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()} onMouseDown={(e) => e.preventDefault()} className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-emerald-500/50 outline-none uppercase tracking-widest transition-all cursor-pointer shadow-sm select-none" />
                 </div>
               ) : (
-                <div className="flex items-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm">
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
-                    onMouseDown={(e) => e.preventDefault()}
-                    className="flex-1 min-w-0 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
-                  />
+                <div className="flex items-center gap-2 w-full sm:w-auto bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 shadow-sm justify-center sm:justify-start">
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()} onMouseDown={(e) => e.preventDefault()} className="flex-1 sm:flex-none w-full sm:w-auto bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none p-0" />
                   <span className="text-slate-400 font-bold text-xs shrink-0">-</span>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()}
-                    onMouseDown={(e) => e.preventDefault()}
-                    className="flex-1 min-w-0 bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none"
-                  />
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()} onMouseDown={(e) => e.preventDefault()} className="flex-1 sm:flex-none w-full sm:w-auto bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none p-0" />
                 </div>
               )}
 
-              {/* Custom Area Dropdown */}
-              <div className="relative group w-full sm:w-auto" ref={areaRef}>
-                <button
-                  onClick={() => setAreaDropdownOpen(!areaDropdownOpen)}
-                  className="w-full sm:w-36 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm"
-                >
-                  <span className="truncate">{selectedArea === 'ALL' ? 'Semua Area' : selectedArea}</span>
-                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-                </button>
-                <AnimatePresence>
-                  {areaDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 5 }}
-                      className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 py-1"
-                    >
-                      {[
-                        { val: 'ALL', label: 'Semua Area' },
-                        { val: 'JBK', label: 'JBK' },
-                        { val: 'NGORO', label: 'NGORO' },
-                        { val: 'SUMATERA', label: 'SUMATERA' },
-                      ].map(opt => (
-                        <button
-                          key={opt.val}
-                          onClick={() => { setSelectedArea(opt.val); setAreaDropdownOpen(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedArea === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative group w-full sm:w-auto" ref={areaRef}>
+                  <button onClick={() => setAreaDropdownOpen(!areaDropdownOpen)} className="w-full sm:w-36 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm">
+                    <span className="truncate">{selectedArea === 'ALL' ? 'Area' : selectedArea}</span>
+                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                  </button>
+                  <AnimatePresence>
+                    {areaDropdownOpen && (
+                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 py-1">
+                        {[{ val: 'ALL', label: 'Semua Area' }, { val: 'JBK', label: 'JBK' }, { val: 'NGORO', label: 'NGORO' }, { val: 'SUMATERA', label: 'SUMATERA' }].map(opt => (
+                          <button key={opt.val} onClick={() => { setSelectedArea(opt.val); setAreaDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedArea === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-              {/* Custom Customer Dropdown */}
-              <div className="relative group w-full sm:w-auto" ref={customerRef}>
-                <button
-                  onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
-                  className="w-full sm:w-40 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm"
-                >
-                  <span className="truncate">{selectedCustomer === 'ALL' ? 'Semua Customer' : selectedCustomer}</span>
-                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-                </button>
-                <AnimatePresence>
-                  {customerDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 5 }}
-                      className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 py-1"
-                    >
-                      {[
-                        { val: 'ALL', label: 'Semua Customer' },
-                        { val: 'TMMIN', label: 'TMMIN' },
-                        { val: 'TAM', label: 'TAM' },
-                      ].map(opt => (
-                        <button
-                          key={opt.val}
-                          onClick={() => { setSelectedCustomer(opt.val); setCustomerDropdownOpen(false); }}
-                          className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCustomer === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                <div className="relative group w-full sm:w-auto" ref={customerRef}>
+                  <button onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)} className="w-full sm:w-40 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm">
+                    <span className="truncate">{selectedCustomer === 'ALL' ? 'Customer' : selectedCustomer}</span>
+                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                  </button>
+                  <AnimatePresence>
+                    {customerDropdownOpen && (
+                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 py-1">
+                        {[{ val: 'ALL', label: 'Semua Customer' }, { val: 'TMMIN', label: 'TMMIN' }, { val: 'TAM', label: 'TAM' }].map(opt => (
+                          <button key={opt.val} onClick={() => { setSelectedCustomer(opt.val); setCustomerDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCustomer === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-              {/* Refresh Button */}
-              <button
-                onClick={loadData}
-                disabled={isLoading}
-                className="flex items-center justify-center p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shadow-sm shrink-0 group"
-                title="Refresh Data"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-500' : 'group-hover:-rotate-180 transition-transform duration-500'}`} />
-              </button>
+                <button onClick={loadData} disabled={isLoading} className="flex items-center justify-center p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shadow-sm shrink-0 group">
+                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-500' : 'group-hover:-rotate-180 transition-transform duration-500'}`} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

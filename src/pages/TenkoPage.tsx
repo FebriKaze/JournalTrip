@@ -137,23 +137,23 @@ export default function TenkoPage() {
   return (
     <div className="space-y-6 pb-20 px-1">
       
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-blue-500/5 relative z-50 overflow-visible">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-blue-500/5 relative z-50 overflow-visible">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 overflow-visible">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20"><Activity className="w-6 h-6 text-white" /></div>
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 shrink-0"><Activity className="w-5 h-5 md:w-6 md:h-6 text-white" /></div>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Tenko Daily Dashboard</h1>
-              <p className="text-xs text-slate-500 font-bold flex items-center gap-1 mt-1 uppercase tracking-widest"><ClipboardList className="w-3 h-3" /> Driver Health &amp; Safety Check</p>
+              <h1 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Tenko Daily Dashboard</h1>
+              <p className="text-[10px] md:text-xs text-slate-500 font-bold flex items-center gap-1 mt-0.5 md:mt-1 uppercase tracking-widest"><ClipboardList className="w-3 h-3" /> Driver Health &amp; Safety Check</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto overflow-visible">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-3 w-full lg:w-auto lg:ml-auto overflow-visible">
 
             {/* Toggle BULAN / TANGGAL */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
               {(['BULAN', 'TANGGAL'] as const).map(mode => (
                 <button key={mode} type="button" onClick={() => handleModeSwitch(mode)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
                     dateMode === mode
                       ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                       : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
@@ -164,27 +164,31 @@ export default function TenkoPage() {
             </div>
 
             {/* Date Control: conditional by mode */}
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 px-3 py-2 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 px-3 py-2 rounded-2xl border border-slate-200 dark:border-slate-700/50 w-full sm:w-auto justify-center sm:justify-start">
               <Calendar className="w-4 h-4 text-blue-500 shrink-0" />
               {dateMode === 'BULAN' ? (
                 <input
                   type="month"
                   value={selectedMonth}
                   onChange={(e) => handleMonthChange(e.target.value)}
-                  className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200"
+                  className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 w-full sm:w-auto text-center sm:text-left"
                 />
               ) : (
-                <>
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200" />
+                <div className="flex items-center gap-2 flex-1 sm:flex-none justify-center">
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 w-full sm:w-auto p-0" />
                   <span className="text-slate-400 font-bold">→</span>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200" />
-                </>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 text-slate-700 dark:text-slate-200 w-full sm:w-auto p-0" />
+                </div>
               )}
             </div>
 
-            <AreaDropdown areas={areas} selected={selectedArea} onChange={setSelectedArea} />
-            <CustomerDropdown customers={customers} selected={selectedCustomer} onChange={setSelectedCustomer} />
-            <PersonnelDropdown value={personnelType} onChange={setPersonnelType} />
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full lg:w-auto">
+              <AreaDropdown areas={areas} selected={selectedArea} onChange={setSelectedArea} />
+              <CustomerDropdown customers={customers} selected={selectedCustomer} onChange={setSelectedCustomer} />
+              <div className="col-span-2 sm:col-span-1">
+                <PersonnelDropdown value={personnelType} onChange={setPersonnelType} />
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>

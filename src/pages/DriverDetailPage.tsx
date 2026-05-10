@@ -58,46 +58,48 @@ export default function DriverDetailPage() {
       setDriver(data.driver);
       setRitases(data.ritases);
       
-      // Fetch Eco Violations for this driver
       const driverId = data.driver.id;
       const driverName = data.driver.name;
       
+      // Comprehensive Month Map for multi-language support
+      const MONTH_MAP: Record<string, number> = { 
+        'Jan': 0, 'January': 0, 'Januari': 0, 'Feb': 1, 'February': 1, 'Februari': 1,
+        'Mar': 2, 'March': 2, 'Maret': 2, 'Apr': 3, 'April': 3, 'May': 4, 'Mei': 4,
+        'Jun': 5, 'June': 5, 'Juni': 5, 'Jul': 6, 'July': 6, 'Juli': 6,
+        'Aug': 7, 'August': 7, 'Agustus': 7, 'Agu': 7, 'Agt': 7, 'Sep': 8, 'September': 8,
+        'Oct': 9, 'October': 9, 'Oktober': 9, 'Okt': 9, 'Nov': 10, 'November': 10,
+        'Dec': 11, 'December': 11, 'Desember': 11, 'Des': 11
+      };
+
+      const parseViolationDate = (vDate: string) => {
+        if (!vDate) return null;
+        const parts = vDate.split(/[\s-]/); 
+        if (parts.length !== 3) return null;
+        let mStr = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
+        const monthIdx = MONTH_MAP[mStr];
+        if (monthIdx === undefined) return null;
+        const rawYear = parseInt(parts[2]);
+        const fullYear = rawYear < 100 ? 2000 + rawYear : rawYear;
+        return new Date(fullYear, monthIdx, parseInt(parts[0]));
+      };
+
       const ecoData = await fetchEcoViolations({
         driverId: driverId,
         driverName: driverName
       });
 
-      // Helper to match month from "DD-Mon-YY" (e.g. 01-Jan-26) with "YYYY-MM" (e.g. 2026-01)
-      const matchesMonth = (dbDate: string, targetMonth: string) => {
-        if (!dbDate || !targetMonth) return false;
-        // dbDate example: "01-Jan-26"
-        // targetMonth example: "2026-04"
-        const [year, month] = targetMonth.split('-');
-        const monthMap: any = { 
-          'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
-          'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-        };
-        const dbParts = dbDate.split('-');
-        if (dbParts.length !== 3) return false;
-        const dbMonth = monthMap[dbParts[1]];
-        const dbYear = '20' + dbParts[2]; // assuming 20xx
-        return dbYear === year && dbMonth === month;
-      };
+      const [targetY, targetM] = selectedMonth.split('-');
+      const targetMonthIdx = parseInt(targetM) - 1;
+      const targetYear = parseInt(targetY);
 
-      const driverViolations = ecoData.filter(v => {
-        const isThisDriver = v.driver_id === driverId || v.pengemudi?.toLowerCase() === driverName.toLowerCase();
-        const isThisMonth = matchesMonth(v.tanggal, selectedMonth);
-        return isThisDriver && isThisMonth;
-      });
-      
-      console.log('--- ECO DRIVING DIAGNOSTIC ---');
-      console.log('Driver ID:', driverId);
-      console.log('Driver Name:', driverName);
-      console.log('Selected Month:', selectedMonth);
-      console.log('Raw Data Samples:', ecoData.slice(0, 3));
-      console.log('Matched for Driver (total):', ecoData.filter(v => v.driver_id === driverId || v.pengemudi?.toLowerCase() === driverName.toLowerCase()).length);
-      console.log('Matched for Month (total):', ecoData.filter(v => matchesMonth(v.tanggal, selectedMonth)).length);
-      console.log('Final Filtered Result:', driverViolations.length);
+      const driverViolations = ecoData
+        .map(v => ({ ...v, _parsedDate: parseViolationDate(v.tanggal) }))
+        .filter(v => {
+          const isThisDriver = v.driver_id === driverId || v.pengemudi?.toLowerCase() === driverName.toLowerCase();
+          if (!isThisDriver) return false;
+          if (!v._parsedDate) return false;
+          return v._parsedDate.getMonth() === targetMonthIdx && v._parsedDate.getFullYear() === targetYear;
+        }) as (EcoViolation & { _parsedDate: Date })[];
       
       setEcoViolations(driverViolations);
     }
@@ -507,8 +509,9 @@ export default function DriverDetailPage() {
                     <div className="h-64 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={(() => {
-                          const daily = ecoViolations.reduce((acc: any, v) => {
-                            const day = new Date(v.tanggal).getDate();
+                          const daily = (ecoViolations as any[]).reduce((acc: any, v) => {
+                            if (!v._parsedDate) return acc;
+                            const day = v._parsedDate.getDate();
                             acc[day] = (acc[day] || 0) + 1;
                             return acc;
                           }, {});
@@ -544,7 +547,9 @@ export default function DriverDetailPage() {
                               if (active && payload && payload.length) {
                                 return (
                                   <div className="bg-slate-900 p-3 rounded-2xl shadow-2xl border border-slate-800">
-                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">{label} April 2026</p>
+                                    <p className="text-[10px] font-black text-slate-500 uppercase mb-1">
+                                      {label} {new Date(selectedMonth).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                    </p>
                                     <div className="flex items-center gap-2">
                                       <div className="w-2 h-2 bg-sky-500 rounded-full" />
                                       <p className="text-sm font-black text-white">{payload[0].value} <span className="text-[10px] text-slate-400">Pelanggaran</span></p>
@@ -620,7 +625,7 @@ export default function DriverDetailPage() {
                         <tr key={i} className="hover:bg-white dark:hover:bg-slate-800/50 transition-colors">
                           <td className="px-6 py-4">
                             <p className="font-black text-slate-900 dark:text-white">
-                              {new Date(v.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}
+                              {(v as any)._parsedDate?.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' }) || '---'}
                             </p>
                             <p className="text-[10px] text-slate-400 font-bold uppercase">{v.waktu}</p>
                           </td>
