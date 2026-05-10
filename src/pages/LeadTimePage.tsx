@@ -186,13 +186,24 @@ export default function LeadTimePage() {
       else if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) val = findExactOrInclude(info, ['Status Leadtime']).toLowerCase();
       else if (areaName === 'SUMATERA') {
         const durationStr = findExactOrInclude(points, ['LeadTime Delivery']);
+        const destination = findExactOrInclude(info, ['Tujuan', 'Tujuan CC', 'Destination']).toUpperCase();
+        
         if (!durationStr || durationStr === '-' || durationStr.length < 2) return 'Unknown';
+        
         let totalHours = 0;
         const dayMatch = durationStr.match(/(\d+)\s*hari/);
         const hourMatch = durationStr.match(/(\d+)\s*jam/);
         if (dayMatch) totalHours += parseInt(dayMatch[1]) * 24;
         if (hourMatch) totalHours += parseInt(hourMatch[1]);
-        return totalHours >= 20 ? 'Delay' : 'OnTime';
+        
+        // Aturan Khusus Sumatera:
+        // Lampung: <= 12 jam (OnTime), > 12 jam (Delay)
+        // Palembang: <= 18 jam (OnTime), > 18 jam (Delay)
+        let threshold = 20; // Default lama
+        if (destination.includes('LAMPUNG')) threshold = 12;
+        else if (destination.includes('PALEMBANG')) threshold = 18;
+        
+        return totalHours > threshold ? 'Delay' : 'OnTime';
       }
       if (val.includes('delay')) return 'Delay';
       if (val.includes('ontime') || val.includes('on time') || val.includes('ok')) return 'OnTime';
