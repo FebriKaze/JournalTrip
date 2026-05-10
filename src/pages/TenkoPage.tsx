@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity, Heart, Thermometer, Wine, Eye, Moon, AlertCircle,
@@ -137,7 +138,7 @@ export default function TenkoPage() {
   return (
     <div className="space-y-6 pb-20 px-1">
       
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-blue-500/5 relative z-50 overflow-visible">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-blue-500/5 relative z-10 overflow-visible">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 overflow-visible">
           <div className="flex items-center gap-4 w-full lg:w-auto">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 shrink-0"><Activity className="w-5 h-5 md:w-6 md:h-6 text-white" /></div>
@@ -398,61 +399,93 @@ function StatusBadge({ label, ok }: { label: string, ok: boolean }) {
 function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+      if (popupRef.current && !popupRef.current.contains(e.target as Node) && btnRef.current && !btnRef.current.contains(e.target as Node)) setOpen(false);
     };
     if (open) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const isMob = window.innerWidth < 640;
+      setDropPos({ 
+        top: r.bottom + 8, 
+        left: isMob ? Math.max(8, r.left) : r.left,
+        width: Math.max(r.width, isMob ? window.innerWidth - 16 : 256)
+      });
+    }
+    setOpen(v => !v);
+  };
 
   const filtered = areas.filter(a => a.toLowerCase().includes(search.toLowerCase()));
   const AREA_COLORS: Record<string, string> = {
     ALL: 'bg-slate-500', KARAWANG: 'bg-blue-500', BEKASI: 'bg-orange-500', SULAWESI: 'bg-red-500', KALIMANTAN: 'bg-emerald-500',
   };
   const getColor = (a: string) => AREA_COLORS[a.toUpperCase()] || 'bg-slate-400';
+  const isDark = document.documentElement.classList.contains('dark');
 
   return (
-    <div className="relative" ref={containerRef}>
-      <button onClick={() => setOpen(!open)} type="button"
-        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[140px]">
+    <div className="relative">
+      <button ref={btnRef} onClick={handleOpen} type="button"
+        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[140px] w-full sm:w-auto">
         <div className={`w-2 h-2 rounded-full shrink-0 ${getColor(selected)}`} />
-        <span className="flex-1 text-left text-slate-700 dark:text-slate-200">{selected === 'ALL' ? 'ALL AREA' : selected}</span>
+        <span className="flex-1 text-left text-slate-700 dark:text-slate-200 truncate">{selected === 'ALL' ? 'ALL AREA' : selected}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-100 overflow-hidden"
-          >
-            <div className="p-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari area..."
-                  className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-[11px] font-bold border-none focus:ring-2 focus:ring-blue-500/30 outline-none" />
+      {open && createPortal(
+        <div className="fixed inset-0 z-[11000] pointer-events-none">
+          <AnimatePresence>
+            <motion.div
+              ref={popupRef}
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              style={{
+                position: 'fixed',
+                top: dropPos.top,
+                left: dropPos.left,
+                width: dropPos.width,
+                maxWidth: 320,
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderRadius: 16,
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                overflow: 'hidden',
+              }}
+              className="pointer-events-auto"
+            >
+              <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari area..."
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-[11px] font-bold border-none focus:ring-2 focus:ring-blue-500/30 outline-none" />
+                </div>
               </div>
-            </div>
-            <div className="max-h-64 overflow-y-auto py-2">
-              {filtered.map(a => (
-                <button key={a} type="button" onClick={() => { onChange(a); setOpen(false); setSearch(''); }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60 ${selected === a ? 'bg-blue-50 dark:bg-blue-500/10' : ''}`}>
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(a)}`} />
-                  <span className={`text-[11px] font-black uppercase flex-1 ${selected === a ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                    {a === 'ALL' ? '✦ All Areas' : a}
-                  </span>
-                  {selected === a && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="max-h-64 overflow-y-auto py-2">
+                {filtered.map(a => (
+                  <button key={a} type="button" onClick={() => { onChange(a); setOpen(false); setSearch(''); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60 ${selected === a ? 'bg-blue-50 dark:bg-blue-500/10' : ''}`}>
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(a)}`} />
+                    <span className={`text-[11px] font-black uppercase flex-1 truncate ${selected === a ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {a === 'ALL' ? '✦ All Areas' : a}
+                    </span>
+                    {selected === a && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -460,15 +493,30 @@ function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected
 function CustomerDropdown({ customers, selected, onChange }: { customers: string[]; selected: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+      if (popupRef.current && !popupRef.current.contains(e.target as Node) && btnRef.current && !btnRef.current.contains(e.target as Node)) setOpen(false);
     };
     if (open) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const isMob = window.innerWidth < 640;
+      setDropPos({ 
+        top: r.bottom + 8, 
+        left: isMob ? Math.max(8, r.left) : r.left,
+        width: Math.max(r.width, isMob ? window.innerWidth - 16 : 256)
+      });
+    }
+    setOpen(v => !v);
+  };
 
   const filtered = customers.filter(c => c.toLowerCase().includes(search.toLowerCase()));
   const CUSTOMER_COLORS: Record<string, string> = {
@@ -477,61 +525,92 @@ function CustomerDropdown({ customers, selected, onChange }: { customers: string
     MITSUBISHI: 'bg-violet-500', HYUNDAI: 'bg-blue-600', WULING: 'bg-rose-500',
   };
   const getColor = (c: string) => CUSTOMER_COLORS[c] || 'bg-slate-400';
+  const isDark = document.documentElement.classList.contains('dark');
 
   return (
-    <div className="relative" ref={containerRef}>
-      <button onClick={() => setOpen(!open)} type="button"
-        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[140px]">
+    <div className="relative">
+      <button ref={btnRef} onClick={handleOpen} type="button"
+        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[140px] w-full sm:w-auto">
         <div className={`w-2 h-2 rounded-full shrink-0 ${getColor(selected)}`} />
-        <span className="flex-1 text-left text-slate-700 dark:text-slate-200">{selected === 'ALL' ? 'ALL CUSTOMER' : selected}</span>
+        <span className="flex-1 text-left text-slate-700 dark:text-slate-200 truncate">{selected === 'ALL' ? 'ALL CUSTOMER' : selected}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-100 overflow-hidden"
-          >
-            <div className="p-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari customer..."
-                  className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-[11px] font-bold border-none focus:ring-2 focus:ring-blue-500/30 outline-none" />
+      {open && createPortal(
+        <div className="fixed inset-0 z-[11000] pointer-events-none">
+          <AnimatePresence>
+            <motion.div
+              ref={popupRef}
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              style={{
+                position: 'fixed',
+                top: dropPos.top,
+                left: dropPos.left,
+                width: dropPos.width,
+                maxWidth: 320,
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderRadius: 16,
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                overflow: 'hidden',
+              }}
+              className="pointer-events-auto"
+            >
+              <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari customer..."
+                    className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-[11px] font-bold border-none focus:ring-2 focus:ring-blue-500/30 outline-none" />
+                </div>
               </div>
-            </div>
-            <div className="max-h-64 overflow-y-auto py-2">
-              {filtered.map(c => (
-                <button key={c} type="button" onClick={() => { onChange(c); setOpen(false); setSearch(''); }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60 ${selected === c ? 'bg-blue-50 dark:bg-blue-500/10' : ''}`}>
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(c)}`} />
-                  <span className={`text-[11px] font-black uppercase flex-1 ${selected === c ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                    {c === 'ALL' ? '✦ All Customers' : c}
-                  </span>
-                  {selected === c && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="max-h-64 overflow-y-auto py-2">
+                {filtered.map(c => (
+                  <button key={c} type="button" onClick={() => { onChange(c); setOpen(false); setSearch(''); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60 ${selected === c ? 'bg-blue-50 dark:bg-blue-500/10' : ''}`}>
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(c)}`} />
+                    <span className={`text-[11px] font-black uppercase flex-1 truncate ${selected === c ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {c === 'ALL' ? '✦ All Customers' : c}
+                    </span>
+                    {selected === c && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
 
 function PersonnelDropdown({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+      if (popupRef.current && !popupRef.current.contains(e.target as Node) && btnRef.current && !btnRef.current.contains(e.target as Node)) setOpen(false);
     };
     if (open) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const isMob = window.innerWidth < 640;
+      setDropPos({ 
+        top: r.bottom + 8, 
+        left: isMob ? Math.max(8, r.left) : r.left,
+        width: Math.max(r.width, isMob ? window.innerWidth - 16 : 208)
+      });
+    }
+    setOpen(v => !v);
+  };
 
   const options = [
     { value: 'ALL', label: 'All Personnel', icon: Users, color: 'text-slate-500', bg: 'bg-slate-500/10', dot: 'bg-slate-400' },
@@ -539,44 +618,61 @@ function PersonnelDropdown({ value, onChange }: { value: string; onChange: (v: s
     { value: 'ASST', label: 'Assistants Only', icon: Heart, color: 'text-emerald-500', bg: 'bg-emerald-500/10', dot: 'bg-emerald-500' },
   ];
   const current = options.find(o => o.value === value) || options[0];
+  const isDark = document.documentElement.classList.contains('dark');
 
   return (
-    <div className="relative" ref={containerRef}>
-      <button onClick={() => setOpen(!open)} type="button"
-        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30 min-w-[150px]">
+    <div className="relative">
+      <button ref={btnRef} onClick={handleOpen} type="button"
+        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30 min-w-[150px] w-full sm:w-auto">
         <div className={`w-2 h-2 rounded-full shrink-0 ${current.dot}`} />
-        <span className="flex-1 text-left text-slate-700 dark:text-slate-200">{current.label}</span>
+        <span className="flex-1 text-left text-slate-700 dark:text-slate-200 truncate">{current.label}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            className="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-100 overflow-hidden"
-          >
-            <div className="p-2">
-              {options.map(opt => {
-                const Icon = opt.icon;
-                return (
-                  <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all ${
-                      value === opt.value ? `${opt.bg} ${opt.color}` : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-300'
-                    }`}>
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${opt.bg}`}>
-                      <Icon className={`w-4 h-4 ${opt.color}`} />
-                    </div>
-                    <p className="text-[11px] font-black uppercase flex-1">{opt.label}</p>
-                    {value === opt.value && <CheckCircle2 className={`w-4 h-4 shrink-0 ${opt.color}`} />}
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {open && createPortal(
+        <div className="fixed inset-0 z-[11000] pointer-events-none">
+          <AnimatePresence>
+            <motion.div
+              ref={popupRef}
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              style={{
+                position: 'fixed',
+                top: dropPos.top,
+                left: dropPos.left,
+                width: dropPos.width,
+                maxWidth: 320,
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                borderRadius: 16,
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                overflow: 'hidden',
+              }}
+              className="pointer-events-auto"
+            >
+              <div className="p-2">
+                {options.map(opt => {
+                  const Icon = opt.icon;
+                  return (
+                    <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all ${
+                        value === opt.value ? `${opt.bg} ${opt.color}` : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-300'
+                      }`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${opt.bg}`}>
+                        <Icon className={`w-4 h-4 ${opt.color}`} />
+                      </div>
+                      <p className="text-[11px] font-black uppercase flex-1 truncate">{opt.label}</p>
+                      {value === opt.value && <CheckCircle2 className={`w-4 h-4 shrink-0 ${opt.color}`} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

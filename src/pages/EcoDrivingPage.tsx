@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Shield, Activity, Calendar, MapPin, Map as MapIcon, Leaf, ChevronDown, ChevronUp,
@@ -66,6 +67,43 @@ const MapUpdater = ({ violations }: { violations: EcoViolation[] }) => {
   return null;
 };
 
+function StatCard({ label, value, prevValue, icon: Icon, iconColor, iconBg, active, activeColor, onClick }: any) {
+  const delta = value - (prevValue || 0);
+  const isUp = delta > 0;
+  const percentage = !prevValue ? (value > 0 ? 100 : 0) : Math.abs((delta / prevValue) * 100);
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-all cursor-pointer ${
+        active ? `${activeColor} ring-2 ring-opacity-20` : 'border-slate-100 dark:border-slate-800 hover:border-emerald-500'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
+        <div className={`w-8 h-8 rounded-full ${iconBg} ${iconColor} flex items-center justify-center shadow-sm`}>
+          <Icon className="w-4 h-4" />
+        </div>
+      </div>
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">{value}</p>
+        </div>
+        {prevValue !== undefined && (
+          <div className="flex flex-col items-end">
+            <div className={`flex items-center gap-0.5 text-[10px] font-black ${isUp ? 'text-emerald-500' : delta < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+              {isUp ? <ChevronUp className="w-3 h-3" /> : delta < 0 ? <ChevronDown className="w-3 h-3" /> : null}
+              {percentage.toFixed(1)}%
+            </div>
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">vs prev period</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
 export default function EcoDrivingPage() {
     const now = new Date();
@@ -82,8 +120,12 @@ export default function EcoDrivingPage() {
   // Custom Dropdown State
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
-  const areaRef = useRef<HTMLDivElement>(null);
-  const customerRef = useRef<HTMLDivElement>(null);
+  const [areaPos, setAreaPos] = useState({ top: 0, left: 0, width: 0 });
+  const [customerPos, setCustomerPos] = useState({ top: 0, left: 0, width: 0 });
+  const areaBtnRef = useRef<HTMLButtonElement>(null);
+  const customerBtnRef = useRef<HTMLButtonElement>(null);
+  const areaDropdownRef = useRef<HTMLDivElement>(null);
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
   
   // Cross-Filtering State
   const [cfDriver, setCfDriver] = useState<string | null>(null);
@@ -102,12 +144,17 @@ export default function EcoDrivingPage() {
   // Handle clicking outside custom dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (areaRef.current && !areaRef.current.contains(event.target as Node)) setAreaDropdownOpen(false);
-      if (customerRef.current && !customerRef.current.contains(event.target as Node)) setCustomerDropdownOpen(false);
+      const target = event.target as Node;
+      if (areaDropdownOpen && areaDropdownRef.current && !areaDropdownRef.current.contains(target) && areaBtnRef.current && !areaBtnRef.current.contains(target)) {
+        setAreaDropdownOpen(false);
+      }
+      if (customerDropdownOpen && customerDropdownRef.current && !customerDropdownRef.current.contains(target) && customerBtnRef.current && !customerBtnRef.current.contains(target)) {
+        setCustomerDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [areaDropdownOpen, customerDropdownOpen]);
 
   // Clear cross-filters when main data changes
   useEffect(() => {
@@ -181,8 +228,14 @@ export default function EcoDrivingPage() {
     return new Date(fullYear, monthIdx, parseInt(parts[0]));
   };
 
+  const fetchIdRef = useRef(0);
+
   const loadData = async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setIsLoading(true);
+    setViolations([]);
+    setPrevViolations([]);
+    
     try {
       // 1. Fetch Current Period
       const mFilters = getMonthFilters();
@@ -215,6 +268,8 @@ export default function EcoDrivingPage() {
           return d >= start && d <= end;
         }
       }).map(optimize);
+      
+      if (currentFetchId !== fetchIdRef.current) return;
       setViolations(filtered);
 
       // 2. Fetch Previous Period (Comparison)
@@ -232,6 +287,8 @@ export default function EcoDrivingPage() {
           const vd = parseViolationDate(v.tanggal);
           return vd && vd.getMonth() === d.getMonth() && vd.getFullYear() === d.getFullYear();
         }).map(optimize);
+        
+        if (currentFetchId !== fetchIdRef.current) return;
         setPrevViolations(prevFiltered);
       } else {
         const start = new Date(startDate); start.setHours(0,0,0,0);
@@ -251,13 +308,16 @@ export default function EcoDrivingPage() {
           return vd && vd >= prevStart && vd <= prevEnd;
         }).map(optimize);
         
+        if (currentFetchId !== fetchIdRef.current) return;
         setPrevViolations(prevFiltered);
       }
       setRankPage(1);
     } catch (err) {
       console.error("Error loading eco data:", err);
     } finally {
-      setIsLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -348,38 +408,101 @@ export default function EcoDrivingPage() {
                   <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} onClick={(e) => 'showPicker' in e.currentTarget && (e.currentTarget as any).showPicker()} onMouseDown={(e) => e.preventDefault()} className="flex-1 sm:flex-none w-full sm:w-auto bg-transparent text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest cursor-pointer select-none p-0" />
                 </div>
               )}
-
-              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full lg:w-auto">
-                <div className="relative group w-full sm:w-auto" ref={areaRef}>
-                  <button onClick={() => setAreaDropdownOpen(!areaDropdownOpen)} className="w-full sm:w-36 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm">
+            </div>
+            
+            <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative group w-full sm:w-auto">
+                  <button
+                    ref={areaBtnRef}
+                    onClick={() => {
+                      if (areaBtnRef.current) {
+                        const r = areaBtnRef.current.getBoundingClientRect();
+                        const isMob = window.innerWidth < 640;
+                        setAreaPos({ 
+                          top: r.bottom + 8, 
+                          left: isMob ? Math.max(8, r.left) : r.left,
+                          width: Math.max(r.width, isMob ? window.innerWidth - 16 : 144)
+                        });
+                      }
+                      setAreaDropdownOpen(!areaDropdownOpen);
+                    }}
+                    className="w-full sm:w-36 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm"
+                  >
                     <span className="truncate">{selectedArea === 'ALL' ? 'Area' : selectedArea}</span>
                     <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
                   </button>
-                  <AnimatePresence>
-                    {areaDropdownOpen && (
-                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 py-1">
-                        {[{ val: 'ALL', label: 'Semua Area' }, { val: 'JBK', label: 'JBK' }, { val: 'NGORO', label: 'NGORO' }, { val: 'SUMATERA', label: 'SUMATERA' }].map(opt => (
-                          <button key={opt.val} onClick={() => { setSelectedArea(opt.val); setAreaDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedArea === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {areaDropdownOpen && createPortal(
+                    <div className="fixed inset-0 z-[11000] pointer-events-none">
+                      <AnimatePresence>
+                        <motion.div
+                          ref={areaDropdownRef}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 5 }}
+                          style={{
+                            position: 'fixed',
+                            top: areaPos.top,
+                            left: areaPos.left,
+                            width: areaPos.width,
+                            maxWidth: 320,
+                          }}
+                          className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
+                        >
+                          {[{ val: 'ALL', label: 'Semua Area' }, { val: 'JBK', label: 'JBK' }, { val: 'NGORO', label: 'NGORO' }, { val: 'SUMATERA', label: 'SUMATERA' }].map(opt => (
+                            <button key={opt.val} onClick={() => { setSelectedArea(opt.val); setAreaDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedArea === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
+                          ))}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>,
+                    document.body
+                  )}
                 </div>
 
-                <div className="relative group w-full sm:w-auto" ref={customerRef}>
-                  <button onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)} className="w-full sm:w-40 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm">
+                <div className="relative group w-full sm:w-auto">
+                  <button
+                    ref={customerBtnRef}
+                    onClick={() => {
+                      if (customerBtnRef.current) {
+                        const r = customerBtnRef.current.getBoundingClientRect();
+                        const isMob = window.innerWidth < 640;
+                        setCustomerPos({ 
+                          top: r.bottom + 8, 
+                          left: isMob ? Math.max(8, r.left) : r.left,
+                          width: Math.max(r.width, isMob ? window.innerWidth - 16 : 160)
+                        });
+                      }
+                      setCustomerDropdownOpen(!customerDropdownOpen);
+                    }}
+                    className="w-full sm:w-40 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm"
+                  >
                     <span className="truncate">{selectedCustomer === 'ALL' ? 'Customer' : selectedCustomer}</span>
                     <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
                   </button>
-                  <AnimatePresence>
-                    {customerDropdownOpen && (
-                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute left-0 right-0 sm:left-auto sm:right-0 top-full mt-2 w-full sm:w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50 py-1">
-                        {[{ val: 'ALL', label: 'Semua Customer' }, { val: 'TMMIN', label: 'TMMIN' }, { val: 'TAM', label: 'TAM' }].map(opt => (
-                          <button key={opt.val} onClick={() => { setSelectedCustomer(opt.val); setCustomerDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCustomer === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {customerDropdownOpen && createPortal(
+                    <div className="fixed inset-0 z-[11000] pointer-events-none">
+                      <AnimatePresence>
+                        <motion.div
+                          ref={customerDropdownRef}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 5 }}
+                          style={{
+                            position: 'fixed',
+                            top: customerPos.top,
+                            left: customerPos.left,
+                            width: customerPos.width,
+                            maxWidth: 320,
+                          }}
+                          className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
+                        >
+                          {[{ val: 'ALL', label: 'Semua Customer' }, { val: 'TMMIN', label: 'TMMIN' }, { val: 'TAM', label: 'TAM' }].map(opt => (
+                            <button key={opt.val} onClick={() => { setSelectedCustomer(opt.val); setCustomerDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCustomer === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
+                          ))}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>,
+                    document.body
+                  )}
                 </div>
 
                 <button onClick={loadData} disabled={isLoading} className="flex items-center justify-center p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shadow-sm shrink-0 group">
@@ -389,8 +512,6 @@ export default function EcoDrivingPage() {
             </div>
           </div>
         </div>
-      </div>
-
       {/* Cross-Filter Indicator */}
       {(cfDriver || cfType || cfDate) && (
         <div className="flex flex-wrap items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 rounded-2xl border border-emerald-100 dark:border-emerald-800/30 text-xs font-bold text-emerald-700 dark:text-emerald-400">
@@ -932,40 +1053,8 @@ export default function EcoDrivingPage() {
   );
 }
 
-function StatCard({ label, value, prevValue, icon: Icon, iconColor, iconBg, active, activeColor, onClick }: any) {
-  const delta = value - (prevValue || 0);
-  const isUp = delta > 0;
-  const percentage = !prevValue ? (value > 0 ? 100 : 0) : Math.abs((delta / prevValue) * 100);
 
-  return (
-    <div 
-      onClick={onClick}
-      className={`bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border transition-all cursor-pointer ${
-        active ? `${activeColor} ring-2 ring-opacity-20` : 'border-slate-100 dark:border-slate-800 hover:border-emerald-500'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-        <div className={`w-8 h-8 rounded-full ${iconBg} ${iconColor} flex items-center justify-center shadow-sm`}>
-          <Icon className="w-4 h-4" />
-        </div>
-      </div>
-      <div className="flex items-end justify-between gap-2">
-        <div>
-          <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">{value}</p>
-        </div>
-        {prevValue !== undefined && (
-          <div className="flex flex-col items-end">
-            <div className={`flex items-center gap-0.5 text-[10px] font-black ${isUp ? 'text-emerald-500' : delta < 0 ? 'text-red-500' : 'text-slate-400'}`}>
-              {isUp ? <ChevronUp className="w-3 h-3" /> : delta < 0 ? <ChevronDown className="w-3 h-3" /> : null}
-              {percentage.toFixed(1)}%
-            </div>
-            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">vs prev period</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+
+
 
 

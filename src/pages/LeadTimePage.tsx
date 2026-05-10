@@ -596,90 +596,98 @@ export default function LeadTimePage() {
           </div>
 
       {/* ── MODALS ── */}
-      <AnimatePresence>
-        {selectedReason && (
-          <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedReason(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[40px] shadow-2xl p-5 sm:p-10 border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
-              <ModalHeader title={selectedReason.title} onClose={() => setSelectedReason(null)} />
-              <div className="space-y-6 sm:space-y-8">
-                <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-700">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 sm:mb-3">Detailed Analysis</p>
-                  <p className="text-xs sm:text-base font-bold text-slate-800 dark:text-slate-200 leading-relaxed uppercase tracking-tight">{selectedReason.reason}</p>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Occurrences</p>
-                    <p className="text-xl font-black text-red-600 tracking-tighter truncate">{selectedReason.count} <span className="text-[9px] text-slate-400 ml-1 uppercase tracking-widest">Trips</span></p>
+      {createPortal(
+        <AnimatePresence>
+          {selectedReason && (
+            <div className="fixed inset-0 z-[20000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedReason(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+              <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[40px] shadow-2xl p-5 sm:p-10 border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+                <ModalHeader title={selectedReason.title} onClose={() => setSelectedReason(null)} />
+                <div className="space-y-6 sm:space-y-8">
+                  <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/40 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-700">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 sm:mb-3">Detailed Analysis</p>
+                    <p className="text-xs sm:text-base font-bold text-slate-800 dark:text-slate-200 leading-relaxed uppercase tracking-tight">{selectedReason.reason}</p>
                   </div>
-                  <button onClick={() => { setReasonFilter(selectedReason.reason); setSelectedReason(null); setCurrentPage(1); }} className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl sm:rounded-2xl text-[10px] font-black shadow-lg shadow-blue-600/20 uppercase tracking-widest">View Trips</button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-        
-        {selectedTrip && (
-          <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedTrip(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-            <motion.div initial={{ opacity: 0, y: 100, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 100, scale: 0.95 }} className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[40px] shadow-2xl p-5 sm:p-10 border border-slate-100 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
-              <ModalHeader title="Trip Timeline" onClose={() => setSelectedTrip(null)} />
-              <div className="flex flex-col sm:flex-row justify-between mb-8 sm:mb-10 gap-6 overflow-hidden">
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <h4 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none truncate">{selectedTrip.driver}</h4>
-                  <p className="text-blue-600 font-black text-[8px] sm:text-xs uppercase mt-1.5 sm:mt-3 tracking-widest truncate">
-                    RITASE {selectedTrip.ritase_ke} • {selectedTrip.area}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 sm:p-3 rounded-2xl shrink-0 overflow-hidden">
-                  <div className="text-right min-w-0 overflow-hidden">
-                    <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Vehicle</p>
-                    <p className="text-[9px] sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">{selectedTrip.no_polisi}</p>
-                  </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-slate-100 dark:border-slate-800 shrink-0">
-                    <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-7 sm:space-y-10 relative before:absolute before:left-4.25 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800 overflow-hidden">
-                {getTimelineEvents(selectedTrip).map((event, i) => (
-                  <div key={i} className="flex gap-4 sm:gap-6 relative z-10 group min-w-0 overflow-hidden">
-                    <div className={`w-9 h-9 rounded-full bg-white dark:bg-slate-900 border-4 ${event.actual ? 'border-blue-50 dark:border-blue-900/40' : 'border-slate-50 dark:border-slate-800'} flex items-center justify-center shadow-sm transition-all shrink-0`}>
-                      <div className={`w-2.5 h-2.5 rounded-full ${event.actual ? (event.status === 'Delay' ? 'bg-red-500' : event.status === 'Advance' ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-700'}`} />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Occurrences</p>
+                      <p className="text-xl font-black text-red-600 tracking-tighter truncate">{selectedReason.count} <span className="text-[9px] text-slate-400 ml-1 uppercase tracking-widest">Trips</span></p>
                     </div>
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex items-center justify-between mb-1 sm:mb-2 gap-2 overflow-hidden">
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-hidden">
-                          <p className={`text-[8px] sm:text-xs font-black uppercase tracking-tight truncate ${event.actual ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{event.label}</p>
-                          {event.actual && event.status !== 'OnTime' && (
-                            <span className={`px-1.5 py-0.5 rounded-lg text-[5px] sm:text-[8px] font-black uppercase tracking-widest shrink-0 ${event.status === 'Delay' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-600'}`}>
-                              {event.status}
-                            </span>
-                          )}
-                        </div>
-                        <p className={`text-[9px] sm:text-sm font-black shrink-0 ${event.status === 'Delay' ? 'text-red-500' : event.status === 'Advance' ? 'text-amber-500' : 'text-emerald-500'}`}>
-                          {event.actual || '--:--'}
-                        </p>
+                    <button onClick={() => { setReasonFilter(selectedReason.reason); setSelectedReason(null); setCurrentPage(1); }} className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl sm:rounded-2xl text-[10px] font-black shadow-lg shadow-blue-600/20 uppercase tracking-widest">View Trips</button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+      
+      {createPortal(
+        <AnimatePresence>
+          {selectedTrip && (
+            <div className="fixed inset-0 z-[20000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedTrip(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+              <motion.div initial={{ opacity: 0, y: 100, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 100, scale: 0.95 }} className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[40px] shadow-2xl p-5 sm:p-10 border border-slate-100 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
+                <ModalHeader title="Trip Timeline" onClose={() => setSelectedTrip(null)} />
+                <div className="flex flex-col sm:flex-row justify-between mb-8 sm:mb-10 gap-6 overflow-hidden">
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    <h4 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none truncate">{selectedTrip.driver}</h4>
+                    <p className="text-blue-600 font-black text-[8px] sm:text-xs uppercase mt-1.5 sm:mt-3 tracking-widest truncate">
+                      RITASE {selectedTrip.ritase_ke} • {selectedTrip.area}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 sm:p-3 rounded-2xl shrink-0 overflow-hidden">
+                    <div className="text-right min-w-0 overflow-hidden">
+                      <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Vehicle</p>
+                      <p className="text-[9px] sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">{selectedTrip.no_polisi}</p>
+                    </div>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-slate-100 dark:border-slate-800 shrink-0">
+                      <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-7 sm:space-y-10 relative before:absolute before:left-4.25 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800 overflow-hidden">
+                  {getTimelineEvents(selectedTrip).map((event, i) => (
+                    <div key={i} className="flex gap-4 sm:gap-6 relative z-10 group min-w-0 overflow-hidden">
+                      <div className={`w-9 h-9 rounded-full bg-white dark:bg-slate-900 border-4 ${event.actual ? 'border-blue-50 dark:border-blue-900/40' : 'border-slate-50 dark:border-slate-800'} flex items-center justify-center shadow-sm transition-all shrink-0`}>
+                        <div className={`w-2.5 h-2.5 rounded-full ${event.actual ? (event.status === 'Delay' ? 'bg-red-500' : event.status === 'Advance' ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-700'}`} />
                       </div>
-                      {event.plan && (
-                        <div className="flex items-center gap-1.5 mt-1 sm:mt-2 opacity-70 overflow-hidden">
-                          <CalendarDays className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400 shrink-0" />
-                          <p className="text-[6px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">Plan: {event.plan}</p>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between mb-1 sm:mb-2 gap-2 overflow-hidden">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-hidden">
+                            <p className={`text-[8px] sm:text-xs font-black uppercase tracking-tight truncate ${event.actual ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{event.label}</p>
+                            {event.actual && event.status !== 'OnTime' && (
+                              <span className={`px-1.5 py-0.5 rounded-lg text-[5px] sm:text-[8px] font-black uppercase tracking-widest shrink-0 ${event.status === 'Delay' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-600'}`}>
+                                {event.status}
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-[9px] sm:text-sm font-black shrink-0 ${event.status === 'Delay' ? 'text-red-500' : event.status === 'Advance' ? 'text-amber-500' : 'text-emerald-500'}`}>
+                            {event.actual || '--:--'}
+                          </p>
                         </div>
-                      )}
+                        {event.plan && (
+                          <div className="flex items-center gap-1.5 mt-1 sm:mt-2 opacity-70 overflow-hidden">
+                            <CalendarDays className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400 shrink-0" />
+                            <p className="text-[6px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">Plan: {event.plan}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-8 sm:mt-12 pt-6 sm:pt-10 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                <button onClick={() => setSelectedTrip(null)} className="w-full sm:w-auto px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl sm:rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all">Close Window</button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                  ))}
+                </div>
+                
+                <div className="mt-8 sm:mt-12 pt-6 sm:pt-10 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                  <button onClick={() => setSelectedTrip(null)} className="w-full sm:w-auto px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl sm:rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all">Close Window</button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
         </div>
       )}
     </div>
@@ -883,7 +891,7 @@ function CustomTrendTooltip({ active, payload, label }: any) {
 function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -902,7 +910,12 @@ function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected
   const handleOpen = () => {
     if (btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setDropPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+      const isMob = window.innerWidth < 640;
+      setDropPos({ 
+        top: r.bottom + 8, 
+        left: isMob ? Math.max(8, r.left) : r.left,
+        width: Math.max(r.width, isMob ? window.innerWidth - 16 : 256)
+      });
     }
     setOpen(v => !v);
   };
@@ -924,9 +937,9 @@ function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      {createPortal(
-        <AnimatePresence>
-          {open && (
+      {open && createPortal(
+        <div className="fixed inset-0 z-[11000] pointer-events-none">
+          <AnimatePresence>
             <motion.div
               ref={popupRef}
               initial={{ opacity: 0, y: 8, scale: 0.95 }}
@@ -935,15 +948,16 @@ function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected
               style={{
                 position: 'fixed',
                 top: dropPos.top,
-                right: dropPos.right,
-                width: 256,
+                left: dropPos.left,
+                width: dropPos.width,
+                maxWidth: 320,
                 backgroundColor: isDark ? '#0f172a' : '#ffffff',
-                zIndex: 99999,
                 borderRadius: 16,
                 border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                 overflow: 'hidden',
               }}
+              className="pointer-events-auto"
             >
               <div style={{ padding: 12, borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9' }}>
                 <div style={{ position: 'relative' }}>
@@ -974,8 +988,8 @@ function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected
                 ))}
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>,
+          </AnimatePresence>
+        </div>,
         document.body
       )}
     </div>

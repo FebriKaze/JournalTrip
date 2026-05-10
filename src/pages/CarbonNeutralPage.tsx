@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Leaf, Droplets, Fuel, DollarSign, Zap, TreePine, TrendingUp,
@@ -29,20 +30,29 @@ export default function CarbonNeutralPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
   const [driverDropdownOpen, setDriverDropdownOpen] = useState(false);
-  const areaRef = useRef<HTMLDivElement>(null);
-  const driverRef = useRef<HTMLDivElement>(null);
+  const [areaPos, setAreaPos] = useState({ top: 0, left: 0, width: 0 });
+  const [driverPos, setDriverPos] = useState({ top: 0, left: 0, width: 0 });
+  const areaBtnRef = useRef<HTMLButtonElement>(null);
+  const driverBtnRef = useRef<HTMLButtonElement>(null);
+  const areaDropdownRef = useRef<HTMLDivElement>(null);
+  const driverDropdownRef = useRef<HTMLDivElement>(null);
 
   const areas = ['ALL', 'TAM', 'TMMIN', 'JBK', 'NGORO', 'SUMATERA'];
 
   // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (areaRef.current && !areaRef.current.contains(event.target as Node)) setAreaDropdownOpen(false);
-      if (driverRef.current && !driverRef.current.contains(event.target as Node)) setDriverDropdownOpen(false);
+      const target = event.target as Node;
+      if (areaDropdownOpen && areaDropdownRef.current && !areaDropdownRef.current.contains(target) && areaBtnRef.current && !areaBtnRef.current.contains(target)) {
+        setAreaDropdownOpen(false);
+      }
+      if (driverDropdownOpen && driverDropdownRef.current && !driverDropdownRef.current.contains(target) && driverBtnRef.current && !driverBtnRef.current.contains(target)) {
+        setDriverDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [areaDropdownOpen, driverDropdownOpen]);
 
   // Load drivers on mount and when area/date changes
   useEffect(() => {
@@ -106,51 +116,86 @@ export default function CarbonNeutralPage() {
           </div>
 
           {/* Area Dropdown */}
-          <div className="relative group min-w-0" ref={areaRef}>
+          <div className="relative group min-w-0">
             <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
               <MapPin className="w-3.5 h-3.5 inline mr-2" />
               Area
             </label>
             <button
-              onClick={() => setAreaDropdownOpen(!areaDropdownOpen)}
+              ref={areaBtnRef}
+              onClick={() => {
+                if (areaBtnRef.current) {
+                  const r = areaBtnRef.current.getBoundingClientRect();
+                  const isMob = window.innerWidth < 640;
+                  setAreaPos({ 
+                    top: r.bottom + 8, 
+                    left: isMob ? Math.max(8, r.left) : r.left,
+                    width: Math.max(r.width, isMob ? window.innerWidth - 16 : 160)
+                  });
+                }
+                setAreaDropdownOpen(!areaDropdownOpen);
+              }}
               className="w-full sm:w-40 flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
             >
               <span className="truncate">{selectedArea}</span>
               <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${areaDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
-            <AnimatePresence>
-              {areaDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  className="absolute left-0 right-0 top-full mt-2 w-full sm:w-40 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
-                >
-                  {areas.map(area => (
-                    <button
-                      key={area}
-                      onClick={() => { setSelectedArea(area); setAreaDropdownOpen(false); }}
-                      className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all ${
-                        selectedArea === area
-                          ? 'bg-green-500 text-white'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      {area}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {areaDropdownOpen && createPortal(
+              <div className="fixed inset-0 z-[11000] pointer-events-none">
+                <AnimatePresence>
+                  <motion.div
+                    ref={areaDropdownRef}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    style={{
+                      position: 'fixed',
+                      top: areaPos.top,
+                      left: areaPos.left,
+                      width: areaPos.width,
+                      maxWidth: 320,
+                    }}
+                    className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden pointer-events-auto"
+                  >
+                    {areas.map(area => (
+                      <button
+                        key={area}
+                        onClick={() => { setSelectedArea(area); setAreaDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all ${
+                          selectedArea === area
+                            ? 'bg-green-500 text-white'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {area}
+                      </button>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
+              </div>,
+              document.body
+            )}
           </div>
 
           {/* Driver Dropdown */}
-          <div className="relative group lg:w-64" ref={driverRef}>
+          <div className="relative group lg:w-64">
             <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
               Driver
             </label>
             <button
-              onClick={() => setDriverDropdownOpen(!driverDropdownOpen)}
+              ref={driverBtnRef}
+              onClick={() => {
+                if (driverBtnRef.current) {
+                  const r = driverBtnRef.current.getBoundingClientRect();
+                  const isMob = window.innerWidth < 640;
+                  setDriverPos({ 
+                    top: r.bottom + 8, 
+                    left: isMob ? Math.max(8, r.left) : r.left,
+                    width: Math.max(r.width, isMob ? window.innerWidth - 16 : 256)
+                  });
+                }
+                setDriverDropdownOpen(!driverDropdownOpen);
+              }}
               className="w-full flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
             >
               <span className="truncate">
@@ -158,39 +203,50 @@ export default function CarbonNeutralPage() {
               </span>
               <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${driverDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
-            <AnimatePresence>
-              {driverDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  className="absolute left-0 top-full mt-2 w-full sm:w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 max-h-64 overflow-y-auto"
-                >
-                  {drivers.length === 0 ? (
-                    <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic">
-                      No drivers available
-                    </div>
-                  ) : (
-                    drivers.map(driver => (
-                      <button
-                        key={driver.id}
-                        onClick={() => { setSelectedDriverId(driver.id); setDriverDropdownOpen(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all border-b border-slate-100 dark:border-slate-700 last:border-b-0 ${
-                          selectedDriverId === driver.id
-                            ? 'bg-green-500 text-white'
-                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="truncate">{driver.name}</span>
-                          {driver.noPolisi && <span className="text-[9px] ml-2 px-2 py-1 bg-slate-200 dark:bg-slate-600 rounded truncate shrink-0">{driver.noPolisi}</span>}
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {driverDropdownOpen && createPortal(
+              <div className="fixed inset-0 z-[11000] pointer-events-none">
+                <AnimatePresence>
+                  <motion.div
+                    ref={driverDropdownRef}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    style={{
+                      position: 'fixed',
+                      top: driverPos.top,
+                      left: driverPos.left,
+                      width: driverPos.width,
+                      maxWidth: 320,
+                    }}
+                    className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden pointer-events-auto max-h-64 overflow-y-auto"
+                  >
+                    {drivers.length === 0 ? (
+                      <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 italic">
+                        No drivers available
+                      </div>
+                    ) : (
+                      drivers.map(driver => (
+                        <button
+                          key={driver.id}
+                          onClick={() => { setSelectedDriverId(driver.id); setDriverDropdownOpen(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all border-b border-slate-100 dark:border-slate-700 last:border-b-0 ${
+                            selectedDriverId === driver.id
+                              ? 'bg-green-500 text-white'
+                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="truncate">{driver.name}</span>
+                            {driver.noPolisi && <span className="text-[9px] ml-2 px-2 py-1 bg-slate-200 dark:bg-slate-600 rounded truncate shrink-0">{driver.noPolisi}</span>}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>,
+              document.body
+            )}
           </div>
         </div>
       </motion.div>
