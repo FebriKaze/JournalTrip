@@ -19,7 +19,7 @@ import { supabase } from './lib/supabase';
 import { SpeedInsights } from "@vercel/speed-insights/react"
 
 export default function App() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]);
   const [selectedArea, setSelectedArea] = useState('JBK');
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

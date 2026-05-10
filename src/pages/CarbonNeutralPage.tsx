@@ -17,14 +17,14 @@ import { Driver } from '../types';
 const COLORS = ['#10b981', '#059669', '#047857', '#065f46'];
 
 export default function CarbonNeutralPage() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]);
   const [selectedArea, setSelectedArea] = useState('ALL');
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [carbonData, setCarbonData] = useState<CarbonSummary | null>(null);
   const [trendData, setTrendData] = useState<any[]>([]);
   const [trendStartDate, setTrendStartDate] = useState(`${new Date().getFullYear()}-01-01`);
-  const [trendEndDate, setTrendEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [trendEndDate, setTrendEndDate] = useState(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]);
   const [granularity, setGranularity] = useState<'daily' | 'monthly'>('monthly');
   const [trendMode, setTrendMode] = useState<'area' | 'driver'>('area');
   const [isLoading, setIsLoading] = useState(false);

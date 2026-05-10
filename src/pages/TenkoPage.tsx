@@ -38,7 +38,7 @@ export default function TenkoPage() {
   const [startDate, setStartDate] = useState(
     `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
   );
-  const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0]);
 
   const handleMonthChange = (monthStr: string) => {
     setSelectedMonth(monthStr);

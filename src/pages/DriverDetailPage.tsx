@@ -38,7 +38,7 @@ export default function DriverDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const monthInputRef = useRef<HTMLInputElement>(null);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 7)); // YYYY-MM
   const [driver, setDriver] = useState<Driver | null>(location.state?.driver || null);
   const [ritases, setRitases] = useState<(Ritase & { tanggal: string })[]>([]);
   const [ecoViolations, setEcoViolations] = useState<EcoViolation[]>([]);
