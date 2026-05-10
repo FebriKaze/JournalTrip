@@ -19,6 +19,8 @@ export interface TenkoRecord {
   oxygen_saturation: number;
   rest_time: number;
   customer: string;
+  area: string;
+  nik: string;
   is_assistant: boolean;
 }
 
@@ -73,31 +75,64 @@ export function calculateSummary(records: TenkoRecord[]): TenkoSummary {
   return summary;
 }
 
-export async function fetchTenkoData(startDate: string, endDate: string, customer: string = 'ALL') {
+export async function fetchTenkoData(startDate: string, endDate: string, customer: string = 'ALL', area: string = 'ALL', personnelType: string = 'ALL') {
   try {
-    let query = supabase
-      .from('tenko')
-      .select('*')
-      .gte('tanggal', startDate)
-      .lte('tanggal', endDate);
+    console.log('Fetching Tenko Data:', { startDate, endDate, customer, area, personnelType });
+    let allData: TenkoRecord[] = [];
+    let from = 0;
+    const step = 1000;
+    let hasMore = true;
 
-    if (customer && customer !== 'ALL') {
-      query = query.eq('customer', customer);
+    while (hasMore) {
+      let query = supabase
+        .from('tenko')
+        .select('*')
+        .gte('tanggal', startDate)
+        .lte('tanggal', endDate)
+        .order('timestamp', { ascending: false })
+        .range(from, from + step - 1);
+
+      if (customer && customer !== 'ALL') query = query.eq('customer', customer);
+      if (area && area !== 'ALL') query = query.eq('area', area);
+      
+      // Filter Driver/Assistant di level Database
+      if (personnelType === 'DRIVER') query = query.eq('is_assistant', false);
+      if (personnelType === 'ASST') query = query.eq('is_assistant', true);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // DEBUG: Cek 5 data pertama buat liat status asistennya
+        if (from === 0) {
+          console.log('Sample Data (is_assistant check):', data.slice(0, 5).map(r => ({
+            nama: r.nama_driver,
+            id: r.nik, // Kita liat kolom nik-nya
+            asst: r.is_assistant,
+            asst_type: typeof r.is_assistant
+          })));
+        }
+        allData = [...allData, ...(data as TenkoRecord[])];
+        if (data.length < step) hasMore = false;
+        else from += step;
+      } else {
+        hasMore = false;
+      }
+      
+      if (allData.length > 50000) break;
     }
 
-    const { data, error } = await query.order('timestamp', { ascending: false });
-    if (error) throw error;
+    console.log('Total Records Fetched:', allData.length);
 
-    const summary = calculateSummary(data as TenkoRecord[]);
-
+    const summary = calculateSummary(allData);
     const dailyMap: Record<string, any> = {};
-    (data || []).forEach(item => {
+    allData.forEach(item => {
       const date = item.tanggal;
       if (!dailyMap[date]) {
         dailyMap[date] = { date, normal: 0, hipertensi: 0, hipotensi: 0, total: 0 };
       }
-      const sis = parseInt(item.sistolik) || 0;
-      const dia = parseInt(item.diastolik) || 0;
+      const sis = parseInt(String(item.sistolik)) || 0;
+      const dia = parseInt(String(item.diastolik)) || 0;
       
       if (sis >= 140 || dia >= 90) dailyMap[date].hipertensi++;
       else if (sis < 90 || dia < 60) dailyMap[date].hipotensi++;
@@ -106,7 +141,7 @@ export async function fetchTenkoData(startDate: string, endDate: string, custome
     });
 
     return {
-      raw: (data as TenkoRecord[]) || [],
+      raw: allData,
       summary: summary,
       trends: Object.values(dailyMap).sort((a: any, b: any) => a.date.localeCompare(b.date))
     };
@@ -116,27 +151,55 @@ export async function fetchTenkoData(startDate: string, endDate: string, custome
   }
 }
 
+export async function fetchUniqueAreas() {
+  try {
+    // Cara terbaik: pakai RPC biar tinggal SELECT DISTINCT
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_unique_areas');
+    if (!rpcError && rpcData) {
+      const areas = rpcData.map((item: any) => item.area_name).filter(Boolean);
+      console.log('Areas via RPC:', areas);
+      return ['ALL', ...areas];
+    }
+
+    // Fallback: Loop sampe 10 halaman (10.000 baris) biar Bekasi yang ada di baris 6700+ ikut kena
+    const foundAreas = new Set<string>();
+    for (let i = 0; i < 10; i++) {
+      const { data } = await supabase
+        .from('tenko')
+        .select('area')
+        .range(i * 1000, (i + 1) * 1000 - 1);
+      
+      if (!data || data.length === 0) break;
+      data.forEach(d => { if (d.area) foundAreas.add(d.area); });
+    }
+
+    const unique = Array.from(foundAreas).filter(Boolean).sort();
+    console.log('Areas via Fallback Loop:', unique);
+    return ['ALL', ...unique as string[]];
+  } catch (error) {
+    console.error('fetchUniqueAreas error:', error);
+    return ['ALL', 'KARAWANG', 'BEKASI'];
+  }
+}
+
 /**
  * Fetch dynamic list of unique customers from the data
  */
-export async function fetchUniqueCustomers() {
+export async function fetchUniqueCustomers(area: string = 'ALL') {
   try {
-    // Panggil fungsi RPC yang kita bikin di Supabase tadi
-    const { data, error } = await supabase.rpc('get_unique_customers');
-      
-    if (error) {
-      console.error('RPC Error:', error);
-      // Fallback kalau RPC gagal, pakai cara lama tapi limit gedein
-      const { data: fallbackData } = await supabase.from('tenko').select('customer').limit(10000);
-      const unique = Array.from(new Set((fallbackData || []).map(item => item.customer))).filter(Boolean).sort();
-      return ['ALL', ...unique as string[]];
+    let query = supabase.from('tenko').select('customer');
+    
+    if (area && area !== 'ALL') {
+      query = query.eq('area', area);
     }
-    
-    // Hasil dari RPC adalah tabel dengan kolom customer_name
-    const customers = (data || []).map((item: any) => item.customer_name).filter(Boolean);
-    
-    return ['ALL', ...customers];
+
+    const { data, error } = await query.limit(10000);
+    if (error) throw error;
+      
+    const unique = Array.from(new Set((data || []).map(item => item.customer))).filter(Boolean).sort();
+    return ['ALL', ...unique as string[]];
   } catch (error) {
+    console.error('Error fetching unique customers:', error);
     return ['ALL'];
   }
 }
