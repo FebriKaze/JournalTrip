@@ -416,154 +416,298 @@ export default function GatepassPage() {
             <p className="text-xs text-slate-400/70 mt-1">Coba sesuaikan tanggal, shift, atau kata kunci pencarian Anda.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:border-slate-500 font-black uppercase tracking-widest text-[9px] bg-slate-50/50 dark:bg-slate-800/20">
-                  <th className="px-6 py-4 rounded-l-2xl">Driver</th>
-                  <th className="px-6 py-4">Unit / Nopol</th>
-                  <th className="px-6 py-4 text-center">Tenko (Kesehatan)</th>
-                  <th className="px-6 py-4 text-center">P2H (Kelayakan)</th>
-                  <th className="px-6 py-4 text-center">Status Gatepass</th>
-                  <th className="px-6 py-4 text-right rounded-r-2xl">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
-                {filteredDrivers.map(driver => {
-                  const tenko = getTenkoStatus(driver.id);
-                  const p2h = getP2HStatus(driver.id);
-                  const gpStatus = getGatepassStatus(driver.id);
-                  
-                  return (
-                    <tr key={driver.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-850/20 transition-colors">
-                      {/* Driver info */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {driver.avatar ? (
-                            <img src={driver.avatar} alt={driver.name} className="w-10 h-10 rounded-full object-cover border border-slate-100 dark:border-slate-800 shadow-sm" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-sm">
-                              <User className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:border-slate-500 font-black uppercase tracking-widest text-[9px] bg-slate-50/50 dark:bg-slate-800/20">
+                    <th className="px-6 py-4 rounded-l-2xl">Driver</th>
+                    <th className="px-6 py-4">Unit / Nopol</th>
+                    <th className="px-6 py-4 text-center">Tenko (Kesehatan)</th>
+                    <th className="px-6 py-4 text-center">P2H (Kelayakan)</th>
+                    <th className="px-6 py-4 text-center">Status Gatepass</th>
+                    <th className="px-6 py-4 text-right rounded-r-2xl">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
+                  {filteredDrivers.map(driver => {
+                    const tenko = getTenkoStatus(driver.id);
+                    const p2h = getP2HStatus(driver.id);
+                    const gpStatus = getGatepassStatus(driver.id);
+                    
+                    return (
+                      <tr key={driver.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-850/20 transition-colors">
+                        {/* Driver info */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {driver.avatar ? (
+                              <img src={driver.avatar} alt={driver.name} className="w-10 h-10 rounded-full object-cover border border-slate-100 dark:border-slate-800 shadow-sm" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-sm">
+                                <User className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-black text-slate-900 dark:text-white text-sm">{driver.name}</p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase">NIK: {driver.nik || `#${driver.id.slice(0,6)}`}</p>
                             </div>
-                          )}
-                          <div>
-                            <p className="font-black text-slate-900 dark:text-white text-sm">{driver.name}</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">NIK: {driver.nik || `#${driver.id.slice(0,6)}`}</p>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Nopol */}
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-black text-slate-900 dark:text-white uppercase">
-                          {driver.noPolisi || '--'}
-                        </span>
-                      </td>
+                        {/* Nopol */}
+                        <td className="px-6 py-4">
+                          <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-black text-slate-900 dark:text-white uppercase">
+                            {driver.noPolisi || '--'}
+                          </span>
+                        </td>
 
-                      {/* Tenko status */}
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex flex-col items-center justify-center">
-                          {tenko.status === 'OK' ? (
-                            <button className="inline-flex items-center px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 transition-transform cursor-default">
-                              <Check className="w-3.5 h-3.5" />
-                              OK ({tenko.record?.tensi || 'N/A'})
-                            </button>
-                          ) : tenko.status === 'NG' ? (
-                            <button className="inline-flex items-center px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-150 dark:border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 transition-transform cursor-default">
-                              <ShieldAlert className="w-3.5 h-3.5" />
-                              NG ({tenko.details})
-                            </button>
+                        {/* Tenko status */}
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            {tenko.status === 'OK' ? (
+                              <button className="inline-flex items-center px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 transition-transform cursor-default">
+                                <Check className="w-3.5 h-3.5" />
+                                OK ({tenko.record?.tensi || 'N/A'})
+                              </button>
+                            ) : tenko.status === 'NG' ? (
+                              <button className="inline-flex items-center px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-150 dark:border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 transition-transform cursor-default">
+                                <ShieldAlert className="w-3.5 h-3.5" />
+                                NG ({tenko.details})
+                              </button>
+                            ) : (
+                              <button className="inline-flex items-center px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 opacity-75 cursor-not-allowed">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                PENDING (TIM TENKO)
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* P2H status */}
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            {p2h.status === 'OK' ? (
+                              <button 
+                                onClick={() => {
+                                  setSelectedDriverForP2H(driver);
+                                  setP2HForm({ status: 'OK', catatan: p2h.record?.catatan || '' });
+                                }}
+                                className="inline-flex items-center px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 hover:scale-105 transition-transform"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                OK
+                              </button>
+                            ) : p2h.status === 'NG' ? (
+                              <button 
+                                onClick={() => {
+                                  setSelectedDriverForP2H(driver);
+                                  setP2HForm({ status: 'NG', catatan: p2h.record?.catatan || '' });
+                                }}
+                                className="inline-flex items-center px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-150 dark:border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 hover:scale-105 transition-transform"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                NG
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => executeWithAuth(() => {
+                                  setSelectedDriverForP2H(driver);
+                                  setP2HForm({ status: 'OK', catatan: '' });
+                                })}
+                                className="inline-flex items-center px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 hover:scale-105 transition-transform"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5 animate-pulse" />
+                                PENDING
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Gatepass status badge */}
+                        <td className="px-6 py-4 text-center">
+                          {gpStatus === 'READY' ? (
+                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-widest">
+                              READY TO PRINT
+                            </span>
+                          ) : gpStatus === 'BLOCKED' ? (
+                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/20 uppercase tracking-widest">
+                              BLOCKED (NG)
+                            </span>
                           ) : (
-                            <button className="inline-flex items-center px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 opacity-75 cursor-not-allowed">
-                              <AlertCircle className="w-3.5 h-3.5" />
-                              PENDING (TIM TENKO)
-                            </button>
+                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-widest">
+                              INCOMPLETE
+                            </span>
                           )}
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* P2H status */}
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex flex-col items-center justify-center">
-                          {p2h.status === 'OK' ? (
-                            <button 
-                              onClick={() => {
-                                setSelectedDriverForP2H(driver);
-                                setP2HForm({ status: 'OK', catatan: p2h.record?.catatan || '' });
-                              }}
-                              className="inline-flex items-center px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 hover:scale-105 transition-transform"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              OK
-                            </button>
-                          ) : p2h.status === 'NG' ? (
-                            <button 
-                              onClick={() => {
-                                setSelectedDriverForP2H(driver);
-                                setP2HForm({ status: 'NG', catatan: p2h.record?.catatan || '' });
-                              }}
-                              className="inline-flex items-center px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-150 dark:border-red-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 hover:scale-105 transition-transform"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              NG
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={() => executeWithAuth(() => {
-                                setSelectedDriverForP2H(driver);
-                                setP2HForm({ status: 'OK', catatan: '' });
-                              })}
-                              className="inline-flex items-center px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-1 hover:scale-105 transition-transform"
-                            >
-                              <AlertCircle className="w-3.5 h-3.5 animate-pulse" />
-                              PENDING
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                        {/* Action */}
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => handlePrint(driver)}
+                            disabled={gpStatus !== 'READY' || isExportingPDF}
+                            className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${
+                              gpStatus === 'READY'
+                                ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/20'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-350 dark:text-slate-600 border border-slate-200/10 dark:border-slate-700/10 cursor-not-allowed shadow-none'
+                            }`}
+                          >
+                            {isExportingPDF && activePrintDriver?.id === driver.id ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Printer className="w-4 h-4" />
+                            )}
+                            {isExportingPDF && activePrintDriver?.id === driver.id ? 'Loading...' : 'Cetak'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                      {/* Gatepass status badge */}
-                      <td className="px-6 py-4 text-center">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {filteredDrivers.map(driver => {
+                const tenko = getTenkoStatus(driver.id);
+                const p2h = getP2HStatus(driver.id);
+                const gpStatus = getGatepassStatus(driver.id);
+
+                return (
+                  <div 
+                    key={driver.id} 
+                    className="bg-slate-50/40 dark:bg-slate-850/15 border border-slate-100 dark:border-slate-800/50 rounded-3xl p-5 space-y-4 hover:shadow-md transition-all shadow-sm"
+                  >
+                    {/* Header: Driver Info & Nopol */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        {driver.avatar ? (
+                          <img src={driver.avatar} alt={driver.name} className="w-10 h-10 rounded-full object-cover border border-slate-100 dark:border-slate-850 shadow-sm" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <User className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-black text-slate-900 dark:text-white text-sm">{driver.name}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">{driver.noPolisi || '--'}</p>
+                        </div>
+                      </div>
+                      
+                      <span className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-slate-500 dark:text-slate-400 uppercase text-[9px] shrink-0 border border-slate-200/20 dark:border-slate-700/20">
+                        NIK: {driver.nik || `#${driver.id.slice(0,6)}`}
+                      </span>
+                    </div>
+
+                    <div className="h-px bg-slate-100 dark:bg-slate-800/40" />
+
+                    {/* Inspeksi Grid (Tenko & P2H) */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Tenko Area */}
+                      <div className="flex flex-col items-center p-3 bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50 rounded-2xl text-center">
+                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Tenko (Kesehatan)</p>
+                        {tenko.status === 'OK' ? (
+                          <button className="w-full inline-flex items-center justify-center px-2 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1 transition-transform cursor-default">
+                            <Check className="w-3 h-3" />
+                            OK ({tenko.record?.tensi || 'N/A'})
+                          </button>
+                        ) : tenko.status === 'NG' ? (
+                          <button className="w-full inline-flex items-center justify-center px-2 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-155 dark:border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1 transition-transform cursor-default">
+                            <ShieldAlert className="w-3 h-3" />
+                            NG ({tenko.details})
+                          </button>
+                        ) : (
+                          <button className="w-full inline-flex items-center justify-center px-2 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1 opacity-75 cursor-not-allowed">
+                            <AlertCircle className="w-3 h-3" />
+                            PENDING
+                          </button>
+                        )}
+                      </div>
+
+                      {/* P2H Area */}
+                      <div className="flex flex-col items-center p-3 bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50 rounded-2xl text-center">
+                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">P2H (Kelayakan)</p>
+                        {p2h.status === 'OK' ? (
+                          <button 
+                            onClick={() => {
+                              setSelectedDriverForP2H(driver);
+                              setP2HForm({ status: 'OK', catatan: p2h.record?.catatan || '' });
+                            }}
+                            className="w-full inline-flex items-center justify-center px-2 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                          >
+                            <Check className="w-3 h-3" />
+                            OK
+                          </button>
+                        ) : p2h.status === 'NG' ? (
+                          <button 
+                            onClick={() => {
+                              setSelectedDriverForP2H(driver);
+                              setP2HForm({ status: 'NG', catatan: p2h.record?.catatan || '' });
+                            }}
+                            className="w-full inline-flex items-center justify-center px-2 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-155 dark:border-red-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                          >
+                            <X className="w-3 h-3" />
+                            NG
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => executeWithAuth(() => {
+                              setSelectedDriverForP2H(driver);
+                              setP2HForm({ status: 'OK', catatan: '' });
+                            })}
+                            className="w-full inline-flex items-center justify-center px-2 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider gap-1 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                          >
+                            <AlertCircle className="w-3 h-3 animate-pulse" />
+                            PENDING
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-slate-100 dark:bg-slate-800/40" />
+
+                    {/* Footer: Gatepass Status & Print Action */}
+                    <div className="flex items-center justify-between gap-4 pt-1">
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Gatepass Status</p>
                         {gpStatus === 'READY' ? (
-                          <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-widest">
+                          <span className="inline-flex px-2 py-1 rounded-full text-[8px] font-black bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
                             READY TO PRINT
                           </span>
                         ) : gpStatus === 'BLOCKED' ? (
-                          <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/20 uppercase tracking-widest">
+                          <span className="inline-flex px-2 py-1 rounded-full text-[8px] font-black bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/20 uppercase tracking-wider">
                             BLOCKED (NG)
                           </span>
                         ) : (
-                          <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-widest">
+                          <span className="inline-flex px-2 py-1 rounded-full text-[8px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-wider">
                             INCOMPLETE
                           </span>
                         )}
-                      </td>
+                      </div>
 
-                      {/* Action */}
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handlePrint(driver)}
-                          disabled={gpStatus !== 'READY' || isExportingPDF}
-                          className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${
-                            gpStatus === 'READY'
-                              ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/20'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-350 dark:text-slate-600 border border-slate-200/10 dark:border-slate-700/10 cursor-not-allowed shadow-none'
-                          }`}
-                        >
-                          {isExportingPDF && activePrintDriver?.id === driver.id ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Printer className="w-4 h-4" />
-                          )}
-                          {isExportingPDF && activePrintDriver?.id === driver.id ? 'Loading...' : 'Cetak'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      <button
+                        onClick={() => handlePrint(driver)}
+                        disabled={gpStatus !== 'READY' || isExportingPDF}
+                        className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${
+                          gpStatus === 'READY'
+                            ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/20'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-350 dark:text-slate-600 border border-slate-200/10 dark:border-slate-700/10 cursor-not-allowed shadow-none'
+                        }`}
+                      >
+                        {isExportingPDF && activePrintDriver?.id === driver.id ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Printer className="w-4 h-4" />
+                        )}
+                        {isExportingPDF && activePrintDriver?.id === driver.id ? 'Loading...' : 'Cetak'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
