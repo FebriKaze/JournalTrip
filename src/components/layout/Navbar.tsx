@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown, Download } from 'lucide-react';
+import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown, Download, User, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../../lib/supabase';
 import { jsPDF } from 'jspdf';
 import * as htmlToImage from 'html-to-image';
 
@@ -15,6 +16,7 @@ interface NavbarProps {
   isSidebarCollapsed: boolean;
   theme: 'light' | 'dark';
   onThemeToggle: () => void;
+  session?: any;
 }
 
 const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
@@ -36,10 +38,21 @@ export default function Navbar({
   isSidebarCollapsed,
   theme,
   onThemeToggle,
+  session,
 }: NavbarProps) {
   const location = useLocation();
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [isShiftOpen, setIsShiftOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const formatUserName = (email: string) => {
+    if (!email) return 'User';
+    const namePart = email.split('@')[0];
+    return namePart
+      .split(/[\._-]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const getPageInfo = () => {
     if (location.pathname.startsWith('/drivers/')) {
@@ -194,6 +207,67 @@ export default function Navbar({
             )}
           </AnimatePresence>
         </motion.button>
+
+        {/* Profile Dropdown */}
+        {session && (
+          <div className="relative">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsProfileOpen(o => !o)}
+              className="flex items-center gap-1.5 md:gap-2 pl-1.5 pr-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm outline-none focus:outline-none focus:ring-0 cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-red-600/20">
+                {session.user?.email ? formatUserName(session.user.email).charAt(0).toUpperCase() : 'U'}
+              </div>
+              <span className="hidden sm:inline text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase truncate max-w-[96px]">
+                {session.user?.email ? formatUserName(session.user.email).split(' ')[0] : 'User'}
+              </span>
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+            </motion.button>
+
+            {/* Backdrop */}
+            {isProfileOpen && (
+              <div className="fixed inset-0 z-199" onClick={() => setIsProfileOpen(false)} />
+            )}
+
+            {/* Dropdown Panel */}
+            <AnimatePresence>
+              {isProfileOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                  className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-200 min-w-[224px] overflow-hidden"
+                >
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-800/80">
+                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest leading-none">LOGGED IN AS</p>
+                    <p className="text-xs font-black text-slate-800 dark:text-white mt-2 uppercase truncate">
+                      {session.user?.email ? formatUserName(session.user.email) : 'User'}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 truncate">
+                      {session.user?.email || ''}
+                    </p>
+                  </div>
+                  <div className="p-1.5">
+                    <motion.button
+                      whileHover={{ x: 3 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={async () => {
+                        setIsProfileOpen(false);
+                        await supabase.auth.signOut();
+                      }}
+                      className="flex items-center gap-3 px-3 py-2.5 text-left w-full rounded-xl transition-colors text-xs font-black uppercase tracking-wider text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0 text-red-500" />
+                      Sign Out
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* ── JOURNAL TRIP Controls ── */}
         <AnimatePresence>

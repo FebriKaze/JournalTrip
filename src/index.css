@@ -93,7 +93,6 @@
 @media print {
   /* Atur Halaman */
   @page {
-    size: landscape;
     margin: 0;
   }
 
@@ -114,18 +113,8 @@
   }
 
   /* Rapiin Layout Utama */
-  nav {
-    position: static !important;
-    width: 100% !important;
-    box-shadow: none !important;
-    border-bottom: 2px solid #f1f5f9 !important;
-  }
-
-  aside {
-    position: static !important;
-    height: auto !important;
-    box-shadow: none !important;
-    border-right: 2px solid #f1f5f9 !important;
+  nav, aside, footer {
+    display: none !important;
   }
 
   main {
@@ -137,6 +126,15 @@
   .max-w-7xl {
     max-width: none !important;
     width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  #gatepass-print-document {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: none !important;
   }
 
   /* Paksa background muncul di print */

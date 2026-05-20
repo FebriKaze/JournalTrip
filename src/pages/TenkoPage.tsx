@@ -441,7 +441,7 @@ function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected
       </button>
 
       {open && createPortal(
-        <div className="fixed inset-0 z-[11000] pointer-events-none">
+        <div className="fixed inset-0 z-11000 pointer-events-none">
           <AnimatePresence>
             <motion.div
               ref={popupRef}
@@ -536,7 +536,7 @@ function CustomerDropdown({ customers, selected, onChange }: { customers: string
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && createPortal(
-        <div className="fixed inset-0 z-[11000] pointer-events-none">
+        <div className="fixed inset-0 z-11000 pointer-events-none">
           <AnimatePresence>
             <motion.div
               ref={popupRef}
@@ -630,7 +630,7 @@ function PersonnelDropdown({ value, onChange }: { value: string; onChange: (v: s
       </button>
 
       {open && createPortal(
-        <div className="fixed inset-0 z-[11000] pointer-events-none">
+        <div className="fixed inset-0 z-11000 pointer-events-none">
           <AnimatePresence>
             <motion.div
               ref={popupRef}

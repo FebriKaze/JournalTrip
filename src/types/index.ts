@@ -50,4 +50,16 @@ export interface Readiness {
   lastVerification: string;
 }
 
+export interface P2HRecord {
+  id?: string;
+  tanggal: string;
+  driver_id: string;
+  nopol: string;
+  checked_by: string;
+  status: 'OK' | 'NG';
+  catatan?: string;
+  created_at?: string;
+}
+
+
 

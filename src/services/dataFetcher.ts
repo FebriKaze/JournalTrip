@@ -82,7 +82,7 @@ export async function fetchActiveDrivers(selectedDate: string, area: string = 'J
     return Array.from(uniqueDrivers.values());
   } catch (error) {
     console.error('Error fetch drivers:', error);
-    return [];
+    throw error;
   }
 }
 

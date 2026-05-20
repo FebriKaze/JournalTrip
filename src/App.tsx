@@ -12,6 +12,8 @@ import EcoDrivingPage from './pages/EcoDrivingPage';
 import LeadTimePage from './pages/LeadTimePage';
 import CarbonNeutralPage from './pages/CarbonNeutralPage';
 import TenkoPage from './pages/TenkoPage';
+import GatepassPage from './pages/GatepassPage';
+
 import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
@@ -30,6 +32,8 @@ export default function App() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDriversLoading, setIsDriversLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
@@ -59,13 +63,21 @@ export default function App() {
 
   const loadDrivers = useCallback(async () => {
     setIsDriversLoading(true);
-    const data = await fetchActiveDrivers(selectedDate, selectedArea, selectedShift);
-    setDrivers(data);
+    try {
+      const data = await fetchActiveDrivers(selectedDate, selectedArea, selectedShift);
+      setDrivers(data);
 
-    if (data.length > 0) {
-      const stillInList = data.find(d => d.id === selectedDriverId);
-      if (!stillInList) setSelectedDriverId(data[0].id);
-    } else {
+      if (data.length > 0) {
+        const stillInList = data.find(d => d.id === selectedDriverId);
+        if (!stillInList) setSelectedDriverId(data[0].id);
+      } else {
+        setSelectedDriverId('');
+        setSelectedDriver(undefined);
+        setRitases([]);
+      }
+    } catch (error) {
+      console.error('Error loading drivers in App:', error);
+      setDrivers([]);
       setSelectedDriverId('');
       setSelectedDriver(undefined);
       setRitases([]);
@@ -113,6 +125,22 @@ export default function App() {
     return () => { supabase.removeChannel(channel); };
   }, [loadData, loadDrivers]);
 
+  // Auth Effect
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
     localStorage.setItem('manual-theme-set', 'true');
@@ -140,75 +168,78 @@ export default function App() {
 
         <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarWidth} overflow-x-hidden`}>
           <Navbar
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            selectedShift={selectedShift}
-            onShiftChange={setSelectedShift}
-            isSidebarOpen={isSidebarOpen}
-            onToggleSidebar={() => setIsSidebarOpen(o => !o)}
-            isSidebarCollapsed={isSidebarCollapsed}
-            theme={theme}
-            onThemeToggle={toggleTheme}
-          />
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                selectedShift={selectedShift}
+                onShiftChange={setSelectedShift}
+                isSidebarOpen={isSidebarOpen}
+                onToggleSidebar={() => setIsSidebarOpen(o => !o)}
+                isSidebarCollapsed={isSidebarCollapsed}
+                theme={theme}
+                onThemeToggle={toggleTheme}
+                session={session}
+              />
 
-          <main id="pdf-export-content" className="pt-16 min-h-screen">
-            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-              <Routes>
-                <Route path="/" element={
-                  <AnimatePresence mode="wait">
-                    {isLoading && !selectedDriver ? (
-                      <motion.div
-                        key="skeleton"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="space-y-8 animate-pulse"
-                      >
-                        <div className="h-48 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                          <div className="lg:col-span-2 h-96 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
-                          <div className="h-96 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
-                        </div>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="content"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Header
-                          driver={selectedDriver as any}
-                          selectedDate={selectedDate}
-                          onDateChange={setSelectedDate}
-                          selectedArea={selectedArea}
-                          onAreaChange={setSelectedArea}
-                        />
-                        <div className="mt-6">
-                          <RitaseTracking
-                            selectedDate={selectedDate}
-                            ritases={ritases}
-                            isLoading={isLoading}
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                } />
-                <Route path="/monitoring" element={<FleetMonitoringPage />} />
-                <Route path="/leadtime" element={<LeadTimePage />} />
-                <Route path="/eco" element={<EcoDrivingPage />} />
-                <Route path="/carbon" element={<CarbonNeutralPage />} />
-                <Route path="/tenko" element={<TenkoPage />} />
-                <Route path="/drivers" element={<DriversPage />} />
-                <Route path="/drivers/:id" element={<DriverDetailPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <main id="pdf-export-content" className="pt-16 min-h-screen">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+                  <Routes>
+                    <Route path="/" element={
+                      <AnimatePresence mode="wait">
+                        {isLoading && !selectedDriver ? (
+                          <motion.div
+                            key="skeleton"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="space-y-8 animate-pulse"
+                          >
+                            <div className="h-48 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                              <div className="lg:col-span-2 h-96 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
+                              <div className="h-96 bg-slate-100 dark:bg-slate-800/50 rounded-4xl" />
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="content"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Header
+                              driver={selectedDriver as any}
+                              selectedDate={selectedDate}
+                              onDateChange={setSelectedDate}
+                              selectedArea={selectedArea}
+                              onAreaChange={setSelectedArea}
+                            />
+                            <div className="mt-6">
+                              <RitaseTracking
+                                selectedDate={selectedDate}
+                                ritases={ritases}
+                                isLoading={isLoading}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    } />
+                    <Route path="/monitoring" element={<FleetMonitoringPage />} />
+                    <Route path="/leadtime" element={<LeadTimePage />} />
+                    <Route path="/eco" element={<EcoDrivingPage />} />
+                    <Route path="/carbon" element={<CarbonNeutralPage />} />
+                    <Route path="/tenko" element={<TenkoPage />} />
+                    
+                    <Route path="/gatepass" element={<GatepassPage />} />
+                    <Route path="/drivers" element={<DriversPage />} />
+                    <Route path="/drivers/:id" element={<DriverDetailPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </div>
+              </main>
+              <Footer />
             </div>
-          </main>
-          <Footer />
-        </div>
         <SpeedInsights />
       </div>
     </BrowserRouter>

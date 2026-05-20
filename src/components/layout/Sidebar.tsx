@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   X, User, Search, PanelLeftClose, PanelLeft,
   Route, Leaf, Users, ChevronRight, BarChart3, Clock, TreePine,
-  Activity
+  Activity, Ticket, Wrench, LogOut
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { Driver } from '../../types';
 import Logo from '../../image/Logo.png';
 import Logo1 from '../../image/logo1.png';
@@ -28,10 +29,13 @@ const NAV_ITEMS: { id: string; label: string; icon: ReactNode; sub?: string; pat
   { id: 'monitoring', label: 'Monitoring', icon: <BarChart3 className="w-5 h-5" />, sub: 'Fleet Status', path: '/monitoring' },
   { id: 'leadtime', label: 'LeadTime', icon: <Clock className="w-5 h-5" />, sub: 'Performance', path: '/leadtime' },
   { id: 'tenko', label: 'Tenko', icon: <Activity className="w-5 h-5" />, sub: 'Health Check', path: '/tenko' },
+
+  { id: 'gatepass', label: 'Gatepass', icon: <Ticket className="w-5 h-5" />, sub: 'Control Room', path: '/gatepass' },
   { id: 'eco', label: 'Eco Driving', icon: <Leaf className="w-5 h-5" />, sub: 'Safety Analytics', path: '/eco' },
   { id: 'carbon', label: 'Carbon Neutral', icon: <TreePine className="w-5 h-5" />, sub: 'Carbon Footprint', path: '/carbon' },
   { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi', path: '/drivers' },
 ];
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -246,6 +250,8 @@ export default function Sidebar({
               </motion.div>
           )}
         </AnimatePresence>
+
+
 
         {/* ── COLLAPSE TOGGLE (Desktop only) ── */}
         <div className="p-3 border-t border-slate-100 dark:border-slate-800 shrink-0 hidden md:block">

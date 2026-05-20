@@ -22,6 +22,8 @@ export interface TenkoRecord {
   area: string;
   nik: string;
   is_assistant: boolean;
+  tim_tenko?: string;
+  checked_by?: string;
 }
 
 export interface TenkoSummary {
@@ -122,7 +124,16 @@ export async function fetchTenkoData(startDate: string, endDate: string, custome
       if (allData.length > 50000) break;
     }
 
-    console.log('Total Records Fetched:', allData.length);
+    // Deduplicate records based on driver and exact timestamp to prevent sync script doubling
+    const uniqueMap = new Map<string, TenkoRecord>();
+    allData.forEach(item => {
+      const driverIdentifier = item.driver_id || item.nama_driver || item.nik;
+      const uniqueKey = `${driverIdentifier}_${item.timestamp}`;
+      uniqueMap.set(uniqueKey, item);
+    });
+    allData = Array.from(uniqueMap.values());
+
+    console.log('Total Records Fetched (After Deduplication):', allData.length);
 
     const summary = calculateSummary(allData);
     const dailyMap: Record<string, any> = {};

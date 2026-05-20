@@ -15,7 +15,15 @@ import {
   ChevronRight as ChevronRightIcon,
   TrendingUp,
   Activity,
-  X
+  X,
+  Printer,
+  Heart,
+  ClipboardCheck,
+  Check,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -32,6 +40,9 @@ import { fetchDriverProfile } from '../services/dataFetcher';
 import { fetchEcoViolations, EcoViolation } from '../services/ecoDataFetcher';
 import { Driver, Ritase } from '../types';
 import RitaseItem from '../components/dashboard/RitaseItem';
+import * as gatepassService from '../services/gatepassService';
+import { TenkoRecord } from '../services/tenkoService';
+import { P2HRecord } from '../types';
 
 export default function DriverDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +61,54 @@ export default function DriverDetailPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  // States for Tenko & P2H
+  const [tenkoRecord, setTenkoRecord] = useState<TenkoRecord | null>(null);
+  const [p2hRecord, setP2HRecord] = useState<P2HRecord | null>(null);
+  const [showTenkoModal, setShowTenkoModal] = useState(false);
+  const [showP2HModal, setShowP2HModal] = useState(false);
+  const [tenkoForm, setTenkoForm] = useState({
+    sistolik: 120,
+    diastolik: 80,
+    suhu: 36.5,
+    alkohol: 0,
+    fatigue: 'NORMAL' as 'NORMAL' | 'LELAH'
+  });
+  const [p2hForm, setP2HForm] = useState({
+    status: 'OK' as 'OK' | 'NG',
+    catatan: ''
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const getTenkoStatus = useCallback((): { status: 'OK' | 'NG' | 'PENDING'; details?: string } => {
+    if (!tenkoRecord) return { status: 'PENDING' };
+    const isHipertensi = tenkoRecord.sistolik >= 140 || tenkoRecord.diastolik >= 90;
+    const isHipotensi = tenkoRecord.sistolik < 90 || tenkoRecord.diastolik < 60;
+    const isDemam = tenkoRecord.suhu_tubuh >= 37.5;
+    const isPositifAlkohol = Number(tenkoRecord.alkohol) > 0;
+    const isLelah = tenkoRecord.fatigue?.toUpperCase() === 'LELAH';
+    
+    if (isHipertensi) return { status: 'NG', details: 'Hipertensi' };
+    if (isHipotensi) return { status: 'NG', details: 'Hipotensi' };
+    if (isDemam) return { status: 'NG', details: 'Suhu Tinggi' };
+    if (isPositifAlkohol) return { status: 'NG', details: 'Positif Alkohol' };
+    if (isLelah) return { status: 'NG', details: 'Fatigue/Lelah' };
+    
+    return { status: 'OK', details: 'Sehat' };
+  }, [tenkoRecord]);
+
+  const getP2HStatus = useCallback((): 'OK' | 'NG' | 'PENDING' => {
+    if (!p2hRecord) return 'PENDING';
+    return p2hRecord.status;
+  }, [p2hRecord]);
+
+  const getGatepassStatus = useCallback((): 'READY' | 'PENDING' | 'BLOCKED' => {
+    const tenko = getTenkoStatus();
+    const p2h = getP2HStatus();
+    if (tenko.status === 'NG' || p2h === 'NG') return 'BLOCKED';
+    if (tenko.status === 'OK' && p2h === 'OK') return 'READY';
+    return 'PENDING';
+  }, [getTenkoStatus, getP2HStatus]);
+
   const loadProfile = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
@@ -60,6 +119,42 @@ export default function DriverDetailPage() {
       
       const driverId = data.driver.id;
       const driverName = data.driver.name;
+
+      // Load Tenko & P2H for today
+      const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      const tenkoVal = await gatepassService.getTenkoForDriverToday(driverId, driverName, todayStr);
+      setTenkoRecord(tenkoVal);
+      if (tenkoVal) {
+        setTenkoForm({
+          sistolik: tenkoVal.sistolik || 120,
+          diastolik: tenkoVal.diastolik || 80,
+          suhu: tenkoVal.suhu_tubuh || 36.5,
+          alkohol: Number(tenkoVal.alkohol) || 0,
+          fatigue: (tenkoVal.fatigue?.toUpperCase() === 'LELAH' ? 'LELAH' : 'NORMAL') as 'NORMAL' | 'LELAH'
+        });
+      } else {
+        setTenkoForm({
+          sistolik: 120,
+          diastolik: 80,
+          suhu: 36.5,
+          alkohol: 0,
+          fatigue: 'NORMAL'
+        });
+      }
+      
+      const p2hVal = await gatepassService.getP2HRecord(driverId, todayStr);
+      setP2HRecord(p2hVal);
+      if (p2hVal) {
+        setP2HForm({
+          status: p2hVal.status,
+          catatan: p2hVal.catatan || ''
+        });
+      } else {
+        setP2HForm({
+          status: 'OK',
+          catatan: ''
+        });
+      }
       
       // Comprehensive Month Map for multi-language support
       const MONTH_MAP: Record<string, number> = { 

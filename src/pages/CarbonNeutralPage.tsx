@@ -57,10 +57,15 @@ export default function CarbonNeutralPage() {
   // Load drivers on mount and when area/date changes
   useEffect(() => {
     const loadDrivers = async () => {
-      const data = await fetchActiveDrivers(selectedDate, selectedArea);
-      setDrivers(data);
-      if (data.length > 0 && !selectedDriverId) {
-        setSelectedDriverId(data[0].id);
+      try {
+        const data = await fetchActiveDrivers(selectedDate, selectedArea);
+        setDrivers(data);
+        if (data.length > 0 && !selectedDriverId) {
+          setSelectedDriverId(data[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading drivers in CarbonNeutral:', error);
+        setDrivers([]);
       }
     };
     loadDrivers();
