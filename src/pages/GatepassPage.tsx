@@ -846,82 +846,85 @@ export default function GatepassPage() {
             <div id="gatepass-print-document" className="w-[800px] h-[800px] flex flex-col bg-white text-slate-900 p-10 border border-slate-200 opacity-100">
               
               {/* Header Surat */}
-              <div className="flex justify-between items-center border-b-4 border-double border-slate-900 pb-4 mb-6">
-            <div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-red-600">PT. K Line Mobaru Diamond Indonesia</h2>
-              <p className="text-[9px] font-bold text-slate-500">Quality Delivery Control Division</p>
-              <p className="text-[8px] text-slate-450 mt-0.5">Karawang - Bekasi - Jakarta Indonesia</p>
-            </div>
-            <div className="flex flex-col items-end border-l-2 border-slate-300 pl-4">
-              <img src={Logo} alt="K Line" className="h-6 object-contain mb-1" />
-              <p className="text-[9px] font-bold mt-1 text-slate-500">SURAT IZIN KELUAR ARMADA</p>
-              <p className="text-[10px] font-black text-slate-900 uppercase">GATE PASS</p>
-            </div>
-          </div>
+              <div className="flex justify-between items-start border-b-4 border-double border-slate-900 pb-4 mb-6">
+                <div className="w-[220px] shrink-0">
+                  <img src={Logo} alt="K Line" className="h-8 object-contain" />
+                </div>
+                <div className="text-center flex-1 pt-1.5">
+                  <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">GATE PASS</h1>
+                </div>
+                <div className="w-[220px] shrink-0 text-[8px] font-semibold text-slate-500 leading-normal text-right">
+                  <p>Jl. Sultan Agung Km.28</p>
+                  <p>Bekasi Barat 17133</p>
+                  <p>Telp. (021) 88861101-03</p>
+                </div>
+              </div>
 
-          {/* Nomor Surat & Tanggal */}
-          <div className="flex justify-between items-center text-xs mb-6">
-            <div>
-              <p className="font-bold text-slate-500 uppercase text-[9px]">Nomor Dokumen:</p>
-              <p className="font-black text-slate-900 uppercase">
-                GP/KLINE/{selectedDate.replace(/-/g, '')}/{activePrintDriver.id.slice(0, 4).toUpperCase()}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-bold text-slate-500 uppercase text-[9px]">Tanggal &amp; Waktu Terbit:</p>
-              <p className="font-black text-slate-900">
-                {printDateTime}
-              </p>
-            </div>
-          </div>
+              {/* Nomor Surat & Tanggal */}
+              <div className="flex justify-between items-center text-xs mb-6">
+                <div>
+                  <p className="font-bold text-slate-500 uppercase text-[9px]">Nomor Dokumen:</p>
+                  <p className="font-black text-slate-900 uppercase">
+                    {(() => {
+                      const idx = filteredDrivers.findIndex(d => d.id === activePrintDriver.id);
+                      const seq = (idx !== -1 ? idx + 1 : 1).toString().padStart(3, '0');
+                      return `KRW/GP/${selectedDate.replace(/-/g, '')}/${seq}`;
+                    })()}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-slate-500 uppercase text-[9px]">Tanggal &amp; Jam:</p>
+                  <p className="font-black text-slate-900">
+                    {printDateTime}
+                  </p>
+                </div>
+              </div>
 
-          <h3 className="text-center font-black uppercase tracking-wider text-sm border-y border-slate-900 py-1.5 mb-6">
-            Readiness &amp; Safety Verification Report
-          </h3>
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                {/* Driver Detail */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Data Pengemudi</h4>
+                  <table className="w-full text-xs">
+                    <tbody>
+                      <tr>
+                        <td className="py-1 text-slate-500 w-20">Nama:</td>
+                        <td className="py-1 font-black text-slate-900">{activePrintDriver.name}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">NIK:</td>
+                        <td className="py-1 font-bold text-slate-900">{activePrintDriver.nik || '--'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">Status SIM:</td>
+                        <td className="py-1 font-black text-emerald-600">
+                          {activePrintDriver.simStatus === 'Valid' ? 'Berlaku' : (activePrintDriver.simStatus || 'Berlaku')}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            {/* Driver Detail */}
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Data Pengemudi</h4>
-              <table className="w-full text-xs">
-                <tbody>
-                  <tr>
-                    <td className="py-1 text-slate-500 w-20">Nama:</td>
-                    <td className="py-1 font-black text-slate-900">{activePrintDriver.name}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-slate-500">NIK:</td>
-                    <td className="py-1 font-bold text-slate-900">{activePrintDriver.nik || '--'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-slate-500">Status SIM:</td>
-                    <td className="py-1 font-black text-emerald-600">{activePrintDriver.simStatus || 'Valid'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Armada Detail */}
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Data Kendaraan</h4>
-              <table className="w-full text-xs">
-                <tbody>
-                  <tr>
-                    <td className="py-1 text-slate-500 w-20">No. Polisi:</td>
-                    <td className="py-1 font-black text-slate-900">{activePrintDriver.noPolisi || '--'}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-slate-500">Base Pool:</td>
-                    <td className="py-1 font-bold text-slate-900">POOL A</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-slate-500">Wilayah Ops:</td>
-                    <td className="py-1 font-bold text-slate-900">BEKASI / KARAWANG</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+                {/* Armada Detail */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Data Kendaraan</h4>
+                  <table className="w-full text-xs">
+                    <tbody>
+                      <tr>
+                        <td className="py-1 text-slate-500 w-20">No. Polisi:</td>
+                        <td className="py-1 font-black text-slate-900">{activePrintDriver.noPolisi || '--'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">Base Pool:</td>
+                        <td className="py-1 font-bold text-slate-900">KIIC</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">Dedicated:</td>
+                        <td className="py-1 font-bold text-slate-900">TAM</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
           {/* Ringkasan Hasil Pemeriksaan Kesehatan & Unit */}
           <div className="space-y-4 mb-8">
