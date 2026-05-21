@@ -221,6 +221,20 @@ export default function GatepassPage() {
 
   // Pemicu Cetak
   const handlePrint = async (driver: Driver, type: 'GATEPASS' | 'P2H' | 'TENKO' | 'ALL') => {
+    // Buka tab baru SECARA SINKRON untuk menghindari Popup Blocker browser
+    const pdfWindow = window.open('', '_blank');
+    if (pdfWindow) {
+      pdfWindow.document.write(`
+        <html><head><title>Menyiapkan PDF...</title></head>
+        <body style="font-family: system-ui, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8fafc; color: #334155;">
+          <div style="width: 40px; height: 40px; border: 4px solid #ef4444; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+          <h2 style="margin: 0; text-transform: uppercase; letter-spacing: 2px;">Memproses Dokumen</h2>
+          <p style="font-size: 14px; color: #64748b;">Mohon tunggu, sedang merender PDF...</p>
+          <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        </body></html>
+      `);
+    }
+
     const now = new Date();
     const formatted = `${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB`;
     setPrintDateTime(formatted);
@@ -254,41 +268,50 @@ export default function GatepassPage() {
         return result;
       };
 
+      let finalPdf: jsPDF | null = null;
+
       if (type === 'ALL') {
         // Capture all 3 sequentially
         const gpData = await capture('gatepass-print-document', 800, 800);
         const tenkoData = await capture('tenko-print-document', 794, 1123);
         const p2hData = await capture('p2h-print-document', 794, 1123);
 
-        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] });
-        pdf.addImage(gpData, 'JPEG', 0, 0, 210, 210);
-        pdf.addPage('a4', 'p');
-        pdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
-        pdf.addPage('a4', 'p');
-        pdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
-        pdf.save(`Dokumen_Lengkap_${driver.name.replace(/\\s+/g, '_')}.pdf`);
+        finalPdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] });
+        finalPdf.addImage(gpData, 'JPEG', 0, 0, 210, 210);
+        finalPdf.addPage('a4', 'p');
+        finalPdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
+        finalPdf.addPage('a4', 'p');
+        finalPdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
 
       } else if (type === 'GATEPASS') {
         const gpData = await capture('gatepass-print-document', 800, 800);
-        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] });
-        pdf.addImage(gpData, 'JPEG', 0, 0, 210, 210);
-        pdf.save(`Gatepass_${driver.name.replace(/\\s+/g, '_')}.pdf`);
+        finalPdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] });
+        finalPdf.addImage(gpData, 'JPEG', 0, 0, 210, 210);
 
       } else if (type === 'TENKO') {
         const tenkoData = await capture('tenko-print-document', 794, 1123);
-        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-        pdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
-        pdf.save(`Tenko_${driver.name.replace(/\\s+/g, '_')}.pdf`);
+        finalPdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        finalPdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
 
       } else if (type === 'P2H') {
         const p2hData = await capture('p2h-print-document', 794, 1123);
-        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-        pdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
-        pdf.save(`P2H_${driver.name.replace(/\\s+/g, '_')}.pdf`);
+        finalPdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        finalPdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
+      }
+
+      if (finalPdf) {
+        const blobUrl = finalPdf.output('bloburl');
+        if (pdfWindow) {
+          pdfWindow.location.href = blobUrl as unknown as string;
+        } else {
+          // Fallback if popup blocker completely blocked the synchronous window.open
+          window.location.href = blobUrl as unknown as string;
+        }
       }
 
     } catch (error) {
       console.error('Error generating PDF:', error);
+      if (pdfWindow) pdfWindow.close();
       alert(`Gagal mencetak. Error: ${(error as Error).message}`);
     } finally {
       setActivePrintDriver(null);
