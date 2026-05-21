@@ -308,13 +308,10 @@ export default function GatepassPage() {
           pdfWindow.location.href = blobUrl as unknown as string;
         } else {
           // Fallback if popup blocker completely blocked the synchronous window.open
-          // Try simulated click trick (this often bypasses strict blockers on mobile)
+          // Try simulated click trick without download attribute to force opening in a new tab
           const link = document.createElement('a');
           link.href = blobUrl as unknown as string;
           link.target = '_blank';
-          // Adding download attribute ensures that if it's strictly blocked from opening, 
-          // it will download instead of replacing the current app page!
-          link.download = `Dokumen_${type}_${driver.name.replace(/\\s+/g, '_')}.pdf`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
