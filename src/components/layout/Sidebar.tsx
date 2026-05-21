@@ -3,11 +3,11 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  X, User, Search, PanelLeftClose, PanelLeft,
-  Route, Leaf, Users, ChevronRight, BarChart3, Clock, TreePine,
-  Activity, Ticket, Wrench, LogOut
+  X, User, Search,
+  PanelLeftClose, PanelLeft,
+  Route, ChevronRight, BarChart3,
+  Activity, Ticket, ClipboardCheck
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { Driver } from '../../types';
 import Logo from '../../image/Logo.png';
 import Logo1 from '../../image/logo1.png';
@@ -24,16 +24,13 @@ interface SidebarProps {
   theme: 'light' | 'dark';
 }
 
+// Core Operations only — Analytics & Master Data are in the Navbar App Launcher
 const NAV_ITEMS: { id: string; label: string; icon: ReactNode; sub?: string; path: string }[] = [
   { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking', path: '/' },
   { id: 'monitoring', label: 'Monitoring', icon: <BarChart3 className="w-5 h-5" />, sub: 'Fleet Status', path: '/monitoring' },
-  { id: 'leadtime', label: 'LeadTime', icon: <Clock className="w-5 h-5" />, sub: 'Performance', path: '/leadtime' },
   { id: 'tenko', label: 'Tenko', icon: <Activity className="w-5 h-5" />, sub: 'Health Check', path: '/tenko' },
-
+  { id: 'p2h', label: 'P2H', icon: <ClipboardCheck className="w-5 h-5" />, sub: 'Checklist', path: '/p2h' },
   { id: 'gatepass', label: 'Gatepass', icon: <Ticket className="w-5 h-5" />, sub: 'Control Room', path: '/gatepass' },
-  { id: 'eco', label: 'Eco Driving', icon: <Leaf className="w-5 h-5" />, sub: 'Safety Analytics', path: '/eco' },
-  { id: 'carbon', label: 'Carbon Neutral', icon: <TreePine className="w-5 h-5" />, sub: 'Carbon Footprint', path: '/carbon' },
-  { id: 'drivers', label: 'Drivers', icon: <Users className="w-5 h-5" />, sub: 'Data Pengemudi', path: '/drivers' },
 ];
 
 

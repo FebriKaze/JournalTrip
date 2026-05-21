@@ -13,6 +13,7 @@ import LeadTimePage from './pages/LeadTimePage';
 import CarbonNeutralPage from './pages/CarbonNeutralPage';
 import TenkoPage from './pages/TenkoPage';
 import GatepassPage from './pages/GatepassPage';
+import P2HPage from './pages/P2HPage';
 
 import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
@@ -230,6 +231,7 @@ export default function App() {
                     <Route path="/eco" element={<EcoDrivingPage />} />
                     <Route path="/carbon" element={<CarbonNeutralPage />} />
                     <Route path="/tenko" element={<TenkoPage />} />
+                    <Route path="/p2h" element={<P2HPage />} />
                     
                     <Route path="/gatepass" element={<GatepassPage />} />
                     <Route path="/drivers" element={<DriversPage />} />

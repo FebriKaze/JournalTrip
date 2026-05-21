@@ -58,6 +58,7 @@ export interface P2HRecord {
   checked_by: string;
   status: 'OK' | 'NG';
   catatan?: string;
+  checklist?: Record<string, 'OK' | 'NG'>;
   created_at?: string;
 }
 

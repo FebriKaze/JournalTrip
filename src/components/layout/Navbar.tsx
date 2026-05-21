@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Calendar as CalendarIcon, Menu, X, Sun, Moon, ChevronDown, Download, User, LogOut } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Calendar as CalendarIcon, Menu, X, Sun, Moon,
+  ChevronDown, Download, LogOut,
+  Clock, Leaf, TreePine, Users, LayoutGrid,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 import { jsPDF } from 'jspdf';
@@ -22,11 +26,61 @@ interface NavbarProps {
 const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   '/': { title: 'Journal Trip', sub: 'Ritase & Driver Tracking' },
   '/monitoring': { title: 'Fleet Monitoring', sub: 'Live Status & Schedule' },
+  '/tenko': { title: 'Tenko Health Check', sub: 'Driver Health Verification' },
+  '/gatepass': { title: 'Gatepass Control', sub: 'Dispatch & Fleet Readiness' },
   '/leadtime': { title: 'LeadTime Center', sub: 'Performance & Delay Analytics' },
   '/drivers': { title: 'Drivers Registry', sub: 'Data Master Pengemudi' },
   '/eco': { title: 'Eco Driving', sub: 'Safety Analytics Dashboard' },
   '/carbon': { title: 'Carbon Neutral', sub: 'Carbon Footprint & Environmental Impact' },
 };
+
+// Analytics & Master Data items for the App Launcher
+const LAUNCHER_ITEMS = [
+  {
+    id: 'leadtime',
+    label: 'LeadTime',
+    sub: 'Performance Analytics',
+    path: '/leadtime',
+    icon: <Clock className="w-6 h-6" />,
+    gradient: 'from-violet-500 to-purple-600',
+    glow: 'shadow-violet-500/20',
+    bg: 'bg-violet-50 dark:bg-violet-500/10',
+    text: 'text-violet-600 dark:text-violet-400',
+  },
+  {
+    id: 'eco',
+    label: 'Eco Driving',
+    sub: 'Safety Analytics',
+    path: '/eco',
+    icon: <Leaf className="w-6 h-6" />,
+    gradient: 'from-emerald-500 to-green-600',
+    glow: 'shadow-emerald-500/20',
+    bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+    text: 'text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    id: 'carbon',
+    label: 'Carbon Neutral',
+    sub: 'Carbon Footprint',
+    path: '/carbon',
+    icon: <TreePine className="w-6 h-6" />,
+    gradient: 'from-teal-500 to-cyan-600',
+    glow: 'shadow-teal-500/20',
+    bg: 'bg-teal-50 dark:bg-teal-500/10',
+    text: 'text-teal-600 dark:text-teal-400',
+  },
+  {
+    id: 'drivers',
+    label: 'Drivers',
+    sub: 'Data Pengemudi',
+    path: '/drivers',
+    icon: <Users className="w-6 h-6" />,
+    gradient: 'from-blue-500 to-indigo-600',
+    glow: 'shadow-blue-500/20',
+    bg: 'bg-blue-50 dark:bg-blue-500/10',
+    text: 'text-blue-600 dark:text-blue-400',
+  },
+];
 
 export default function Navbar({
   selectedDate,
@@ -44,6 +98,8 @@ export default function Navbar({
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [isShiftOpen, setIsShiftOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLauncherOpen, setIsLauncherOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const formatUserName = (email: string) => {
     if (!email) return 'User';
@@ -65,56 +121,39 @@ export default function Navbar({
   const isDay = selectedShift === 'Day';
   const isDashboard = location.pathname === '/';
 
-  const [isExporting, setIsExporting] = useState(false);
-
   const handleExportPDF = async () => {
     if (isExporting) return;
     setIsExporting(true);
     try {
       const appElement = document.body;
-      const sidebarElement = document.querySelector('aside'); // Ambil element sidebar
-      
-      // 1. Pre-export setup
+      const sidebarElement = document.querySelector('aside');
       const isDarkMode = document.documentElement.classList.contains('dark');
       if (isDarkMode) document.documentElement.classList.remove('dark');
-
-      // 2. FORCE SIDEBAR FULL HEIGHT (Agar tidak kepotong)
       const originalSidebarHeight = sidebarElement ? (sidebarElement as HTMLElement).style.height : '';
       if (sidebarElement) {
         (sidebarElement as HTMLElement).style.height = `${appElement.scrollHeight}px`;
       }
-
-      // 3. Kasih waktu stabilisasi
       await new Promise(resolve => setTimeout(resolve, 800));
-
-      // 4. Capture menggunakan JPEG (Lebih kecil dari PNG)
       const dataUrl = await htmlToImage.toJpeg(appElement, {
-        quality: 0.8, // Kompresi 80% (Seimbang antara kualitas & size)
+        quality: 0.8,
         backgroundColor: '#ffffff',
         width: appElement.clientWidth,
         height: appElement.scrollHeight,
-        pixelRatio: 1.5 // Sedikit turunkan density biar file ringan tapi tetap tajam
+        pixelRatio: 1.5,
       });
-
-      // 5. PDF Setup
       const pdfWidth = appElement.clientWidth * 0.264583;
       const pdfHeight = appElement.scrollHeight * 0.264583;
-
       const pdf = new jsPDF({
         orientation: pdfWidth > pdfHeight ? 'l' : 'p',
         unit: 'mm',
-        format: [pdfHeight, pdfWidth]
+        format: [pdfHeight, pdfWidth],
       });
-
       pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`JournalTrip_Report_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.pdf`);
-
-      // 6. RESTORE UI
       if (sidebarElement) {
         (sidebarElement as HTMLElement).style.height = originalSidebarHeight;
       }
       if (isDarkMode) document.documentElement.classList.add('dark');
-
     } catch (error) {
       console.error('Error exporting PDF:', error);
       alert('Gagal export PDF. Silakan coba kembali.');
@@ -173,103 +212,7 @@ export default function Navbar({
       {/* ── Right Controls ── */}
       <div className="flex items-center gap-2 md:gap-3">
 
-        {/* Export PDF Button */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={handleExportPDF}
-          disabled={isExporting}
-          className="hidden md:flex relative p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm outline-none ring-0 disabled:opacity-50"
-          title="Export current page to PDF"
-        >
-          {isExporting ? (
-            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-        </motion.button>
-
-        {/* Theme Toggle */}
-        <motion.button
-          whileTap={{ scale: 0.9, rotate: 15 }}
-          onClick={(e) => { e.preventDefault(); onThemeToggle(); }}
-          className="relative p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm outline-none ring-0"
-          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            {theme === 'light' ? (
-              <motion.span key="moon" initial={{ opacity: 0, rotate: -30, scale: 0.7 }} animate={{ opacity: 1, rotate: 0, scale: 1 }} exit={{ opacity: 0, rotate: 30, scale: 0.7 }} transition={{ duration: 0.2 }}>
-                <Moon className="w-4 h-4" />
-              </motion.span>
-            ) : (
-              <motion.span key="sun" initial={{ opacity: 0, rotate: 30, scale: 0.7 }} animate={{ opacity: 1, rotate: 0, scale: 1 }} exit={{ opacity: 0, rotate: -30, scale: 0.7 }} transition={{ duration: 0.2 }}>
-                <Sun className="w-4 h-4 text-yellow-400" />
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-
-        {/* Profile Dropdown */}
-        {session && (
-          <div className="relative">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsProfileOpen(o => !o)}
-              className="flex items-center gap-1.5 md:gap-2 pl-1.5 pr-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm outline-none focus:outline-none focus:ring-0 cursor-pointer"
-            >
-              <div className="w-7 h-7 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-red-600/20">
-                {session.user?.email ? formatUserName(session.user.email).charAt(0).toUpperCase() : 'U'}
-              </div>
-              <span className="hidden sm:inline text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase truncate max-w-[96px]">
-                {session.user?.email ? formatUserName(session.user.email).split(' ')[0] : 'User'}
-              </span>
-              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
-            </motion.button>
-
-            {/* Backdrop */}
-            {isProfileOpen && (
-              <div className="fixed inset-0 z-199" onClick={() => setIsProfileOpen(false)} />
-            )}
-
-            {/* Dropdown Panel */}
-            <AnimatePresence>
-              {isProfileOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -8 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                  className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-200 min-w-[224px] overflow-hidden"
-                >
-                  <div className="p-4 border-b border-slate-100 dark:border-slate-800/80">
-                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest leading-none">LOGGED IN AS</p>
-                    <p className="text-xs font-black text-slate-800 dark:text-white mt-2 uppercase truncate">
-                      {session.user?.email ? formatUserName(session.user.email) : 'User'}
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 truncate">
-                      {session.user?.email || ''}
-                    </p>
-                  </div>
-                  <div className="p-1.5">
-                    <motion.button
-                      whileHover={{ x: 3 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={async () => {
-                        setIsProfileOpen(false);
-                        await supabase.auth.signOut();
-                      }}
-                      className="flex items-center gap-3 px-3 py-2.5 text-left w-full rounded-xl transition-colors text-xs font-black uppercase tracking-wider text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
-                    >
-                      <LogOut className="w-4 h-4 shrink-0 text-red-500" />
-                      Sign Out
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* ── JOURNAL TRIP Controls ── */}
+        {/* ── JOURNAL TRIP Controls (Date & Shift) ── */}
         <AnimatePresence>
           {isDashboard && (
             <motion.div
@@ -299,19 +242,14 @@ export default function Navbar({
               <div className="relative">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsShiftOpen(o => !o)}
+                  onClick={() => { setIsShiftOpen(o => !o); setIsLauncherOpen(false); }}
                   className={`flex items-center gap-2 rounded-xl px-3 py-1.5 border transition-all outline-none focus:outline-none focus:ring-0 font-black text-[10px] ${
                     isDay
                       ? 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/30 text-orange-600 dark:text-orange-300'
                       : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-300'
                   }`}
                 >
-                  <motion.span
-                    key={selectedShift}
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.15 }}
-                  >
+                  <motion.span key={selectedShift} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
                     {isDay ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                   </motion.span>
                   <span>{selectedShift} Shift</span>
@@ -320,12 +258,10 @@ export default function Navbar({
                   </motion.span>
                 </motion.button>
 
-                {/* Backdrop */}
                 {isShiftOpen && (
-                  <div className="fixed inset-0 z-199" onClick={() => setIsShiftOpen(false)} />
+                  <div className="fixed inset-0 z-[199]" onClick={() => setIsShiftOpen(false)} />
                 )}
 
-                {/* Dropdown Panel */}
                 <AnimatePresence>
                   {isShiftOpen && (
                     <motion.div
@@ -333,10 +269,9 @@ export default function Navbar({
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -8 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                      className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-200 min-w-40 overflow-hidden"
+                      className="absolute top-full right-0 sm:-right-4 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-[200] min-w-40 overflow-hidden"
                     >
                       <div className="p-1.5 space-y-0.5">
-                        {/* Day */}
                         <motion.button
                           whileHover={{ x: 3 }}
                           whileTap={{ scale: 0.97 }}
@@ -354,7 +289,6 @@ export default function Navbar({
                           )}
                         </motion.button>
 
-                        {/* Night */}
                         <motion.button
                           whileHover={{ x: 3 }}
                           whileTap={{ scale: 0.97 }}
@@ -379,6 +313,189 @@ export default function Navbar({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── Export PDF Button ── */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={handleExportPDF}
+          disabled={isExporting}
+          className="hidden md:flex relative p-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-all shadow-sm outline-none ring-0 disabled:opacity-50"
+          title="Export current page to PDF"
+        >
+          {isExporting ? (
+            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+        </motion.button>
+
+        {/* ── Theme Toggle ── */}
+        <motion.button
+          whileTap={{ scale: 0.9, rotate: 15 }}
+          onClick={(e) => { e.preventDefault(); onThemeToggle(); }}
+          className="relative p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm outline-none ring-0"
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {theme === 'light' ? (
+              <motion.span key="moon" initial={{ opacity: 0, rotate: -30, scale: 0.7 }} animate={{ opacity: 1, rotate: 0, scale: 1 }} exit={{ opacity: 0, rotate: 30, scale: 0.7 }} transition={{ duration: 0.2 }}>
+                <Moon className="w-4 h-4" />
+              </motion.span>
+            ) : (
+              <motion.span key="sun" initial={{ opacity: 0, rotate: 30, scale: 0.7 }} animate={{ opacity: 1, rotate: 0, scale: 1 }} exit={{ opacity: 0, rotate: -30, scale: 0.7 }} transition={{ duration: 0.2 }}>
+                <Sun className="w-4 h-4 text-yellow-400" />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
+
+        {/* ── APP LAUNCHER (9-Dots Mega Menu) ── */}
+        <div className="relative">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => { setIsLauncherOpen(o => !o); setIsProfileOpen(false); setIsShiftOpen(false); }}
+            className={`relative p-2.5 rounded-xl transition-all shadow-sm outline-none ring-0 ${
+              isLauncherOpen
+                ? 'bg-red-600 text-white shadow-red-500/30'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+            title="App Launcher — Analytics & Master Data"
+          >
+            <motion.span
+              animate={{ rotate: isLauncherOpen ? 45 : 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="block"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </motion.span>
+          </motion.button>
+
+          {/* Backdrop */}
+          {isLauncherOpen && (
+            <div className="fixed inset-0 z-[150]" onClick={() => setIsLauncherOpen(false)} />
+          )}
+
+          {/* Mega Menu Dropdown */}
+          <AnimatePresence>
+            {isLauncherOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.93, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.93, y: -10 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+                className="absolute top-full right-0 mt-3 w-[300px] sm:w-[320px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/60 dark:border-slate-700/60 rounded-3xl shadow-2xl shadow-slate-900/15 dark:shadow-black/50 z-[200] overflow-hidden"
+              >
+                {/* Header */}
+                <div className="px-5 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <p className="text-[9px] font-black text-red-500 uppercase tracking-widest leading-none">App Launcher</p>
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-1">Analytics & Master Data</p>
+                </div>
+
+                {/* Grid Items */}
+                <div className="p-3 grid grid-cols-2 gap-2">
+                  {LAUNCHER_ITEMS.map((item, i) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05, duration: 0.2 }}
+                    >
+                      <Link
+                        to={item.path}
+                        onClick={() => setIsLauncherOpen(false)}
+                        className={`flex flex-col items-start gap-3 p-4 rounded-2xl border transition-all group cursor-pointer
+                          ${location.pathname === item.path
+                            ? `${item.bg} border-current ${item.text} shadow-md ${item.glow}`
+                            : 'bg-slate-50/80 dark:bg-slate-800/50 border-slate-100/80 dark:border-slate-700/50 hover:border-slate-200 dark:hover:border-slate-600 hover:shadow-md hover:bg-white dark:hover:bg-slate-800'
+                          }`}
+                      >
+                        <div className={`p-2 rounded-xl transition-all ${
+                          location.pathname === item.path
+                            ? `bg-gradient-to-br ${item.gradient} text-white shadow-lg ${item.glow}`
+                            : `${item.bg} ${item.text} group-hover:bg-gradient-to-br group-hover:${item.gradient} group-hover:text-white group-hover:shadow-md group-hover:${item.glow}`
+                        }`}>
+                          {item.icon}
+                        </div>
+                        <div>
+                          <p className={`text-xs font-black leading-tight ${
+                            location.pathname === item.path ? item.text : 'text-slate-800 dark:text-slate-100'
+                          }`}>{item.label}</p>
+                          <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 leading-tight">{item.sub}</p>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Footer hint */}
+                <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold italic">
+                    Core Operations tersedia di Sidebar kiri
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ── Profile Dropdown ── */}
+        {session && (
+          <div className="relative">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setIsProfileOpen(o => !o); setIsLauncherOpen(false); }}
+              className="flex items-center gap-1.5 md:gap-2 pl-1.5 pr-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm outline-none focus:outline-none focus:ring-0 cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-red-600/20">
+                {session.user?.email ? formatUserName(session.user.email).charAt(0).toUpperCase() : 'U'}
+              </div>
+              <span className="hidden sm:inline text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase truncate max-w-[96px]">
+                {session.user?.email ? formatUserName(session.user.email).split(' ')[0] : 'User'}
+              </span>
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+            </motion.button>
+
+            {isProfileOpen && (
+              <div className="fixed inset-0 z-[199]" onClick={() => setIsProfileOpen(false)} />
+            )}
+
+            <AnimatePresence>
+              {isProfileOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                  className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-[200] min-w-[224px] overflow-hidden"
+                >
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-800/80">
+                    <p className="text-[9px] font-black text-red-500 uppercase tracking-widest leading-none">LOGGED IN AS</p>
+                    <p className="text-xs font-black text-slate-800 dark:text-white mt-2 uppercase truncate">
+                      {session.user?.email ? formatUserName(session.user.email) : 'User'}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 truncate">
+                      {session.user?.email || ''}
+                    </p>
+                  </div>
+                  <div className="p-1.5">
+                    <motion.button
+                      whileHover={{ x: 3 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={async () => {
+                        setIsProfileOpen(false);
+                        await supabase.auth.signOut();
+                      }}
+                      className="flex items-center gap-3 px-3 py-2.5 text-left w-full rounded-xl transition-colors text-xs font-black uppercase tracking-wider text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+                    >
+                      <LogOut className="w-4 h-4 shrink-0 text-red-500" />
+                      Sign Out
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
     </nav>
   );
