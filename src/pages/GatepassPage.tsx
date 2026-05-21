@@ -11,8 +11,6 @@ import * as gatepassService from '../services/gatepassService';
 import { Driver, P2HRecord } from '../types';
 import { TenkoRecord } from '../services/tenkoService';
 import Logo from '../image/Logo.png';
-import { jsPDF } from 'jspdf';
-import * as htmlToImage from 'html-to-image';
 import AuthModal from '../components/auth/AuthModal';
 import { supabase } from '../lib/supabase';
 import { saveP2H, fetchP2HToday } from '../services/p2hService';
@@ -251,6 +249,9 @@ export default function GatepassPage() {
         const el = document.getElementById(elId);
         if (!el) throw new Error(`Element #${elId} not found`);
         
+        // Dynamically import html-to-image
+        const htmlToImage = await import('html-to-image');
+        
         // Timeout to prevent infinite hang
         const timeoutPromise = new Promise<string>((_, reject) => setTimeout(() => reject(new Error(`Timeout capture ${elId}`)), 10000));
         
@@ -259,8 +260,7 @@ export default function GatepassPage() {
           backgroundColor: '#ffffff', 
           width: w, 
           height: h, 
-          pixelRatio: 2,
-          useCORS: true 
+          pixelRatio: 2
         });
 
         const result = await Promise.race([capturePromise, timeoutPromise]);
@@ -268,7 +268,10 @@ export default function GatepassPage() {
         return result;
       };
 
-      let finalPdf: jsPDF | null = null;
+      // Dynamically import jsPDF
+      const { jsPDF } = await import('jspdf');
+      
+      let finalPdf: InstanceType<typeof jsPDF> | null = null;
 
       if (type === 'ALL') {
         // Capture all 3 sequentially

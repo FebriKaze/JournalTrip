@@ -1,7 +1,7 @@
 import React from 'react';
 import { P2H_CATEGORIES } from '../../constants/p2hItems';
 import Logo from '../../image/Logo.png';
-import Logo1 from '../../image/logo1.png';
+import Logo1 from '../../image/logo1.webp';
 
 interface P2HDocumentProps {
   driverName: string;

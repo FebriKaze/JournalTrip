@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import Logo from '../../image/Logo.png';
-import HeroImg from '../../image/20945966.jpg';
+import HeroImg from '../../image/20945966.webp';
 
 interface AuthModalProps {
   isOpen: boolean;

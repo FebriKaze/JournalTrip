@@ -1,19 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/dashboard/Header';
 import RitaseTracking from './components/dashboard/RitaseTracking';
-import DriversPage from './pages/DriversPage';
-import DriverDetailPage from './pages/DriverDetailPage';
-import FleetMonitoringPage from './pages/FleetMonitoringPage';
-import EcoDrivingPage from './pages/EcoDrivingPage';
-import LeadTimePage from './pages/LeadTimePage';
-import CarbonNeutralPage from './pages/CarbonNeutralPage';
-import TenkoPage from './pages/TenkoPage';
-import GatepassPage from './pages/GatepassPage';
-import P2HPage from './pages/P2HPage';
+
+const DriversPage = lazy(() => import('./pages/DriversPage'));
+const DriverDetailPage = lazy(() => import('./pages/DriverDetailPage'));
+const FleetMonitoringPage = lazy(() => import('./pages/FleetMonitoringPage'));
+const EcoDrivingPage = lazy(() => import('./pages/EcoDrivingPage'));
+const LeadTimePage = lazy(() => import('./pages/LeadTimePage'));
+const CarbonNeutralPage = lazy(() => import('./pages/CarbonNeutralPage'));
+const TenkoPage = lazy(() => import('./pages/TenkoPage'));
+const GatepassPage = lazy(() => import('./pages/GatepassPage'));
+const P2HPage = lazy(() => import('./pages/P2HPage'));
 
 import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
@@ -183,7 +184,12 @@ export default function App() {
 
               <main id="pdf-export-content" className="pt-16 min-h-screen">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-                  <Routes>
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center h-[50vh]">
+                      <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  }>
+                    <Routes>
                     <Route path="/" element={
                       <AnimatePresence mode="wait">
                         {isLoading && !selectedDriver ? (
@@ -238,6 +244,7 @@ export default function App() {
                     <Route path="/drivers/:id" element={<DriverDetailPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
+                  </Suspense>
                 </div>
               </main>
               <Footer />

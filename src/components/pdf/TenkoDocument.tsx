@@ -1,7 +1,7 @@
 import React from 'react';
 import { TenkoRecord } from '../../services/tenkoService';
 import Logo from '../../image/Logo.png';
-import Logo1 from '../../image/logo1.png';
+import Logo1 from '../../image/logo1.webp';
 
 interface TenkoDocumentProps {
   tenko: TenkoRecord;
