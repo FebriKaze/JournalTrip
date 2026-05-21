@@ -233,9 +233,25 @@ export default function GatepassPage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const capture = async (elId: string, w: number, h: number): Promise<string> => {
+        console.log(`Mulai capture: ${elId}`);
         const el = document.getElementById(elId);
         if (!el) throw new Error(`Element #${elId} not found`);
-        return htmlToImage.toJpeg(el, { quality: 0.95, backgroundColor: '#ffffff', width: w, height: h, pixelRatio: 2 });
+        
+        // Timeout to prevent infinite hang
+        const timeoutPromise = new Promise<string>((_, reject) => setTimeout(() => reject(new Error(`Timeout capture ${elId}`)), 10000));
+        
+        const capturePromise = htmlToImage.toJpeg(el, { 
+          quality: 0.95, 
+          backgroundColor: '#ffffff', 
+          width: w, 
+          height: h, 
+          pixelRatio: 2,
+          useCORS: true 
+        });
+
+        const result = await Promise.race([capturePromise, timeoutPromise]);
+        console.log(`Berhasil capture: ${elId}`);
+        return result;
       };
 
       if (type === 'ALL') {
@@ -835,7 +851,7 @@ export default function GatepassPage() {
 
       {/* ── OFF-SCREEN PRINT DOCUMENTS (fixed, outside overlay, not clipped) ── */}
       {activePrintDriver && (
-        <div className="fixed top-0 left-[-9999px] z-[-1] pointer-events-none">
+        <div className="absolute top-0 left-0 opacity-0 pointer-events-none z-[-9999]">
 
           {/* Gatepass */}
           {(activePrintType === 'GATEPASS' || activePrintType === 'ALL') && (
