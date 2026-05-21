@@ -246,7 +246,8 @@ export default function GatepassPage() {
       });
 
       pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 210);
-      pdf.save(`Gatepass_${driver.name.replace(/\s+/g, '_')}_${selectedDate}.pdf`);
+      const blobUrl = pdf.output('bloburl');
+      window.open(blobUrl as unknown as string, '_blank');
 
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -323,17 +324,17 @@ export default function GatepassPage() {
         </div>
 
         <div className="p-5 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/40 dark:border-slate-800/40">
-          <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Ready to Exit (OK)</p>
+          <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Siap Operasional (OK)</p>
           <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{stats.ready} <span className="text-xs font-bold text-slate-400">Drivers</span></p>
         </div>
 
         <div className="p-5 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/40 dark:border-slate-800/40">
-          <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1">Pending Inspection</p>
+          <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1">Pemeriksaan Tertunda</p>
           <p className="text-3xl font-black text-amber-600 dark:text-amber-400">{stats.pending} <span className="text-xs font-bold text-slate-400">Drivers</span></p>
         </div>
 
         <div className="p-5 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200/40 dark:border-slate-800/40">
-          <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Blocked (NG)</p>
+          <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Tidak Siap Operasional (NG)</p>
           <p className="text-3xl font-black text-red-600 dark:text-red-400">{stats.blocked} <span className="text-xs font-bold text-slate-400">Drivers</span></p>
         </div>
       </div>
@@ -343,15 +344,15 @@ export default function GatepassPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
             <div className="w-2.5 h-2.5 bg-red-600 rounded-full" />
-            Today's Dispatch Queue
+            Antrean Dispatch Hari Ini
           </h3>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Status Filter buttons */}
             <div className="flex items-center bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-700/50">
               {[
-                { id: 'ALL', label: 'ALL' },
-                { id: 'READY', label: 'READY' },
+                { id: 'ALL', label: 'SEMUA' },
+                { id: 'READY', label: 'SIAP' },
                 { id: 'PENDING', label: 'PENDING' },
                 { id: 'BLOCKED', label: 'NG' }
               ].map(item => (
@@ -426,8 +427,7 @@ export default function GatepassPage() {
                     <th className="px-6 py-4">Unit / Nopol</th>
                     <th className="px-6 py-4 text-center">Tenko (Kesehatan)</th>
                     <th className="px-6 py-4 text-center">P2H (Kelayakan)</th>
-                    <th className="px-6 py-4 text-center">Status Gatepass</th>
-                    <th className="px-6 py-4 text-right rounded-r-2xl">Aksi</th>
+                    <th className="px-6 py-4 text-right rounded-r-2xl">Status Gatepass</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
@@ -525,40 +525,24 @@ export default function GatepassPage() {
                         </td>
 
                         {/* Gatepass status badge */}
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-6 py-4 text-right">
                           {gpStatus === 'READY' ? (
-                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-widest">
-                              READY TO PRINT
-                            </span>
+                            <button
+                              onClick={() => handlePrint(driver)}
+                              disabled={isExportingPDF}
+                              className="inline-flex items-center px-3 py-1.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-widest hover:bg-emerald-500/25 active:scale-95 transition-all shadow-sm"
+                            >
+                              {isExportingPDF && activePrintDriver?.id === driver.id ? 'Loading...' : 'Siap Operasional'}
+                            </button>
                           ) : gpStatus === 'BLOCKED' ? (
-                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/20 uppercase tracking-widest">
-                              BLOCKED (NG)
+                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/20 uppercase tracking-widest cursor-default">
+                              Tidak Siap Operasional
                             </span>
                           ) : (
-                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-widest">
-                              INCOMPLETE
+                            <span className="inline-flex px-3 py-1.5 rounded-full text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-widest cursor-default">
+                              BELUM LENGKAP
                             </span>
                           )}
-                        </td>
-
-                        {/* Action */}
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => handlePrint(driver)}
-                            disabled={gpStatus !== 'READY' || isExportingPDF}
-                            className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${
-                              gpStatus === 'READY'
-                                ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/20'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-350 dark:text-slate-600 border border-slate-200/10 dark:border-slate-700/10 cursor-not-allowed shadow-none'
-                            }`}
-                          >
-                            {isExportingPDF && activePrintDriver?.id === driver.id ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Printer className="w-4 h-4" />
-                            )}
-                            {isExportingPDF && activePrintDriver?.id === driver.id ? 'Loading...' : 'Cetak'}
-                          </button>
                         </td>
                       </tr>
                     );
@@ -667,41 +651,26 @@ export default function GatepassPage() {
 
                     <div className="h-px bg-slate-100 dark:bg-slate-800/40" />
 
-                    {/* Footer: Gatepass Status & Print Action */}
-                    <div className="flex items-center justify-between gap-4 pt-1">
-                      <div>
-                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Gatepass Status</p>
-                        {gpStatus === 'READY' ? (
-                          <span className="inline-flex px-2 py-1 rounded-full text-[8px] font-black bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-wider">
-                            READY TO PRINT
-                          </span>
-                        ) : gpStatus === 'BLOCKED' ? (
-                          <span className="inline-flex px-2 py-1 rounded-full text-[8px] font-black bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/20 uppercase tracking-wider">
-                            BLOCKED (NG)
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-2 py-1 rounded-full text-[8px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-wider">
-                            INCOMPLETE
-                          </span>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => handlePrint(driver)}
-                        disabled={gpStatus !== 'READY' || isExportingPDF}
-                        className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${
-                          gpStatus === 'READY'
-                            ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-500/20'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-350 dark:text-slate-600 border border-slate-200/10 dark:border-slate-700/10 cursor-not-allowed shadow-none'
-                        }`}
-                      >
-                        {isExportingPDF && activePrintDriver?.id === driver.id ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Printer className="w-4 h-4" />
-                        )}
-                        {isExportingPDF && activePrintDriver?.id === driver.id ? 'Loading...' : 'Cetak'}
-                      </button>
+                    {/* Footer: Gatepass Status */}
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Status Gatepass</p>
+                      {gpStatus === 'READY' ? (
+                        <button
+                          onClick={() => handlePrint(driver)}
+                          disabled={isExportingPDF}
+                          className="w-full inline-flex items-center justify-center px-3 py-2 rounded-2xl text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-wider hover:bg-emerald-500/25 active:scale-[0.98] transition-all shadow-sm"
+                        >
+                          {isExportingPDF && activePrintDriver?.id === driver.id ? 'Loading...' : 'Siap Operasional'}
+                        </button>
+                      ) : gpStatus === 'BLOCKED' ? (
+                        <div className="w-full inline-flex items-center justify-center px-3 py-2 rounded-2xl text-[10px] font-black bg-red-500/15 text-red-500 dark:text-red-400 border border-red-500/20 uppercase tracking-wider">
+                          Tidak Siap Operasional
+                        </div>
+                      ) : (
+                        <div className="w-full inline-flex items-center justify-center px-3 py-2 rounded-2xl text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-wider">
+                          BELUM LENGKAP
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

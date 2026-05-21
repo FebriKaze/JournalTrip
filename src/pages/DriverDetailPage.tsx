@@ -43,6 +43,12 @@ import RitaseItem from '../components/dashboard/RitaseItem';
 import * as gatepassService from '../services/gatepassService';
 import { TenkoRecord } from '../services/tenkoService';
 import { P2HRecord } from '../types';
+import Logo from '../image/Logo.png';
+import { jsPDF } from 'jspdf';
+import * as htmlToImage from 'html-to-image';
+import AuthModal from '../components/auth/AuthModal';
+import { supabase } from '../lib/supabase';
+
 
 export default function DriverDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -79,6 +85,13 @@ export default function DriverDetailPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // States for Auth & Printing
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [printDateTime, setPrintDateTime] = useState('');
+  const [activePrintDriver, setActivePrintDriver] = useState<Driver | null>(null);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+
   const getTenkoStatus = useCallback((): { status: 'OK' | 'NG' | 'PENDING'; details?: string } => {
     if (!tenkoRecord) return { status: 'PENDING' };
     const isHipertensi = tenkoRecord.sistolik >= 140 || tenkoRecord.diastolik >= 90;
@@ -108,6 +121,132 @@ export default function DriverDetailPage() {
     if (tenko.status === 'OK' && p2h === 'OK') return 'READY';
     return 'PENDING';
   }, [getTenkoStatus, getP2HStatus]);
+
+  const executeWithAuth = async (action: () => void) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      action();
+    } else {
+      setPendingAction(() => action);
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
+
+  const handleSaveTenko = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!driver) return;
+    setIsSaving(true);
+    try {
+      const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      const tensiStr = `${tenkoForm.sistolik}/${tenkoForm.diastolik}`;
+      
+      const newRecord = {
+        tanggal: todayStr,
+        driver_id: driver.id,
+        nama_driver: driver.name,
+        nopol: driver.noPolisi || '--',
+        tensi: tensiStr,
+        sistolik: tenkoForm.sistolik,
+        diastolik: tenkoForm.diastolik,
+        suhu_tubuh: tenkoForm.suhu,
+        alkohol: tenkoForm.alkohol,
+        fatigue: tenkoForm.fatigue,
+        timestamp: new Date().toLocaleTimeString('id-ID'),
+        tim_tenko: 'Tim Tenko (Self Check)'
+      };
+
+      const res = await gatepassService.saveManualTenkoRecord(newRecord);
+      setTenkoRecord(res);
+      setShowTenkoModal(false);
+    } catch (err) {
+      console.error('Error saving Tenko:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveP2H = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!driver) return;
+    setIsSaving(true);
+    try {
+      const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      const { data: { session } } = await supabase.auth.getSession();
+      const rawUser = session?.user?.email?.split('@')[0] || 'Mekanik';
+      const formattedUser = rawUser
+        .split(/[\._-]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      const newRecord = {
+        tanggal: todayStr,
+        driver_id: driver.id,
+        nopol: driver.noPolisi || '--',
+        checked_by: formattedUser,
+        status: p2hForm.status as 'OK' | 'NG',
+        catatan: p2hForm.catatan
+      };
+
+      const res = await gatepassService.saveP2HRecord(newRecord);
+      if (res.success && res.data) {
+        setP2HRecord(res.data);
+      }
+      setShowP2HModal(false);
+    } catch (err) {
+      console.error('Error saving P2H:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!driver) return;
+    const now = new Date();
+    const formatted = `${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB`;
+    setPrintDateTime(formatted);
+    setActivePrintDriver(driver);
+    setIsExportingPDF(true);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const element = document.getElementById('gatepass-print-document');
+      if (!element) throw new Error("Elemen dokumen cetak tidak ditemukan.");
+
+      const dataUrl = await htmlToImage.toJpeg(element, {
+        quality: 0.9,
+        backgroundColor: '#ffffff',
+        width: 800,
+        height: 800,
+        pixelRatio: 2
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [210, 210]
+      });
+
+      pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 210);
+      const blobUrl = pdf.output('bloburl');
+      window.open(blobUrl as unknown as string, '_blank');
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Gagal mencetak Gatepass. Silakan coba lagi.');
+    } finally {
+      setActivePrintDriver(null);
+      setIsExportingPDF(false);
+    }
+  };
 
   const loadProfile = useCallback(async () => {
     if (!id) return;
@@ -318,6 +457,198 @@ export default function DriverDetailPage() {
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
                 <span className="bg-red-600 text-white px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase">DRIVER AKTIF</span>
                 <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase shadow-sm">BASE POOL A</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── READINESS SCORECARD PANEL ── */}
+          <div className="bg-slate-50 dark:bg-slate-800/40 p-6 rounded-[32px] border border-slate-200/50 dark:border-slate-800/60 shadow-lg shadow-red-500/5 mb-10">
+            <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <ClipboardCheck className="w-4 h-4 text-red-500" />
+              Status Kesiapan Operasional Harian
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Card 1: Tenko Health Check */}
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[140px]">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">1. Pemeriksaan Kesehatan</span>
+                    <Heart className="w-4 h-4 text-red-500" />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white mb-3">Tenko Health Check</h4>
+                </div>
+                
+                <div className="flex justify-between items-center gap-2">
+                  {(() => {
+                    const tenko = getTenkoStatus();
+                    if (tenko.status === 'OK') {
+                      return (
+                        <>
+                          <div className="flex flex-col">
+                            <span className="inline-flex items-center text-xs font-black text-emerald-600 dark:text-emerald-450 uppercase tracking-wider gap-1">
+                              <CheckCircle2 className="w-4 h-4" />
+                              LULUS (OK)
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-bold mt-0.5">Tensi: {tenkoRecord?.tensi || 'N/A'}, Suhu: {tenkoRecord?.suhu_tubuh || 'N/A'}°C</span>
+                          </div>
+                          <button
+                            onClick={() => setShowTenkoModal(true)}
+                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-xl text-[9px] font-black uppercase text-slate-600 dark:text-slate-350 transition-all border border-slate-200/30"
+                          >
+                            Update
+                          </button>
+                        </>
+                      );
+                    } else if (tenko.status === 'NG') {
+                      return (
+                        <>
+                          <div className="flex flex-col">
+                            <span className="inline-flex items-center text-xs font-black text-red-550 dark:text-red-400 uppercase tracking-wider gap-1">
+                              <ShieldAlert className="w-4 h-4" />
+                              DITAHAN (NG)
+                            </span>
+                            <span className="text-[9px] text-red-400 font-bold mt-0.5">{tenko.details}</span>
+                          </div>
+                          <button
+                            onClick={() => setShowTenkoModal(true)}
+                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-xl text-[9px] font-black uppercase text-slate-600 dark:text-slate-355 transition-all border border-slate-200/30"
+                          >
+                            Update
+                          </button>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <span className="inline-flex items-center text-xs font-black text-amber-500 uppercase tracking-wider gap-1">
+                            <AlertCircle className="w-4 h-4 animate-pulse" />
+                            BELUM DIISI
+                          </span>
+                          <button
+                            onClick={() => setShowTenkoModal(true)}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all shadow-md shadow-amber-500/10 active:scale-95"
+                          >
+                            Isi Tenko
+                          </button>
+                        </>
+                      );
+                    }
+                  })()}
+                </div>
+              </div>
+
+              {/* Card 2: P2H Fleet Check */}
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[140px]">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">2. Kelayakan Kendaraan</span>
+                    <Truck className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white mb-3">P2H Fleet Check</h4>
+                </div>
+                
+                <div className="flex justify-between items-center gap-2">
+                  {(() => {
+                    const p2h = getP2HStatus();
+                    if (p2h === 'OK') {
+                      return (
+                        <>
+                          <div className="flex flex-col">
+                            <span className="inline-flex items-center text-xs font-black text-emerald-600 dark:text-emerald-450 uppercase tracking-wider gap-1">
+                              <CheckCircle2 className="w-4 h-4" />
+                              LAYAK (OK)
+                            </span>
+                            {p2hRecord?.catatan && (
+                              <span className="text-[9px] text-slate-400 font-bold mt-0.5 truncate max-w-[150px]">{p2hRecord.catatan}</span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => executeWithAuth(() => setShowP2HModal(true))}
+                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-xl text-[9px] font-black uppercase text-slate-600 dark:text-slate-350 transition-all border border-slate-200/30"
+                          >
+                            Update
+                          </button>
+                        </>
+                      );
+                    } else if (p2h === 'NG') {
+                      return (
+                        <>
+                          <div className="flex flex-col">
+                            <span className="inline-flex items-center text-xs font-black text-red-550 dark:text-red-400 uppercase tracking-wider gap-1">
+                              <XCircle className="w-4 h-4" />
+                              RUSAK (NG)
+                            </span>
+                            {p2hRecord?.catatan && (
+                              <span className="text-[9px] text-red-400 font-bold mt-0.5 truncate max-w-[150px]">{p2hRecord.catatan}</span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => executeWithAuth(() => setShowP2HModal(true))}
+                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-xl text-[9px] font-black uppercase text-slate-600 dark:text-slate-355 transition-all border border-slate-200/30"
+                          >
+                            Update
+                          </button>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <span className="inline-flex items-center text-xs font-black text-amber-500 uppercase tracking-wider gap-1">
+                            <AlertCircle className="w-4 h-4 animate-pulse" />
+                            BELUM DIISI
+                          </span>
+                          <button
+                            onClick={() => executeWithAuth(() => setShowP2HModal(true))}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all shadow-md shadow-amber-500/10 active:scale-95"
+                          >
+                            Isi P2H
+                          </button>
+                        </>
+                      );
+                    }
+                  })()}
+                </div>
+              </div>
+
+              {/* Card 3: Gatepass Status & Printing */}
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[140px] md:border-l-4 md:border-l-red-500">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">3. Surat Izin Keluar Armada</span>
+                    <Printer className="w-4 h-4 text-red-500" />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white mb-3">Gatepass Izin Jalan</h4>
+                </div>
+                
+                <div>
+                  {(() => {
+                    const gpStatus = getGatepassStatus();
+                    if (gpStatus === 'READY') {
+                      return (
+                        <button
+                          onClick={handlePrint}
+                          disabled={isExportingPDF}
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-450 border border-emerald-500/20 uppercase tracking-widest hover:bg-emerald-500/25 active:scale-[0.98] transition-all shadow-sm shrink-0"
+                        >
+                          {isExportingPDF ? 'Loading...' : 'Siap Operasional / Cetak'}
+                        </button>
+                      );
+                    } else if (gpStatus === 'BLOCKED') {
+                      return (
+                        <div className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[10px] font-black bg-red-500/15 text-red-550 dark:text-red-400 border border-red-500/20 uppercase tracking-widest cursor-default">
+                          Tidak Siap Operasional
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200/30 dark:border-slate-700/30 uppercase tracking-widest cursor-default">
+                          BELUM LENGKAP
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
               </div>
             </div>
           </div>
@@ -804,6 +1135,450 @@ export default function DriverDetailPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── MODAL INPUT TENKO MANUAL ── */}
+      <AnimatePresence>
+        {showTenkoModal && (
+          <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowTenkoModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 z-10"
+            >
+              <form onSubmit={handleSaveTenko}>
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-600">
+                      <Heart className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-900 dark:text-white">Pemeriksaan Kesehatan (Tenko)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Driver: {driver.name}</p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setShowTenkoModal(false)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  {/* Tensi Darah: Sistolik & Diastolik */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                        Tekanan Darah Sistolik
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={50}
+                        max={250}
+                        value={tenkoForm.sistolik}
+                        onChange={(e) => setTenkoForm(prev => ({ ...prev, sistolik: parseInt(e.target.value) || 120 }))}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                        Tekanan Darah Diastolik
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={30}
+                        max={180}
+                        value={tenkoForm.diastolik}
+                        onChange={(e) => setTenkoForm(prev => ({ ...prev, diastolik: parseInt(e.target.value) || 80 }))}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Suhu Tubuh */}
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                      Suhu Tubuh (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      min={34}
+                      max={42}
+                      value={tenkoForm.suhu}
+                      onChange={(e) => setTenkoForm(prev => ({ ...prev, suhu: parseFloat(e.target.value) || 36.5 }))}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
+                    />
+                  </div>
+
+                  {/* Alkohol Level */}
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                      Kadar Alkohol (BAC %)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      min={0}
+                      max={5}
+                      value={tenkoForm.alkohol}
+                      onChange={(e) => setTenkoForm(prev => ({ ...prev, alkohol: parseFloat(e.target.value) || 0 }))}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
+                    />
+                  </div>
+
+                  {/* Fatigue Status */}
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                      Kelelahan (Fatigue)
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setTenkoForm(prev => ({ ...prev, fatigue: 'NORMAL' }))}
+                        className={`flex-1 py-3 px-4 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
+                          tenkoForm.fatigue === 'NORMAL'
+                            ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                        }`}
+                      >
+                        Bebas Lelah (Normal)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTenkoForm(prev => ({ ...prev, fatigue: 'LELAH' }))}
+                        className={`flex-1 py-3 px-4 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${
+                          tenkoForm.fatigue === 'LELAH'
+                            ? 'bg-red-500/10 border-red-500 text-red-650'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                        }`}
+                      >
+                        Mengantuk / Lelah
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowTenkoModal(false)}
+                    className="flex-1 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-350 active:scale-95 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isSaving}
+                    className="flex-1 py-3 bg-red-650 hover:bg-red-750 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-red-500/25 disabled:opacity-40 active:scale-95 transition-all"
+                  >
+                    {isSaving ? 'Menyimpan...' : 'Simpan Tenko'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODAL INPUT P2H MANUAL ── */}
+      <AnimatePresence>
+        {showP2HModal && (
+          <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowP2HModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 z-10"
+            >
+              <form onSubmit={handleSaveP2H}>
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-600">
+                      <ClipboardCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-900 dark:text-white">Pemeriksaan Kendaraan (P2H)</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Driver: {driver.name}</p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setShowP2HModal(false)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  {/* Status Kelayakan (OK / NG) */}
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 text-center sm:text-left">
+                      Hasil Kelayakan Unit Armada ({driver.noPolisi || 'No Plat'})
+                    </label>
+                    <div className="flex gap-4">
+                      {/* OK Button */}
+                      <button
+                        type="button"
+                        onClick={() => setP2HForm(prev => ({ ...prev, status: 'OK' }))}
+                        className={`flex-1 py-4 px-6 rounded-2xl flex flex-col items-center justify-center border transition-all ${
+                          p2hForm.status === 'OK'
+                            ? 'bg-emerald-500/15 border-emerald-500 text-emerald-600 font-black shadow-lg shadow-emerald-500/10'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 font-bold hover:bg-slate-100/50'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-8 h-8 mb-2" />
+                        <span className="text-xs uppercase tracking-widest font-black">ARMADA OK</span>
+                        <span className="text-[8px] opacity-70 mt-1 uppercase font-bold">Siap Jalan</span>
+                      </button>
+
+                      {/* NG Button */}
+                      <button
+                        type="button"
+                        onClick={() => setP2HForm(prev => ({ ...prev, status: 'NG' }))}
+                        className={`flex-1 py-4 px-6 rounded-2xl flex flex-col items-center justify-center border transition-all ${
+                          p2hForm.status === 'NG'
+                            ? 'bg-red-500/15 border-red-500 text-red-600 font-black shadow-lg shadow-red-500/10'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 font-bold hover:bg-slate-100/50'
+                        }`}
+                      >
+                        <XCircle className="w-8 h-8 mb-2" />
+                        <span className="text-xs uppercase tracking-widest font-black">ARMADA NG</span>
+                        <span className="text-[8px] opacity-70 mt-1 uppercase font-bold">Tahan / Ada Rusak</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Catatan / Keterangan Masalah */}
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                      Catatan / Keterangan Kerusakan
+                    </label>
+                    <textarea
+                      placeholder={p2hForm.status === 'NG' ? "Sebutkan komponen yang bermasalah (contoh: Ban kiri botak, Lampu rem mati)..." : "Catatan opsional mengenai kelayakan kendaraan..."}
+                      value={p2hForm.catatan}
+                      onChange={(e) => setP2HForm(prev => ({ ...prev, catatan: e.target.value }))}
+                      rows={3}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none placeholder:text-slate-400 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowP2HModal(false)}
+                    className="flex-1 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-350 active:scale-95 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isSaving}
+                    className="flex-1 py-3 bg-red-600 hover:bg-red-700 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-red-500/25 disabled:opacity-40 active:scale-95 transition-all"
+                  >
+                    {isSaving ? 'Menyimpan...' : 'Simpan Kelayakan'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onSuccess={handleAuthSuccess} 
+      />
+
+      {/* ── PRINT COMPONENT (Only renders during print) ── */}
+      {activePrintDriver && (
+        <div className="fixed inset-0 z-[99999] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center overflow-hidden">
+          {/* Overlay loading information */}
+          <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center relative z-10 border border-slate-200 dark:border-slate-700">
+            <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mb-4" />
+            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest">Mencetak Gatepass...</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-2">Sedang menyiapkan dokumen PDF</p>
+          </div>
+
+          {/* Wrapper to handle positioning and centering without affecting the capture offset */}
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 z-0 pointer-events-none">
+            {/* Actual Print Document - Fixed 800x800 Square Layout for custom paper formats */}
+            <div id="gatepass-print-document" className="w-[800px] h-[800px] flex flex-col bg-white text-slate-900 p-10 border border-slate-200 opacity-100">
+              
+              {/* Header Surat */}
+              <div className="flex justify-between items-start border-b-4 border-double border-slate-900 pb-4 mb-6">
+                <div className="w-[220px] shrink-0">
+                  <img src={Logo} alt="K Line" className="h-8 object-contain" />
+                </div>
+                <div className="text-center flex-1 pt-1.5">
+                  <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">GATE PASS</h1>
+                </div>
+                <div className="w-[220px] shrink-0 text-[8px] font-semibold text-slate-500 leading-normal text-right">
+                  <p>Jl. Sultan Agung Km.28</p>
+                  <p>Bekasi Barat 17133</p>
+                  <p>Telp. (021) 88861101-03</p>
+                </div>
+              </div>
+
+              {/* Nomor Surat & Tanggal */}
+              <div className="flex justify-between items-center text-xs mb-6">
+                <div>
+                  <p className="font-bold text-slate-500 uppercase text-[9px]">Nomor Dokumen:</p>
+                  <p className="font-black text-slate-900 uppercase">
+                    {(() => {
+                      const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                      const datePart = todayStr.replace(/-/g, '');
+                      const seq = (driver.id.charCodeAt(0) % 100).toString().padStart(3, '0');
+                      return `KRW/GP/${datePart}/${seq}`;
+                    })()}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-slate-500 uppercase text-[9px]">Tanggal &amp; Jam:</p>
+                  <p className="font-black text-slate-900">
+                    {printDateTime}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                {/* Driver Detail */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Data Pengemudi</h4>
+                  <table className="w-full text-xs">
+                    <tbody>
+                      <tr>
+                        <td className="py-1 text-slate-500 w-20">Nama:</td>
+                        <td className="py-1 font-black text-slate-900">{driver.name}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">NIK:</td>
+                        <td className="py-1 font-bold text-slate-900">{driver.nik || '--'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">Status SIM:</td>
+                        <td className="py-1 font-black text-emerald-600">
+                          {driver.simStatus === 'Valid' ? 'Berlaku' : (driver.simStatus || 'Berlaku')}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Armada Detail */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Data Kendaraan</h4>
+                  <table className="w-full text-xs">
+                    <tbody>
+                      <tr>
+                        <td className="py-1 text-slate-500 w-20">No. Polisi:</td>
+                        <td className="py-1 font-black text-slate-900">{driver.noPolisi || '--'}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">Base Pool:</td>
+                        <td className="py-1 font-bold text-slate-900">KIIC</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-slate-500">Dedicated:</td>
+                        <td className="py-1 font-bold text-slate-900">TAM</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Ringkasan Hasil Pemeriksaan Kesehatan & Unit */}
+              <div className="space-y-4 mb-8">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b pb-1">Verifikasi Kelayakan</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Hasil Kesehatan */}
+                  <div className="p-4 border border-emerald-500 bg-emerald-500/5 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-700">
+                      <Check className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-wider">TENKO HEALTH CHECK</span>
+                    </div>
+                    <p className="text-xl font-black text-emerald-700">LULUS (OK)</p>
+                    <div className="text-[10px] space-y-1 text-slate-700">
+                      <p>Tensi Darah: <span className="font-bold">{tenkoRecord?.tensi || '120/80'} mmHg</span></p>
+                      <p>Suhu Tubuh: <span className="font-bold">{tenkoRecord?.suhu_tubuh || '36.5'} °C</span></p>
+                      <p>Alkohol: <span className="font-bold">NEGATIF (0.00%)</span></p>
+                      <p>Fisik &amp; Mata: <span className="font-bold">NORMAL / CLEAR</span></p>
+                    </div>
+                  </div>
+
+                  {/* Hasil P2H */}
+                  <div className="p-4 border border-emerald-500 bg-emerald-500/5 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-700">
+                      <Check className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-wider">P2H FLEET CHECK</span>
+                    </div>
+                    <p className="text-xl font-black text-emerald-700">LULUS (OK)</p>
+                    <div className="text-[10px] space-y-1 text-slate-700">
+                      <p>Status Inspeksi: <span className="font-bold">ARMADA LAYAK JALAN</span></p>
+                      <p className="line-clamp-2">Catatan: <span className="font-bold italic">"{p2hRecord?.catatan || 'Kondisi kendaraan sangat prima'}"</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-slate-500 italic mb-6 text-center">
+                Pernyataan: Dengan diterbitkannya dokumen ini, pengemudi dan armada di atas dinyatakan telah memenuhi standar keselamatan K Line dan diizinkan melakukan perjalanan ritase hari ini.
+              </p>
+
+              {/* Area Tanda Tangan */}
+              <div className="grid grid-cols-3 gap-6 text-center text-xs relative z-10 mt-auto">
+                <div>
+                  <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-12">Petugas Tenko</p>
+                  <div className="h-px bg-slate-900 mx-4" />
+                  <p className="font-black text-slate-900 mt-1 capitalize">{tenkoRecord?.tim_tenko || 'Petugas Tenko'}</p>
+                </div>
+                <div className="flex flex-col items-center justify-center -mt-6">
+                  {/* cap placeholder */}
+                </div>
+                <div>
+                  <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-12">Petugas P2H (Mekanik)</p>
+                  <div className="h-px bg-slate-900 mx-4" />
+                  <p className="font-black text-slate-900 mt-1 uppercase">{p2hRecord?.checked_by || 'PETUGAS P2H'}</p>
+                </div>
+              </div>
+
+              {/* Cap Resmi Digital Cap K LINE */}
+              <div className="absolute bottom-16 left-12 w-28 h-28 border-4 border-dashed border-red-600/30 rounded-full flex items-center justify-center pointer-events-none rotate-12 -z-10 select-none">
+                <div className="text-center text-[8px] font-black text-red-600/30 uppercase tracking-widest">
+                  <p>PT. KMI</p>
+                  <p className="text-xs border-y border-red-650/20 py-0.5 my-0.5">APPROVED</p>
+                  <p>LOGISTICS</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
