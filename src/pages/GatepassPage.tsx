@@ -229,56 +229,51 @@ export default function GatepassPage() {
     setIsExportingPDF(true);
 
     try {
-      // Tunggu DOM ter-render sempurna
-      await new Promise(resolve => setTimeout(resolve, 800)); // slightly longer wait for 3 docs
-      
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] }); // default to gatepass size
+      // Wait for DOM to fully render all documents
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const captureAndAdd = async (elId: string, pdfObj: any, w: number, h: number, pdfW: number, pdfH: number, newPageFormat?: string | number[]) => {
-        const element = document.getElementById(elId);
-        if (!element) throw new Error(`Elemen ${elId} tidak ditemukan.`);
-        const dataUrl = await htmlToImage.toJpeg(element, { quality: 0.9, backgroundColor: '#ffffff', width: w, height: h, pixelRatio: 2 });
-        if (newPageFormat) {
-          pdfObj.addPage(newPageFormat, 'p');
-        } else {
-          // ensure correct format for first page if needed, but we already set it in constructor for Gatepass
-        }
-        pdfObj.addImage(dataUrl, 'JPEG', 0, 0, pdfW, pdfH);
+      const capture = async (elId: string, w: number, h: number): Promise<string> => {
+        const el = document.getElementById(elId);
+        if (!el) throw new Error(`Element #${elId} not found`);
+        return htmlToImage.toJpeg(el, { quality: 0.95, backgroundColor: '#ffffff', width: w, height: h, pixelRatio: 2 });
       };
 
-      if (type === 'GATEPASS' || type === 'ALL') {
-        await captureAndAdd('gatepass-print-document', pdf, 800, 800, 210, 210);
-      }
-      if (type === 'TENKO' || type === 'ALL') {
-        if (type === 'TENKO') { // If only tenko, we need to reset the first page format or just add page, wait jsPDF constructor was [210, 210]. 
-           // If only tenko, maybe we just use a new pdf instance with a4.
-        } else {
-           await captureAndAdd('tenko-print-document', pdf, 794, 1123, 210, 297, 'a4');
-        }
-      }
-      if (type === 'P2H' || type === 'ALL') {
-        if (type === 'P2H') {
-           // handled specially below
-        } else {
-           await captureAndAdd('p2h-print-document', pdf, 794, 1123, 210, 297, 'a4');
-        }
-      }
+      if (type === 'ALL') {
+        // Capture all 3 sequentially
+        const gpData = await capture('gatepass-print-document', 800, 800);
+        const tenkoData = await capture('tenko-print-document', 794, 1123);
+        const p2hData = await capture('p2h-print-document', 794, 1123);
 
-      // If it's single non-gatepass, create new jsPDF with A4
-      if (type === 'TENKO' || type === 'P2H') {
-        const pdfSingle = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-        const elId = type === 'TENKO' ? 'tenko-print-document' : 'p2h-print-document';
-        await captureAndAdd(elId, pdfSingle, 794, 1123, 210, 297);
-        const blobUrl = pdfSingle.output('bloburl');
-        window.open(blobUrl as unknown as string, '_blank');
-      } else {
-        const blobUrl = pdf.output('bloburl');
-        window.open(blobUrl as unknown as string, '_blank');
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] });
+        pdf.addImage(gpData, 'JPEG', 0, 0, 210, 210);
+        pdf.addPage('a4', 'p');
+        pdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
+        pdf.addPage('a4', 'p');
+        pdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
+        window.open(pdf.output('bloburl') as unknown as string, '_blank');
+
+      } else if (type === 'GATEPASS') {
+        const gpData = await capture('gatepass-print-document', 800, 800);
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] });
+        pdf.addImage(gpData, 'JPEG', 0, 0, 210, 210);
+        window.open(pdf.output('bloburl') as unknown as string, '_blank');
+
+      } else if (type === 'TENKO') {
+        const tenkoData = await capture('tenko-print-document', 794, 1123);
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        pdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
+        window.open(pdf.output('bloburl') as unknown as string, '_blank');
+
+      } else if (type === 'P2H') {
+        const p2hData = await capture('p2h-print-document', 794, 1123);
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        pdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
+        window.open(pdf.output('bloburl') as unknown as string, '_blank');
       }
 
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert(`Gagal mencetak. Silakan coba lagi.`);
+      alert(`Gagal mencetak. Error: ${(error as Error).message}`);
     } finally {
       setActivePrintDriver(null);
       setActivePrintType(null);
@@ -827,21 +822,24 @@ export default function GatepassPage() {
         )}
       </AnimatePresence>
 
-      {/* ── PRINT COMPONENT (Only renders during print) ── */}
+      {/* ── PRINT OVERLAY (loading spinner only) ── */}
       {activePrintDriver && (
-        <div className="fixed inset-0 z-[99999] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center overflow-hidden">
-          {/* Overlay loading information */}
-          <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center relative z-10 border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-[99999] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
+          <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-200 dark:border-slate-700">
             <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest">Mencetak Gatepass...</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-2">Sedang menyiapkan dokumen PDF</p>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest">Mencetak Dokumen...</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-2">Sedang menyiapkan {activePrintType === 'ALL' ? '3 lembar PDF' : 'dokumen PDF'}</p>
           </div>
+        </div>
+      )}
 
-          {/* Wrapper to handle positioning and centering without affecting the capture offset */}
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 z-0 pointer-events-none">
-            {/* Actual Print Document */}
+      {/* ── OFF-SCREEN PRINT DOCUMENTS (fixed, outside overlay, not clipped) ── */}
+      {activePrintDriver && (
+        <div className="fixed top-0 left-[-9999px] z-[-1] pointer-events-none">
+
+          {/* Gatepass */}
           {(activePrintType === 'GATEPASS' || activePrintType === 'ALL') && (
-            <div id="gatepass-print-document" className="w-[800px] h-[800px] flex flex-col bg-white text-slate-900 p-10 border border-slate-200 opacity-100">
+            <div id="gatepass-print-document" className="w-[800px] h-[800px] flex flex-col bg-white text-slate-900 p-10">
               
               {/* Header Surat */}
               <div className="flex justify-between items-start border-b-4 border-double border-slate-900 pb-4 mb-6">
@@ -993,30 +991,21 @@ export default function GatepassPage() {
           )}
 
           {(activePrintType === 'P2H' || activePrintType === 'ALL') && (
-            <div className="bg-white" id="p2h-print-document-container">
-              <P2HDocument
-                driverName={activePrintDriver.name}
-                nopol={activePrintDriver.noPolisi || ''}
-                date={selectedDate}
-                checklist={p2hRecords[activePrintDriver.id]?.checklist || {}}
-                checkerName={p2hRecords[activePrintDriver.id]?.checked_by || 'Admin'}
-                catatan={p2hRecords[activePrintDriver.id]?.catatan || ''}
-              />
-            </div>
+            <P2HDocument
+              driverName={activePrintDriver.name}
+              nopol={activePrintDriver.noPolisi || ''}
+              date={selectedDate}
+              checklist={p2hRecords[activePrintDriver.id]?.checklist || {}}
+              checkerName={p2hRecords[activePrintDriver.id]?.checked_by || 'Admin'}
+              catatan={p2hRecords[activePrintDriver.id]?.catatan || ''}
+            />
           )}
 
           {(activePrintType === 'TENKO' || activePrintType === 'ALL') && (
-            <div className="bg-white" id="tenko-print-document-container">
-              {tenkoRecords[activePrintDriver.id] ? (
-                <TenkoDocument tenko={tenkoRecords[activePrintDriver.id]} />
-              ) : (
-                <div id="tenko-print-document" className="bg-white w-[794px] h-[1123px] p-10 font-bold flex items-center justify-center">
-                  Data Tenko tidak tersedia
-                </div>
-              )}
-            </div>
+            tenkoRecords[activePrintDriver.id]
+              ? <TenkoDocument tenko={tenkoRecords[activePrintDriver.id]} />
+              : <div id="tenko-print-document" className="bg-white w-[794px] h-[1123px] p-10 font-bold flex items-center justify-center">Data Tenko tidak tersedia</div>
           )}
-          </div>
         </div>
       )}
     </div>
