@@ -266,25 +266,25 @@ export default function GatepassPage() {
         pdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
         pdf.addPage('a4', 'p');
         pdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
-        window.open(pdf.output('bloburl') as unknown as string, '_blank');
+        pdf.save(`Dokumen_Lengkap_${driver.name.replace(/\\s+/g, '_')}.pdf`);
 
       } else if (type === 'GATEPASS') {
         const gpData = await capture('gatepass-print-document', 800, 800);
         const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [210, 210] });
         pdf.addImage(gpData, 'JPEG', 0, 0, 210, 210);
-        window.open(pdf.output('bloburl') as unknown as string, '_blank');
+        pdf.save(`Gatepass_${driver.name.replace(/\\s+/g, '_')}.pdf`);
 
       } else if (type === 'TENKO') {
         const tenkoData = await capture('tenko-print-document', 794, 1123);
         const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
         pdf.addImage(tenkoData, 'JPEG', 0, 0, 210, 297);
-        window.open(pdf.output('bloburl') as unknown as string, '_blank');
+        pdf.save(`Tenko_${driver.name.replace(/\\s+/g, '_')}.pdf`);
 
       } else if (type === 'P2H') {
         const p2hData = await capture('p2h-print-document', 794, 1123);
         const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
         pdf.addImage(p2hData, 'JPEG', 0, 0, 210, 297);
-        window.open(pdf.output('bloburl') as unknown as string, '_blank');
+        pdf.save(`P2H_${driver.name.replace(/\\s+/g, '_')}.pdf`);
       }
 
     } catch (error) {
