@@ -46,8 +46,8 @@ const TIMELINE_FLOWS: Record<string, string[]> = {
 };
 
 const KEY_MAP: Record<string, {actual: string[], plan: string[], stage: string}> = {
-  'OutPool': { actual: ['Actual (LeadTime)', 'keluar pool', 'outpool', 'abnormalty'], plan: ['plan outpool', 'rencana keluar'], stage: 'outpool' },
-  'InPDC': { actual: ['Actual (LeadTime)', 'IN PDC', 'inpdc', 'in pdc'], plan: ['plan inpdc', 'PLAN'], stage: 'inpdc' },
+  'OutPool': { actual: ['Actual (LeadTime)', 'keluar pool', 'outpool', 'abnormalty', 'Actual Exit Pool'], plan: ['plan outpool', 'rencana keluar', 'Estimasi (Lead Time)', 'Estimasi'], stage: 'outpool' },
+  'InPDC': { actual: ['Actual (LeadTime)', 'IN PDC', 'inpdc', 'in pdc'], plan: ['plan inpdc', 'PLAN', 'Plan DCCP'], stage: 'inpdc' },
   'OutPDC': { actual: ['Out PDC', 'out pdc', 'outpdc'], plan: ['plan outpdc'], stage: 'outpdc' },
   'Unloading': { actual: ['Actual (Unloading)', 'Unloading PDC POLYGON', 'aktual unloading', 'aktual bongkar'], plan: ['plan bongkar'], stage: 'delivery' },
   'KM 166': { actual: ['KM 166'], plan: [], stage: 'unknown' },
@@ -56,7 +56,7 @@ const KEY_MAP: Record<string, {actual: string[], plan: string[], stage: string}>
   'KM 575B': { actual: ['KM 575B'], plan: [], stage: 'unknown' },
   'KM 360B': { actual: ['KM 360B'], plan: [], stage: 'unknown' },
   'KM 164B': { actual: ['KM 164B'], plan: [], stage: 'unknown' },
-  'InPool': { actual: ['Actual (BackToPool)', 'BACK TO POOL', 'inpool', 'in pool'], plan: ['Plan (BackToPool)', 'plan backtopool'], stage: 'unknown' }
+  'InPool': { actual: ['Actual (BackToPool)', 'BACK TO POOL', 'inpool', 'in pool'], plan: ['Plan (BackToPool)', 'plan backtopool'], stage: 'backtopool' }
 };
 
 export default function LeadTimePage() {
@@ -81,7 +81,12 @@ export default function LeadTimePage() {
   const [activeFilter, setActiveFilter] = useState<{stage: string, status: string} | null>(null);
   const [reasonFilter, setReasonFilter] = useState<string | null>(null);
   const [selectedReason, setSelectedReason] = useState<{title: string, reason: string, count: number} | null>(null);
-  const [selectedTrip, setSelectedTrip] = useState<LeadTimeData | null>(null);
+  const [delayPopup, setDelayPopup] = useState<{title: string, reasons: {name:string,value:number}[], delayCount: number} | null>(null);
+  const [trendStage, setTrendStage] = useState<'outpool' | 'inpdc' | 'delivery' | 'backtopool'>('delivery');
+  const [globalDriverFilter, setGlobalDriverFilter] = useState<string | null>(null);
+  const [tableStageFilter, setTableStageFilter] = useState<'ALL' | 'outpool' | 'inpdc' | 'delivery' | 'backtopool'>('ALL');
+  const [sortBy, setSortBy] = useState<string>('tanggal');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
 
   const areas = ['ALL', 'JBK', 'NGORO', 'TMMIN', 'SUMATERA', 'PADANG', 'SULAWESI', 'KALIMANTAN'];
 
@@ -89,7 +94,7 @@ export default function LeadTimePage() {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectedReason(null);
-        setSelectedTrip(null);
+        setDelayPopup(null);
       }
     };
     window.addEventListener('keydown', handleEsc);
@@ -143,6 +148,19 @@ export default function LeadTimePage() {
       console.error('Failed to fetch leadtime data:', error);
     }
     setIsLoading(false);
+  };
+
+  const getTripCounts = (trip: LeadTimeData, filter: string, areaName: string) => {
+    let counts = { onTime: 0, advance: 0, delay: 0 };
+    const stages = filter === 'ALL' ? ['outpool', 'inpdc', 'delivery', 'backtopool'] : [filter];
+    stages.forEach(s => {
+      if (areaName === 'TMMIN' && s === 'backtopool') return;
+      const stat = getRowStatus(trip, s);
+      if (stat === 'OnTime') counts.onTime++;
+      else if (stat === 'Advance') counts.advance++;
+      else if (stat === 'Delay') counts.delay++;
+    });
+    return counts;
   };
 
   const getRowStatus = (item: LeadTimeData, stage: string) => {
@@ -209,17 +227,28 @@ export default function LeadTimePage() {
       if (val.includes('ontime') || val.includes('on time') || val.includes('ok')) return 'OnTime';
       return 'Unknown';
     }
+    if (stage === 'backtopool') {
+      const val = findExactOrInclude(info, ['Evaluasi Kedatangan CC', 'Keterangan', 'Status Leadtime Back To Pool']).toLowerCase();
+      if (val.includes('delay')) return 'Delay';
+      if (val.includes('ontime') || val.includes('on time') || val.includes('ok')) return 'OnTime';
+      return 'Unknown';
+    }
     return 'Unknown';
   };
 
+  const baseData = useMemo(() => {
+    if (!globalDriverFilter) return data;
+    return data.filter(d => d.driver === globalDriverFilter);
+  }, [data, globalDriverFilter]);
+
   const stats = useMemo(() => {
-    if (data.length === 0) return null;
+    if (baseData.length === 0) return null;
 
     const getStageStats = (stage: string, reasonKeywords: string[]) => {
       const counts: Record<string, number> = { 'OnTime': 0, 'Delay': 0, 'Advance': 0 };
       const reasons: Record<string, number> = {};
 
-      data.forEach(item => {
+      baseData.forEach(item => {
         const status = getRowStatus(item, stage);
         if (counts[status] !== undefined) counts[status]++;
         for (const key in item.status_info) {
@@ -242,30 +271,29 @@ export default function LeadTimePage() {
       };
     };
 
-    const dailyData: Record<string, any> = {};
-    data.forEach(item => {
-      const date = new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-      if (!dailyData[date]) dailyData[date] = { date, OnTime: 0, Delay: 0, Advance: 0, Total: 0 };
-      const status = getRowStatus(item, 'inpdc');
-      if (dailyData[date][status] !== undefined) dailyData[date][status]++;
-      dailyData[date].Total++;
-    });
-
-    const trendChartData = Object.values(dailyData).map(d => ({
-      ...d, onTimeRate: d.Total > 0 ? parseFloat((((d.OnTime + d.Advance) / d.Total) * 100).toFixed(1)) : 0
-    })).sort((a,b) => {
-      const d1 = new Date(data.find(x => new Date(x.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) === a.date)?.tanggal || '');
-      const d2 = new Date(data.find(x => new Date(x.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) === b.date)?.tanggal || '');
-      return d1.getTime() - d2.getTime();
-    });
+    const getTrend = (stage: string) => {
+      const dailyData: Record<string, any> = {};
+      baseData.forEach(item => {
+        const date = new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        if (!dailyData[date]) dailyData[date] = { date, OnTime: 0, Delay: 0, Advance: 0, Total: 0 };
+        const status = getRowStatus(item, stage);
+        if (dailyData[date][status] !== undefined) dailyData[date][status]++;
+        dailyData[date].Total++;
+      });
+      return Object.values(dailyData).map(d => ({
+        ...d,
+        onTimeRate: d.Total > 0 ? Math.round(((d.OnTime + d.Advance) / d.Total) * 100) : 0
+      })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    };
 
     return {
-      outpool: getStageStats('outpool', ['Evaluasi Keluar Pool', 'Abnormalty']),
-      inpdc: getStageStats('inpdc', ['Evaluasi Kedatangan CC', 'delay inpdc']),
-      delivery: getStageStats('delivery', ['Leadtime delivery', 'status leadtime', 'delay delivery']),
-      trend: trendChartData
+      outpool: getStageStats('outpool', ['Evaluasi Keluar Pool', 'Abnormalty', 'Reason Delay OutPool', 'Reason Delay Out Pool']),
+      inpdc: getStageStats('inpdc', ['Evaluasi Kedatangan CC', 'delay inpdc', 'Reason Delay InPDC', 'Reason Delay In PDC', 'Reason Delay PDC']),
+      delivery: getStageStats('delivery', ['Leadtime delivery', 'status leadtime', 'delay delivery', 'Reason Delay Delivery']),
+      backtopool: getStageStats('backtopool', ['Reason Delay BackToPool', 'Reason Delay Back To Pool', 'Reason Delay BackToPool']),
+      trend: getTrend(trendStage)
     };
-  }, [data]);
+  }, [baseData, trendStage]);
 
   const prevStats = useMemo(() => {
     if (prevData.length === 0) return null;
@@ -284,7 +312,8 @@ export default function LeadTimePage() {
     return {
       outpool: getStageStats('outpool'),
       inpdc: getStageStats('inpdc'),
-      delivery: getStageStats('delivery')
+      delivery: getStageStats('delivery'),
+      backtopool: getStageStats('backtopool')
     };
   }, [prevData]);
 
@@ -307,11 +336,11 @@ export default function LeadTimePage() {
   }, [startDate, endDate, filterMode, selectedMonth]);
 
   const filteredData = useMemo(() => {
-    let result = data;
+    let result = baseData;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(item => 
-        item.driver?.toLowerCase().includes(q) || 
+      result = result.filter(item =>
+        item.driver?.toLowerCase().includes(q) ||
         item.no_polisi?.toLowerCase().includes(q)
       );
     }
@@ -320,7 +349,7 @@ export default function LeadTimePage() {
       result = result.filter(item => {
         const info = item.status_info || {};
         const points = item.checkpoints || {};
-        return Object.values(info).some(v => v?.toString().toLowerCase() === q) || 
+        return Object.values(info).some(v => v?.toString().toLowerCase() === q) ||
                Object.values(points).some(v => v?.toString().toLowerCase() === q);
       });
     }
@@ -328,10 +357,67 @@ export default function LeadTimePage() {
       result = result.filter(item => getRowStatus(item, activeFilter.stage) === activeFilter.status);
     }
     return result;
-  }, [data, searchQuery, activeFilter, reasonFilter]);
+  }, [baseData, searchQuery, activeFilter, reasonFilter]);
 
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const groupedData = useMemo(() => {
+    const map: Record<string, {
+      id: string,
+      tanggal: string,
+      area: string,
+      driver: string,
+      no_polisi: string,
+      shift: string,
+      onTime: number,
+      advance: number,
+      delay: number,
+      trips: LeadTimeData[]
+    }> = {};
+
+    filteredData.forEach(item => {
+      const key = item.driver || 'Unknown';
+      if (!map[key]) {
+        map[key] = {
+          id: key,
+          tanggal: item.tanggal,
+          area: item.area,
+          driver: item.driver || 'Unknown',
+          no_polisi: item.no_polisi || '-',
+          shift: item.shift || '-',
+          onTime: 0,
+          advance: 0,
+          delay: 0,
+          trips: []
+        };
+      }
+      const counts = getTripCounts(item, tableStageFilter, area);
+      map[key].onTime += counts.onTime;
+      map[key].advance += counts.advance;
+      map[key].delay += counts.delay;
+      map[key].trips.push(item);
+    });
+
+    return Object.values(map).sort((a, b) => {
+      let av: any, bv: any;
+      if (sortBy === 'tanggal') { av = a.tanggal; bv = b.tanggal; }
+      else if (sortBy === 'driver') { av = a.driver; bv = b.driver; }
+      else if (sortBy === 'ontime') { av = a.onTime; bv = b.onTime; }
+      else if (sortBy === 'advance') { av = a.advance; bv = b.advance; }
+      else if (sortBy === 'delay') { av = a.delay; bv = b.delay; }
+      else { av = a.tanggal; bv = b.tanggal; }
+      
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredData, sortBy, sortDir, tableStageFilter, area]);
+
+  const handleSort = (col: string) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('desc'); }
+  };
+
+  const totalPages = Math.ceil(groupedData.length / ITEMS_PER_PAGE);
+  const paginatedData = groupedData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const calculateEfficiency = (stage: string) => {
     const s = (stats as any)?.[stage];
@@ -356,7 +442,29 @@ export default function LeadTimePage() {
       if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) return info['Status Leadtime'] || '-';
       if (areaName === 'SUMATERA') return points['LeadTime Delivery'] || '-';
     }
+    if (stage === 'backtopool') return info['Status Leadtime Back To Pool'] || '-';
     return '-';
+  };
+
+  // Helper: ekstrak nilai Reason Delay dari status_info berdasarkan stage
+  const getReasonDelay = (item: LeadTimeData, stage: string): string | null => {
+    const info = item.status_info || {};
+    const findVal = (keywords: string[]) => {
+      for (const kw of keywords) {
+        for (const key in info) {
+          if (key.toLowerCase().includes(kw.toLowerCase())) {
+            const val = info[key]?.toString()?.trim();
+            if (val && val !== '-' && val !== '') return val;
+          }
+        }
+      }
+      return null;
+    };
+    if (stage === 'outpool')   return findVal(['Reason Delay OutPool', 'Reason Delay Out Pool']);
+    if (stage === 'inpdc')     return findVal(['Reason Delay InPDC', 'Reason Delay In PDC', 'Reason Delay PDC']);
+    if (stage === 'delivery')  return findVal(['Reason Delay Delivery']);
+    if (stage === 'backtopool') return findVal(['Reason Delay BackToPool', 'Reason Delay Back To Pool']);
+    return null;
   };
 
   const getTimelineEvents = (item: LeadTimeData) => {
@@ -372,9 +480,11 @@ export default function LeadTimePage() {
       for (const key in points) { if (config.plan.some(k => key.toLowerCase().includes(k.toLowerCase()))) { plan = points[key]?.toString() || ''; break; } }
       if (!plan) { for (const key in statusInfo) { if (config.plan.some(k => key.toLowerCase().includes(k.toLowerCase()))) { const val = statusInfo[key]?.toString() || ''; const match = val.match(/\d{2}:\d{2}/); if (match) plan = match[0]; break; } } }
       const status = config.stage !== 'unknown' ? getRowStatus(item, config.stage) : 'OnTime';
-      return { label: step, actual, plan, status };
+const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.stage) || '') : '';
+      return { label: step, actual, plan, status, reasonDelay };
     });
   }
+
 
   return (
     <div className="flex flex-col gap-4 sm:gap-10 pb-20 w-full max-w-[100vw] overflow-x-hidden px-1 sm:px-4 lg:px-6 box-border">
@@ -446,23 +556,48 @@ export default function LeadTimePage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6 sm:gap-12 w-full max-w-full overflow-hidden box-border">
+
+          {/* ── RESET FILTER BAR ── */}
+          {(activeFilter || reasonFilter || globalDriverFilter) && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-200 dark:border-blue-500/30">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black text-blue-700 dark:text-blue-300 uppercase tracking-widest">
+                  {globalDriverFilter ? `Driver: ${globalDriverFilter}` : activeFilter ? `Filter aktif: ${activeFilter.status} — ${activeFilter.stage.toUpperCase()}` : `Reason filter: ${reasonFilter}`}
+                </p>
+              </div>
+              <button
+                onClick={() => { setActiveFilter(null); setReasonFilter(null); setGlobalDriverFilter(null); setCurrentPage(1); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shrink-0 hover:bg-blue-700 transition-all"
+              >
+                <X className="w-3 h-3" /> Reset Filter
+              </button>
+            </div>
+          )}
+
           {/* ── STAGE BOXES ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-10 w-full max-w-full overflow-hidden box-border">
-            <StageBox 
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${area === 'TMMIN' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 sm:gap-10 w-full max-w-full overflow-hidden box-border`}>
+            <StageBox
               title="OUTPOOL" icon={<Truck />} stats={stats?.outpool} prevStats={prevStats?.outpool}
-              eff={calculateEfficiency('outpool')} stage="outpool" activeFilter={activeFilter} setActiveFilter={setActiveFilter} 
+              eff={calculateEfficiency('outpool')} stage="outpool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
               prevPeriod={prevPeriodText}
             />
-            <StageBox 
+            <StageBox
               title="IN-PDC" icon={<Package />} stats={stats?.inpdc} prevStats={prevStats?.inpdc}
-              eff={calculateEfficiency('inpdc')} stage="inpdc" activeFilter={activeFilter} setActiveFilter={setActiveFilter} 
+              eff={calculateEfficiency('inpdc')} stage="inpdc" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
               prevPeriod={prevPeriodText}
             />
-            <StageBox 
+            <StageBox
               title="DELIVERY" icon={<CheckCircle2 />} stats={stats?.delivery} prevStats={prevStats?.delivery}
-              eff={calculateEfficiency('delivery')} stage="delivery" activeFilter={activeFilter} setActiveFilter={setActiveFilter} 
+              eff={calculateEfficiency('delivery')} stage="delivery" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
               prevPeriod={prevPeriodText}
             />
+            {area !== 'TMMIN' && (
+              <StageBox
+                title="BACK-TO-POOL" icon={<Timer />} stats={stats?.backtopool} prevStats={prevStats?.backtopool}
+                eff={calculateEfficiency('backtopool')} stage="backtopool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
+                prevPeriod={prevPeriodText}
+              />
+            )}
           </div>
 
           {/* ── DELAY ANALYSIS CENTER ── */}
@@ -472,25 +607,56 @@ export default function LeadTimePage() {
                 <h3 className="text-base sm:text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 sm:gap-3 truncate">
                   <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" /> Delay Analysis
                 </h3>
-                <p className="text-[9px] sm:text-xs text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Deep-dive into operational abnormalities</p>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700/50 text-[10px] font-black text-blue-400 uppercase tracking-widest shrink-0">
-                <Info className="w-3.5 h-3.5" /> Top Reasons Breakdown
+                <p className="text-[9px] sm:text-xs text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Klik DELAY untuk lihat rincian penyebab</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-12 w-full max-w-full overflow-hidden">
-              <ReasonSection title="OUTPOOL DELAYS" reasons={stats?.outpool?.reasons} color="text-amber-500" onSelect={(r) => setSelectedReason({title: 'OUTPOOL DELAY', reason: r.name, count: r.value})} />
-              <ReasonSection title="IN-PDC ANALYSIS" reasons={stats?.inpdc?.reasons} color="text-blue-500" onSelect={(r) => setSelectedReason({title: 'IN-PDC ANALYSIS', reason: r.name, count: r.value})} />
-              <ReasonSection title="DELIVERY DELAYS" reasons={stats?.delivery?.reasons} color="text-red-500" onSelect={(r) => setSelectedReason({title: 'DELIVERY DELAY', reason: r.name, count: r.value})} />
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${area === 'TMMIN' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'} gap-6 sm:gap-12 w-full max-w-full overflow-hidden`}>
+              <ReasonSection title="OUTPOOL DELAYS" stageStats={stats?.outpool} color="text-amber-500"
+                onClickDelay={() => setDelayPopup({ title: 'OUTPOOL DELAY REASONS', reasons: (stats?.outpool?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.outpool?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
+                onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
+              />
+              <ReasonSection title="IN-PDC ANALYSIS" stageStats={stats?.inpdc} color="text-blue-500"
+                onClickDelay={() => setDelayPopup({ title: 'IN-PDC DELAY REASONS', reasons: (stats?.inpdc?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.inpdc?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
+                onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
+              />
+              <ReasonSection title="DELIVERY DELAYS" stageStats={stats?.delivery} color="text-red-500"
+                onClickDelay={() => setDelayPopup({ title: 'DELIVERY DELAY REASONS', reasons: (stats?.delivery?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.delivery?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
+                onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
+              />
+              {area !== 'TMMIN' && (
+                <ReasonSection title="BACK-TO-POOL DELAYS" stageStats={stats?.backtopool} color="text-purple-500"
+                  onClickDelay={() => setDelayPopup({ title: 'BACK-TO-POOL DELAY REASONS', reasons: (stats?.backtopool?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.backtopool?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
+                  onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
+                />
+              )}
             </div>
           </div>
 
           {/* ── PERFORMANCE TREND ── */}
           <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-[20px] sm:rounded-[40px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 p-4 sm:p-8 w-full max-w-full overflow-hidden box-border">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4 sm:gap-6 overflow-hidden">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight truncate">Performance Trend</h3>
-                <p className="text-[7px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Daily Efficiency (OnTime + Advance)</p>
+              <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-3 flex-1 overflow-hidden">
+                <div>
+                  <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight truncate">Performance Trend</h3>
+                  <p className="text-[7px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Daily Efficiency (OnTime + Advance)</p>
+                </div>
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-fit">
+                  {(['outpool', 'inpdc', 'delivery', 'backtopool'] as const)
+                    .filter(s => !(area === 'TMMIN' && s === 'backtopool'))
+                    .map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setTrendStage(s)}
+                      className={`py-1 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                        trendStage === s 
+                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                      }`}
+                    >
+                      {s.replace('backtopool', 'back-to-pool')}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
                 <LegendItem color={STATUS_COLORS.ontime} label="OnTime" />
@@ -518,64 +684,86 @@ export default function LeadTimePage() {
 
           {/* ── DATA DETAILS ── */}
           <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-[20px] sm:rounded-[40px] border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 w-full max-w-full overflow-hidden box-border">
-            <div className="p-4 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 overflow-hidden">
-              <div className="flex flex-wrap items-center gap-3 min-w-0 flex-1 overflow-hidden">
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">LeadTime Details</h3>
-                  <p className="text-[8px] sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 uppercase tracking-wider truncate">
-                    Showing <span className="font-black text-blue-600">{filteredData.length}</span> records
-                  </p>
-                </div>
-                {(activeFilter || reasonFilter) && (
-                  <button onClick={() => { setActiveFilter(null); setReasonFilter(null); }} className="flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 rounded-lg text-[7px] font-black border border-blue-100 dark:border-blue-500/20 uppercase tracking-widest shrink-0 transition-all">
-                    RESET <X className="w-2.5 h-2.5" />
-                  </button>
-                )}
+            <div className="p-4 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">LeadTime Details</h3>
+                <p className="text-[8px] sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 uppercase tracking-wider truncate">
+                  Showing <span className="font-black text-blue-600">{filteredData.length}</span> records
+                </p>
               </div>
-              <div className="relative w-full lg:w-62.5 shrink-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input type="text" placeholder="Quick search..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-[9px] font-bold focus:ring-2 focus:ring-blue-500 shadow-inner uppercase" />
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 shrink-0">
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-full lg:w-fit overflow-x-auto scrollbar-hide">
+                  {(['ALL', 'outpool', 'inpdc', 'delivery', 'backtopool'] as const)
+                    .filter(s => !(area === 'TMMIN' && s === 'backtopool'))
+                    .map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setTableStageFilter(s)}
+                      className={`py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                        tableStageFilter === s 
+                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                      }`}
+                    >
+                      {s.replace('backtopool', 'back-to-pool')}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative w-full lg:w-62.5 shrink-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                  <input type="text" placeholder="Quick search..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-none rounded-xl text-[9px] font-bold focus:ring-2 focus:ring-blue-500 shadow-inner uppercase" />
+                </div>
               </div>
             </div>
-            
+
+            {/* (Driver Delay Summary removed) */}
+
             <div className="w-full overflow-x-auto scrollbar-hide max-w-full block">
               <table className="w-full text-left min-w-150 border-collapse table-fixed">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-400 uppercase text-[7px] sm:text-[9px] font-black tracking-widest border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-4 py-5 w-25">Tgl / Area</th>
-                    <th className="px-4 py-5 w-30">Driver Info</th>
-                    <th className="px-4 py-5 w-25">Vehicle</th>
-                    <th className="px-4 py-5 w-25">OutPool</th>
-                    <th className="px-4 py-5 w-25">InPDC</th>
-                    <th className="px-4 py-5 w-25">Delivery</th>
-                    <th className="px-4 py-5 w-15 text-right pr-6 sm:pr-10">Timeline</th>
+                    {[{key:'tanggal',label:'Tgl/Area',w:'w-25'},{key:'driver',label:'Driver',w:'w-30'},{key:'',label:'Vehicle',w:'w-25'},{key:'ontime',label:'Total OnTime',w:'w-20'},{key:'advance',label:'Total Advance',w:'w-20'},{key:'delay',label:'Total Delay',w:'w-20'}].map(col => (
+                      <th key={col.key||col.label} className={`px-4 py-5 ${col.w} cursor-pointer select-none`} onClick={() => col.key && handleSort(col.key)}>
+                        <div className="flex items-center gap-1">
+                          {col.label}
+                          {col.key && sortBy === col.key && (
+                            <span className="text-blue-500">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {paginatedData.map((item) => (
-                    <tr key={item.id} onClick={() => setSelectedTrip(item)} className="hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all group cursor-pointer">
-                      <td className="px-4 py-4 overflow-hidden">
-                        <div className="text-[9px] sm:text-[11px] font-black text-slate-900 dark:text-white uppercase truncate">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</div>
-                        <div className="text-[7px] sm:text-[8px] text-blue-600 dark:text-blue-400 font-black mt-0.5 tracking-wider uppercase truncate">{item.area}</div>
-                      </td>
-                      <td className="px-4 py-4 overflow-hidden">
-                        <div className="text-[9px] sm:text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase truncate">{item.driver}</div>
-                        <div className="text-[7px] sm:text-[8px] text-blue-500 font-black mt-0.5 uppercase tracking-widest truncate">RIT {item.ritase_ke || '-'}</div>
-                      </td>
-                      <td className="px-4 py-4 overflow-hidden">
-                        <div className="text-[9px] sm:text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase truncate">{item.no_polisi}</div>
-                        <div className="text-[7px] sm:text-[8px] text-slate-400 font-bold uppercase tracking-tight mt-0.5 truncate">Realtime</div>
-                      </td>
-                      <td className="px-4 py-4"><StatusBadge status={getRowStatus(item, 'outpool')} label={getStatusValue(item, 'outpool')} /></td>
-                      <td className="px-4 py-4"><StatusBadge status={getRowStatus(item, 'inpdc')} label={getStatusValue(item, 'inpdc')} /></td>
-                      <td className="px-4 py-4"><StatusBadge status={getRowStatus(item, 'delivery')} label={getStatusValue(item, 'delivery')} /></td>
-                      <td className="px-4 py-4 text-right pr-6 sm:pr-10 overflow-hidden">
-                        <div className="inline-flex p-1.5 sm:p-2 bg-slate-50 dark:bg-slate-800 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm border border-slate-100 dark:border-slate-700">
-                          <Navigation className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {paginatedData.map((item) => {
+                    const counts = item;
+                    const isSelected = globalDriverFilter === item.driver;
+                    return (
+                      <tr key={item.id} onClick={() => setGlobalDriverFilter(prev => prev === item.driver ? null : item.driver)} className={`hover:bg-blue-50/50 dark:hover:bg-blue-500/10 transition-all group cursor-pointer ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                        <td className="px-4 py-4 overflow-hidden">
+                          <div className="text-[9px] sm:text-[11px] font-black text-slate-900 dark:text-white uppercase truncate">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</div>
+                          <div className="text-[7px] sm:text-[8px] text-blue-600 dark:text-blue-400 font-black mt-0.5 tracking-wider uppercase truncate">{item.area}</div>
+                        </td>
+                        <td className="px-4 py-4 overflow-hidden">
+                          <div className="text-[9px] sm:text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase truncate">{item.driver}</div>
+                          <div className="text-[7px] sm:text-[8px] text-blue-500 font-black mt-0.5 uppercase tracking-widest truncate">{item.trips.length} TRIP{item.trips.length > 1 ? 'S' : ''}</div>
+                        </td>
+                        <td className="px-4 py-4 overflow-hidden">
+                          <div className="text-[9px] sm:text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase truncate">{item.no_polisi}</div>
+                          <div className="text-[7px] sm:text-[8px] text-slate-400 font-bold uppercase tracking-tight mt-0.5 truncate">{item.shift || '-'}</div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className={`text-[10px] sm:text-[12px] font-black ${counts.onTime > 0 ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-700'}`}>{counts.onTime}</div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className={`text-[10px] sm:text-[12px] font-black ${counts.advance > 0 ? 'text-amber-500' : 'text-slate-300 dark:text-slate-700'}`}>{counts.advance}</div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className={`text-[10px] sm:text-[12px] font-black ${counts.delay > 0 ? 'text-red-500' : 'text-slate-300 dark:text-slate-700'}`}>{counts.delay}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -596,6 +784,55 @@ export default function LeadTimePage() {
           </div>
 
       {/* ── MODALS ── */}
+      {createPortal(
+        <AnimatePresence>
+          {delayPopup && (
+            <div className="fixed inset-0 z-[20000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDelayPopup(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+              <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[40px] shadow-2xl p-5 sm:p-10 border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+                <ModalHeader title={delayPopup.title} onClose={() => setDelayPopup(null)} />
+                <div className="space-y-4 mt-6">
+                  {delayPopup.reasons.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {delayPopup.reasons.sort((a,b)=>b.value-a.value).map((r, i) => {
+                        const pct = delayPopup.delayCount > 0 ? Math.round((r.value / delayPopup.delayCount) * 100) : 0;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setReasonFilter(r.name);
+                              setCurrentPage(1);
+                              setDelayPopup(null);
+                            }}
+                            className="flex flex-col gap-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-slate-200/50 dark:border-slate-700/50 text-left group"
+                          >
+                            <div className="flex justify-between items-start">
+                              <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest leading-tight pr-4">{r.name}</span>
+                              <div className="text-right shrink-0">
+                                <span className="block text-sm font-black text-red-500">{r.value}</span>
+                                <span className="block text-[8px] font-bold text-slate-400">{pct}%</span>
+                              </div>
+                            </div>
+                            <div className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mt-1">
+                              <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                     <div className="py-8 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                       Tidak ada detail delay spesifik
+                     </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
       {createPortal(
         <AnimatePresence>
           {selectedReason && (
@@ -622,74 +859,74 @@ export default function LeadTimePage() {
         </AnimatePresence>,
         document.body
       )}
-      
-      {createPortal(
-        <AnimatePresence>
-          {selectedTrip && (
-            <div className="fixed inset-0 z-[20000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedTrip(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-              <motion.div initial={{ opacity: 0, y: 100, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 100, scale: 0.95 }} className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[40px] shadow-2xl p-5 sm:p-10 border border-slate-100 dark:border-slate-800 overflow-y-auto max-h-[90vh]">
-                <ModalHeader title="Trip Timeline" onClose={() => setSelectedTrip(null)} />
-                <div className="flex flex-col sm:flex-row justify-between mb-8 sm:mb-10 gap-6 overflow-hidden">
-                  <div className="min-w-0 flex-1 overflow-hidden">
-                    <h4 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none truncate">{selectedTrip.driver}</h4>
-                    <p className="text-blue-600 font-black text-[8px] sm:text-xs uppercase mt-1.5 sm:mt-3 tracking-widest truncate">
-                      RITASE {selectedTrip.ritase_ke} • {selectedTrip.area}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 sm:p-3 rounded-2xl shrink-0 overflow-hidden">
-                    <div className="text-right min-w-0 overflow-hidden">
-                      <p className="text-[7px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Vehicle</p>
-                      <p className="text-[9px] sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">{selectedTrip.no_polisi}</p>
-                    </div>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-slate-100 dark:border-slate-800 shrink-0">
-                      <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-7 sm:space-y-10 relative before:absolute before:left-4.25 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800 overflow-hidden">
-                  {getTimelineEvents(selectedTrip).map((event, i) => (
-                    <div key={i} className="flex gap-4 sm:gap-6 relative z-10 group min-w-0 overflow-hidden">
-                      <div className={`w-9 h-9 rounded-full bg-white dark:bg-slate-900 border-4 ${event.actual ? 'border-blue-50 dark:border-blue-900/40' : 'border-slate-50 dark:border-slate-800'} flex items-center justify-center shadow-sm transition-all shrink-0`}>
-                        <div className={`w-2.5 h-2.5 rounded-full ${event.actual ? (event.status === 'Delay' ? 'bg-red-500' : event.status === 'Advance' ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-slate-300 dark:bg-slate-700'}`} />
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <div className="flex items-center justify-between mb-1 sm:mb-2 gap-2 overflow-hidden">
-                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-hidden">
-                            <p className={`text-[8px] sm:text-xs font-black uppercase tracking-tight truncate ${event.actual ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{event.label}</p>
-                            {event.actual && event.status !== 'OnTime' && (
-                              <span className={`px-1.5 py-0.5 rounded-lg text-[5px] sm:text-[8px] font-black uppercase tracking-widest shrink-0 ${event.status === 'Delay' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-600'}`}>
-                                {event.status}
-                              </span>
-                            )}
-                          </div>
-                          <p className={`text-[9px] sm:text-sm font-black shrink-0 ${event.status === 'Delay' ? 'text-red-500' : event.status === 'Advance' ? 'text-amber-500' : 'text-emerald-500'}`}>
-                            {event.actual || '--:--'}
-                          </p>
-                        </div>
-                        {event.plan && (
-                          <div className="flex items-center gap-1.5 mt-1 sm:mt-2 opacity-70 overflow-hidden">
-                            <CalendarDays className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400 shrink-0" />
-                            <p className="text-[6px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">Plan: {event.plan}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-8 sm:mt-12 pt-6 sm:pt-10 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                  <button onClick={() => setSelectedTrip(null)} className="w-full sm:w-auto px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl sm:rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all">Close Window</button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReasonSection({ title, stageStats, color, onClickDelay, onSelect }: {
+  title: string;
+  stageStats: any;
+  color: string;
+  onClickDelay: () => void;
+  onSelect: (r: { name: string; value: number }) => void;
+}) {
+  const allReasons: { name: string; value: number }[] = stageStats?.reasons || [];
+  const delayCount: number = stageStats?.chartData?.find((d: any) => d.name === 'Delay')?.value || 0;
+  const total: number = stageStats?.total || 0;
+  const delayPct = total > 0 ? ((delayCount / total) * 100).toFixed(0) : '0';
+
+  const actualReasons = allReasons.filter(r => {
+    const lower = r.name.toLowerCase();
+    return !lower.includes('delay') && !lower.includes('advance') && !lower.includes('ontime')
+      && !lower.includes('on time') && lower !== 'ok' && lower !== '-' && lower !== 'tidak ada';
+  });
+
+  if (delayCount === 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2 mb-2">
+          <div className={`w-1 h-4 rounded-full bg-current ${color}`} />
+          <h4 className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{title}</h4>
+        </div>
+        <div className="flex flex-col items-center justify-center p-8 border border-dashed border-slate-700/50 rounded-2xl bg-slate-800/20">
+          <CheckCircle2 className="w-6 h-6 text-emerald-500/50 mb-2" />
+          <span className="text-[9px] font-black text-slate-500 tracking-widest uppercase">No Abnormalities</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`w-1 h-4 rounded-full bg-current ${color}`} />
+        <h4 className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{title}</h4>
+      </div>
+
+      {/* DELAY card — click to open popup */}
+      <button
+        onClick={onClickDelay}
+        className="w-full flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800/80 rounded-2xl border border-slate-700/50 hover:border-red-500/40 transition-all group"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-2.5 h-2.5 rounded-full bg-current ${color}`} />
+          <div className="text-left">
+            <div className="text-xs font-black text-slate-300 uppercase tracking-widest group-hover:text-white transition-colors">DELAY</div>
+            {actualReasons.length > 0 && (
+              <div className="text-[8px] text-slate-500 font-bold mt-0.5">{actualReasons.length} reason{actualReasons.length > 1 ? 's' : ''} — klik untuk lihat</div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-lg font-black text-white">{delayCount}</div>
+            <div className="text-[8px] font-bold text-slate-500">{delayPct}%</div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition-colors" />
+        </div>
+      </button>
     </div>
   );
 }
@@ -699,6 +936,7 @@ function StageBox({ title, icon, stats, prevStats, eff, stage, activeFilter, set
   const delayData = stats?.chartData?.find((d: any) => d.name === 'Delay');
   const advanceData = stats?.chartData?.find((d: any) => d.name === 'Advance');
   const isInPdc = title === 'IN-PDC';
+  const total = stats?.total || 0;
   
   return (
     <div className="bg-white dark:bg-slate-900/60 rounded-2xl sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 p-3 sm:p-8 flex flex-col h-full hover:border-blue-500/30 transition-all duration-500 group overflow-hidden w-full max-w-full box-border">
@@ -764,38 +1002,11 @@ function StageBox({ title, icon, stats, prevStats, eff, stage, activeFilter, set
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-sm sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{eff}</span>
-          <span className="text-[6px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5 sm:mt-1">Efficiency</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white tracking-tighter">{total}</span>
+          <span className="text-[7px] sm:text-[9px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">TRIPS</span>
+          <span className="text-[8px] sm:text-[10px] font-black text-blue-500 mt-1 uppercase tracking-widest">{eff}</span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ReasonSection({ title, reasons, color, onSelect }: any) {
-  return (
-    <div className="space-y-4 sm:space-y-6 w-full overflow-hidden box-border">
-      <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
-        <div className={`w-1 sm:w-1.5 h-4 sm:h-6 rounded-full bg-current ${color} shrink-0`} />
-        <h4 className="text-[8px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest truncate">{title}</h4>
-      </div>
-      <div className="flex flex-col gap-2 sm:gap-3 w-full overflow-hidden">
-        {reasons?.length > 0 ? reasons.map((r: any, i: number) => (
-          <button key={i} onClick={() => onSelect(r)} className="w-full group bg-slate-800/40 hover:bg-slate-800 border border-slate-700/30 hover:border-slate-600 p-2.5 sm:p-3.5 rounded-xl transition-all flex items-center justify-between min-w-0 overflow-hidden">
-            <span className="text-[8px] sm:text-[11px] font-bold text-slate-400 group-hover:text-white truncate pr-2 text-left uppercase flex-1">{r.name}</span>
-            <div className="flex items-center gap-2 sm:gap-4 shrink-0 overflow-hidden">
-              <div className="w-8 sm:w-16 h-1 bg-slate-700 rounded-full overflow-hidden shrink-0">
-                <div className="h-full bg-blue-600 transition-all duration-500" style={{ width: `${Math.min((r.value / (reasons[0]?.value || 1)) * 100, 100)}%` }} />
-              </div>
-              <span className="text-[8px] sm:text-[11px] font-black text-white w-4 text-right shrink-0">{r.value}</span>
-            </div>
-          </button>
-        )) : (
-          <div className="py-4 sm:py-8 text-center text-[7px] sm:text-[10px] font-black text-slate-600 uppercase tracking-widest border border-dashed border-slate-800 rounded-xl flex flex-col items-center gap-1.5 overflow-hidden">
-            <CheckCircle2 className="w-4 h-4 sm:w-6 sm:h-6 text-emerald-500/20 shrink-0" /> No Abnormalities
-          </div>
-        )}
       </div>
     </div>
   );
@@ -804,7 +1015,6 @@ function ReasonSection({ title, reasons, color, onSelect }: any) {
 function StatusCard({ onClick, active, type, eff, count, prevCount, prevPeriod }: any) {
   const isDelay = type === 'Delay';
   const isAdvance = type === 'Advance';
-  
   const delta = (count || 0) - (prevCount || 0);
   const isUp = delta > 0;
   const isGood = isDelay ? delta < 0 : delta > 0;
@@ -812,21 +1022,33 @@ function StatusCard({ onClick, active, type, eff, count, prevCount, prevPeriod }
   const percentage = !prevCount ? (count > 0 ? 100 : 0) : Math.abs((delta / prevCount) * 100);
 
   return (
-    <button onClick={onClick} className={`w-full rounded-xl border transition-all text-left shadow-sm p-3 overflow-hidden shrink-0 ${active ? (isDelay ? 'bg-red-600 text-white border-red-700' : isAdvance ? 'bg-amber-500 text-white border-amber-600' : 'bg-emerald-500 text-white border-emerald-600') : (isDelay ? 'bg-red-50 dark:bg-red-500/5 border-red-100 dark:border-red-500/20' : isAdvance ? 'bg-amber-50 dark:bg-amber-500/5 border-amber-100 dark:border-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-500/20')}`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className={`block text-[6px] sm:text-[9px] font-black uppercase tracking-widest truncate ${active ? 'opacity-90' : (isDelay ? 'text-red-500' : isAdvance ? 'text-amber-500' : 'text-emerald-600')}`}>{type}</span>
+    <button onClick={onClick} className={`w-full rounded-xl border transition-all text-left shadow-sm p-3 overflow-hidden shrink-0 ${
+      active
+        ? (isDelay ? 'bg-red-600 text-white border-red-700' : isAdvance ? 'bg-amber-500 text-white border-amber-600' : 'bg-emerald-500 text-white border-emerald-600')
+        : (isDelay ? 'bg-red-50 dark:bg-red-500/5 border-red-100 dark:border-red-500/20' : isAdvance ? 'bg-amber-50 dark:bg-amber-500/5 border-amber-100 dark:border-amber-500/20' : 'bg-emerald-50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-500/20')
+    }`}>
+      <div className="flex items-center justify-between mb-1">
+        <span className={`block text-[6px] sm:text-[8px] font-black uppercase tracking-widest truncate ${
+          active ? 'opacity-90' : (isDelay ? 'text-red-500' : isAdvance ? 'text-amber-500' : 'text-emerald-600')
+        }`}>{type}</span>
         {prevCount !== undefined && (
-          <div className={`flex items-center gap-0.5 text-[8px] font-black ${active ? 'text-white' : (isGood ? 'text-emerald-500' : isBad ? 'text-red-500' : 'text-slate-400')}`}>
+          <div className={`flex items-center gap-0.5 text-[7px] font-black ${
+            active ? 'text-white/80' : (isGood ? 'text-emerald-500' : isBad ? 'text-red-500' : 'text-slate-400')
+          }`}>
             {isUp ? <ChevronUp className="w-2.5 h-2.5" /> : delta < 0 ? <ChevronDown className="w-2.5 h-2.5" /> : null}
             {percentage.toFixed(0)}%
           </div>
         )}
       </div>
-      <div className={`text-[11px] sm:text-2xl font-black uppercase tracking-tighter leading-none truncate`}>{eff || '0%'}</div>
-      <div className={`flex items-center justify-between mt-2`}>
-        <div className={`text-[7px] sm:text-[9px] font-bold opacity-70 uppercase truncate tracking-tight`}>{count || 0} Trips</div>
-        {prevCount !== undefined && <div className="text-[6px] opacity-40 font-black uppercase tracking-tighter shrink-0">{prevPeriod || 'vs prev'}</div>}
-      </div>
+      {/* Trips count — big */}
+      <div className="text-[14px] sm:text-2xl font-black tracking-tighter leading-none truncate">{count ?? 0}</div>
+      {/* Efficiency % — small below */}
+      <div className={`text-[8px] sm:text-[10px] font-bold mt-0.5 tracking-widest truncate ${
+        active ? 'opacity-80' : (isDelay ? 'text-red-400' : isAdvance ? 'text-amber-400' : 'text-emerald-500')
+      }`}>{eff || '0%'}</div>
+      {prevCount !== undefined && (
+        <div className="text-[6px] opacity-40 font-black uppercase tracking-tighter mt-1 truncate shrink-0">{prevPeriod || 'vs prev'}</div>
+      )}
     </button>
   );
 }

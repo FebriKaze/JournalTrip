@@ -18,17 +18,34 @@ export interface LeadTimeData {
 
 export const leadtimeService = {
   async getLeadTimes(startDate?: string, endDate?: string, area?: string) {
-    let query = supabase
-      .from('leadtimes')
-      .select('*')
-      .order('tanggal', { ascending: false });
+    const PAGE_SIZE = 1000;
+    let allData: LeadTimeData[] = [];
+    let page = 0;
+    let hasMore = true;
 
-    if (startDate) query = query.gte('tanggal', startDate);
-    if (endDate) query = query.lte('tanggal', endDate);
-    if (area && area !== 'ALL') query = query.eq('area', area);
+    while (hasMore) {
+      let query = supabase
+        .from('leadtimes')
+        .select('*')
+        .order('tanggal', { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    const { data, error } = await query.limit(5000);
-    if (error) throw error;
-    return data as LeadTimeData[];
+      if (startDate) query = query.gte('tanggal', startDate);
+      if (endDate)   query = query.lte('tanggal', endDate);
+      if (area && area !== 'ALL') query = query.eq('area', area);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allData = allData.concat(data as LeadTimeData[]);
+        hasMore = data.length === PAGE_SIZE;
+        page++;
+      }
+    }
+
+    return allData;
   }
 };
