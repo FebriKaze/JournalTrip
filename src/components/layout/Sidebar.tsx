@@ -6,7 +6,8 @@ import {
   X, User, Search,
   PanelLeftClose, PanelLeft,
   Route, ChevronRight, BarChart3,
-  Activity, Ticket, ClipboardCheck
+  Activity, Ticket, ClipboardCheck,
+  Timer
 } from 'lucide-react';
 import { Driver } from '../../types';
 import Logo from '../../image/Logo.png';
@@ -28,6 +29,7 @@ interface SidebarProps {
 const NAV_ITEMS: { id: string; label: string; icon: ReactNode; sub?: string; path: string }[] = [
   { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking', path: '/' },
   { id: 'monitoring', label: 'Monitoring', icon: <BarChart3 className="w-5 h-5" />, sub: 'Fleet Status', path: '/monitoring' },
+  { id: 'standar-leadtime', label: 'Standar Leadtime', icon: <Timer className="w-5 h-5" />, sub: 'Reference Guide', path: '/standar-leadtime' },
   { id: 'tenko', label: 'Tenko', icon: <Activity className="w-5 h-5" />, sub: 'Health Check', path: '/tenko' },
   { id: 'p2h', label: 'P2H', icon: <ClipboardCheck className="w-5 h-5" />, sub: 'Checklist', path: '/p2h' },
   { id: 'gatepass', label: 'Gatepass', icon: <Ticket className="w-5 h-5" />, sub: 'Control Room', path: '/gatepass' },

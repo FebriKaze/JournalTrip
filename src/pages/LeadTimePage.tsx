@@ -179,13 +179,13 @@ export default function LeadTimePage() {
     };
 
     if (stage === 'outpool') {
-      const val = findExactOrInclude(info, ['Evaluasi Keluar Pool', 'Abnormalty']).toLowerCase();
+      const val = findExactOrInclude(info, ['Evaluasi Keluar Pool', 'Abnormalty', 'Actual OutPool']).toLowerCase();
       if (val.includes('delay')) return 'Delay';
       return 'OnTime';
     }
 
     if (stage === 'inpdc') {
-      const val = findExactOrInclude(info, ['Evaluasi Kedatangan CC']).toLowerCase();
+      const val = findExactOrInclude(info, ['Evaluasi Kedatangan CC', 'Actual InPDC', 'Actual In PDC']).toLowerCase();
       if (val.includes('advance')) return 'Advance';
       if (val.includes('delay')) return 'Delay';
       if (val.includes('ontime') || val.includes('on time') || val.includes('ok')) return 'OnTime';
@@ -201,7 +201,7 @@ export default function LeadTimePage() {
       if (areaName === 'JBK') val = (findExactOrInclude(points, ['LeadTime Delivery']) || findExactOrInclude(info, ['Leadtime delivery'])).toLowerCase();
       else if (areaName === 'NGORO') val = findExactOrInclude(info, ['Status Leadtime Delivery']).toLowerCase();
       else if (areaName === 'TMMIN') val = (findExactOrInclude(points, ['LeadTime Delivery', 'Leadtime delivery']) || findExactOrInclude(info, ['Status Leadtime'])).toLowerCase();
-      else if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) val = findExactOrInclude(info, ['Status Leadtime']).toLowerCase();
+      else if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) val = findExactOrInclude(info, ['Status Leadtime', 'Actual Delivery']).toLowerCase();
       else if (areaName === 'SUMATERA') {
         const durationStr = findExactOrInclude(points, ['LeadTime Delivery']);
         const destination = findExactOrInclude(info, ['Tujuan', 'Tujuan CC', 'Destination']).toUpperCase();
@@ -228,7 +228,7 @@ export default function LeadTimePage() {
       return 'Unknown';
     }
     if (stage === 'backtopool') {
-      const val = findExactOrInclude(info, ['Evaluasi Kedatangan CC', 'Keterangan', 'Status Leadtime Back To Pool']).toLowerCase();
+      const val = findExactOrInclude(info, ['Evaluasi Kedatangan CC', 'Keterangan', 'Status Leadtime Back To Pool', 'Actual BackToPool', 'Actual Back To Pool']).toLowerCase();
       if (val.includes('delay')) return 'Delay';
       if (val.includes('ontime') || val.includes('on time') || val.includes('ok')) return 'OnTime';
       return 'Unknown';
@@ -432,17 +432,17 @@ export default function LeadTimePage() {
   const getStatusValue = (item: LeadTimeData, stage: string) => {
     const info = item.status_info || {};
     const points = item.checkpoints || {};
-    if (stage === 'outpool') return info['Evaluasi Keluar Pool'] || info['Abnormalty'] || '-';
-    if (stage === 'inpdc') return info['Evaluasi Kedatangan CC'] || info['Keterangan'] || '-';
+    if (stage === 'outpool') return info['Evaluasi Keluar Pool'] || info['Abnormalty'] || info['Actual OutPool'] || '-';
+    if (stage === 'inpdc') return info['Evaluasi Kedatangan CC'] || info['Keterangan'] || info['Actual InPDC'] || '-';
     if (stage === 'delivery') {
       const areaName = item.area?.toUpperCase();
       if (areaName === 'JBK') return points['LeadTime Delivery'] || info['Leadtime delivery'] || '-';
       if (areaName === 'NGORO') return info['Status Leadtime Delivery'] || '-';
       if (areaName === 'TMMIN') return points['LeadTime Delivery'] || points['Leadtime Delivery'] || info['Status Leadtime'] || '-';
-      if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) return info['Status Leadtime'] || '-';
+      if (['PADANG', 'SULAWESI', 'KALIMANTAN'].includes(areaName)) return info['Actual Delivery'] || info['Status Leadtime'] || '-';
       if (areaName === 'SUMATERA') return points['LeadTime Delivery'] || '-';
     }
-    if (stage === 'backtopool') return info['Status Leadtime Back To Pool'] || '-';
+    if (stage === 'backtopool') return info['Status Leadtime Back To Pool'] || info['Actual BackToPool'] || '-';
     return '-';
   };
 
@@ -722,7 +722,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
               <table className="w-full text-left min-w-150 border-collapse table-fixed">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-400 uppercase text-[7px] sm:text-[9px] font-black tracking-widest border-b border-slate-100 dark:border-slate-800">
-                    {[{key:'tanggal',label:'Tgl/Area',w:'w-25'},{key:'driver',label:'Driver',w:'w-30'},{key:'',label:'Vehicle',w:'w-25'},{key:'ontime',label:'Total OnTime',w:'w-20'},{key:'advance',label:'Total Advance',w:'w-20'},{key:'delay',label:'Total Delay',w:'w-20'}].map(col => (
+                    {[{key:'tanggal',label:'Periode/Area',w:'w-25'},{key:'driver',label:'Driver',w:'w-30'},{key:'',label:'Vehicle',w:'w-25'},{key:'ontime',label:'Total OnTime',w:'w-20'},{key:'advance',label:'Total Advance',w:'w-20'},{key:'delay',label:'Total Delay',w:'w-20'}].map(col => (
                       <th key={col.key||col.label} className={`px-4 py-5 ${col.w} cursor-pointer select-none`} onClick={() => col.key && handleSort(col.key)}>
                         <div className="flex items-center gap-1">
                           {col.label}
@@ -741,7 +741,15 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
                     return (
                       <tr key={item.id} onClick={() => setGlobalDriverFilter(prev => prev === item.driver ? null : item.driver)} className={`hover:bg-blue-50/50 dark:hover:bg-blue-500/10 transition-all group cursor-pointer ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
                         <td className="px-4 py-4 overflow-hidden">
-                          <div className="text-[9px] sm:text-[11px] font-black text-slate-900 dark:text-white uppercase truncate">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}</div>
+                          <div className="text-[9px] sm:text-[11px] font-black text-slate-900 dark:text-white uppercase truncate">
+                            {item.trips.length > 1 ? (() => {
+                              const dates = item.trips.map((t: any) => new Date(t.tanggal).getTime());
+                              const min = new Date(Math.min(...dates));
+                              const max = new Date(Math.max(...dates));
+                              if (min.getTime() === max.getTime()) return min.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                              return `${min.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} - ${max.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}`;
+                            })() : new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                          </div>
                           <div className="text-[7px] sm:text-[8px] text-blue-600 dark:text-blue-400 font-black mt-0.5 tracking-wider uppercase truncate">{item.area}</div>
                         </td>
                         <td className="px-4 py-4 overflow-hidden">

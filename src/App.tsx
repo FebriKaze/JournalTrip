@@ -11,6 +11,7 @@ const DriverDetailPage = lazy(() => import('./pages/DriverDetailPage'));
 const FleetMonitoringPage = lazy(() => import('./pages/FleetMonitoringPage'));
 const EcoDrivingPage = lazy(() => import('./pages/EcoDrivingPage'));
 const LeadTimePage = lazy(() => import('./pages/LeadTimePage'));
+const StandarLeadtimePage = lazy(() => import('./pages/StandarLeadtimePage'));
 const CarbonNeutralPage = lazy(() => import('./pages/CarbonNeutralPage'));
 const TenkoPage = lazy(() => import('./pages/TenkoPage'));
 const GatepassPage = lazy(() => import('./pages/GatepassPage'));
@@ -234,6 +235,7 @@ export default function App() {
                     } />
                     <Route path="/monitoring" element={<FleetMonitoringPage />} />
                     <Route path="/leadtime" element={<LeadTimePage />} />
+                    <Route path="/standar-leadtime" element={<StandarLeadtimePage />} />
                     <Route path="/eco" element={<EcoDrivingPage />} />
                     <Route path="/carbon" element={<CarbonNeutralPage />} />
                     <Route path="/tenko" element={<TenkoPage />} />

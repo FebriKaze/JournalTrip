@@ -905,7 +905,7 @@ export default function EcoDrivingPage() {
                         <Activity className="w-4 h-4 text-blue-500" />
                       </div>
                       <div>
-                        <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Incident Logs</h3>
+                        <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Violation Logs</h3>
                         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Latest abnormalities</p>
                       </div>
                     </div>
