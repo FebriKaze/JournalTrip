@@ -118,7 +118,7 @@ export default function FleetMonitoringPage() {
       otwPdc: filteredFleet.filter(f => f.status === 'OTW PDC').length,
       inPdc: filteredFleet.filter(f => f.status === 'In PDC').length,
       otwDest: filteredFleet.filter(f => f.status === 'OTW Destination').length,
-      atDest: filteredFleet.filter(f => f.status === 'At Destination' || f.status === 'Finished').length,
+      atDest: filteredFleet.reduce((acc, f) => acc + f.allTrips.filter((t: any) => t.actual_unloading).length, 0),
     };
   }, [filteredFleet]);
 

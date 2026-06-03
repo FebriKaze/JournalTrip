@@ -373,11 +373,12 @@ export async function fetchFleetMonitoringData(date: string) {
           changeRitase = curRitNo;
         }
 
-        // 2. Check for Potential Delay (current status)
-        if (!currentTrip.actual_outpool && isLate(null, currentTrip.plan_dccp)) {
+        // 2. Check for Potential Delay (any ritase)
+        const delayedTrip = enrichedTrips.find(t => t.isDelayed);
+        if (delayedTrip) {
           isDelayed = true;
-          delayRitase = curRitNo;
-        } else if (curEnriched?.isDelayed) {
+          delayRitase = delayedTrip.ritNo;
+        } else if (!currentTrip.actual_outpool && isLate(null, currentTrip.plan_dccp)) {
           isDelayed = true;
           delayRitase = curRitNo;
         }
@@ -408,8 +409,6 @@ export async function fetchFleetMonitoringData(date: string) {
         } else if (currentTrip.actual_outpool) {
           status = 'OTW PDC';
           lastUpdate = currentTrip.actual_outpool;
-          origin = 'Pool';
-          destination = currentTrip.pdc_muat;
         }
       }
 
