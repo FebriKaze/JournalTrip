@@ -1,6 +1,11 @@
 import { supabase } from '../lib/supabase';
 import { Driver, Ritase, RitaseStep } from '../types';
 
+function fmtTime(t: string | null | undefined): string | null {
+  if (!t) return null;
+  return t.length >= 5 ? t.substring(0, 5) : t;
+}
+
 function calculateDuration(start: string | null, end: string | null, area: string = 'JBK'): string {
   if (!start || !end || start === '--:--' || end === '--:--') return '--';
   try {
@@ -160,10 +165,10 @@ export async function fetchDriverProfile(driverId: string, month: string) { // m
         type: (isFinished ? 'completed' : (isActive ? 'active' : 'locked')) as any,
         duration: calculateDuration(row.actual_in_pdc, row.actual_unloading, row.area),
         timeline: [
-          { label: 'OUTPOOL', actual: row.actual_outpool || '--:--', type: (row.actual_outpool ? 'completed' : 'pending') as any },
-          { label: 'IN PDC', plan: row.plan_dccp || '--:--', actual: row.actual_in_pdc || '--:--', type: (row.actual_in_pdc ? 'completed' : (isActive ? 'active' : 'pending')) as any },
-          { label: 'OUT PDC', actual: row.actual_out_pdc || '--:--', type: (row.actual_out_pdc ? 'completed' : (row.actual_in_pdc ? 'active' : 'pending')) as any },
-          { label: 'UNLOADING', plan: row.plan_unloading || '--:--', actual: row.actual_unloading || '--:--', type: (row.actual_unloading ? 'completed' : (row.actual_out_pdc ? 'active' : 'pending')) as any }
+          { label: 'OUTPOOL', actual: fmtTime(row.actual_outpool) || '--:--', type: (row.actual_outpool ? 'completed' : 'pending') as any },
+          { label: 'IN PDC', plan: fmtTime(row.plan_dccp) || '--:--', actual: fmtTime(row.actual_in_pdc) || '--:--', type: (row.actual_in_pdc ? 'completed' : (isActive ? 'active' : 'pending')) as any },
+          { label: 'OUT PDC', actual: fmtTime(row.actual_out_pdc) || '--:--', type: (row.actual_out_pdc ? 'completed' : (row.actual_in_pdc ? 'active' : 'pending')) as any },
+          { label: 'UNLOADING', plan: fmtTime(row.plan_unloading) || '--:--', actual: fmtTime(row.actual_unloading) || '--:--', type: (row.actual_unloading ? 'completed' : (row.actual_out_pdc ? 'active' : 'pending')) as any }
         ]
       };
     });
@@ -218,10 +223,10 @@ export async function fetchDashboardData(selectedDate: string, driverId: string,
         type: (isFinished ? 'completed' : (isActive ? 'active' : 'locked')) as any,
         duration: calculateDuration(row.actual_in_pdc, row.actual_unloading, row.area || area),
         timeline: [
-          { label: 'OUTPOOL', actual: row.actual_outpool || '--:--', type: (row.actual_outpool ? 'completed' : 'pending') as any },
-          { label: 'IN PDC', plan: row.plan_dccp || '--:--', actual: row.actual_in_pdc || '--:--', type: (row.actual_in_pdc ? 'completed' : (isActive ? 'active' : 'pending')) as any },
-          { label: 'OUT PDC', actual: row.actual_out_pdc || '--:--', type: (row.actual_out_pdc ? 'completed' : (row.actual_in_pdc ? 'active' : 'pending')) as any },
-          { label: 'UNLOADING', plan: row.plan_unloading || '--:--', actual: row.actual_unloading || '--:--', type: (row.actual_unloading ? 'completed' : (row.actual_out_pdc ? 'active' : 'pending')) as any }
+          { label: 'OUTPOOL', actual: fmtTime(row.actual_outpool) || '--:--', type: (row.actual_outpool ? 'completed' : 'pending') as any },
+          { label: 'IN PDC', plan: fmtTime(row.plan_dccp) || '--:--', actual: fmtTime(row.actual_in_pdc) || '--:--', type: (row.actual_in_pdc ? 'completed' : (isActive ? 'active' : 'pending')) as any },
+          { label: 'OUT PDC', actual: fmtTime(row.actual_out_pdc) || '--:--', type: (row.actual_out_pdc ? 'completed' : (row.actual_in_pdc ? 'active' : 'pending')) as any },
+          { label: 'UNLOADING', plan: fmtTime(row.plan_unloading) || '--:--', actual: fmtTime(row.actual_unloading) || '--:--', type: (row.actual_unloading ? 'completed' : (row.actual_out_pdc ? 'active' : 'pending')) as any }
         ]
       };
     });
@@ -354,8 +359,13 @@ export async function fetchFleetMonitoringData(date: string) {
 
         return {
           ...t,
+          plan_dccp: fmtTime(t.plan_dccp),
+          actual_in_pdc: fmtTime(t.actual_in_pdc),
+          actual_outpool: fmtTime(t.actual_outpool),
+          actual_out_pdc: fmtTime(t.actual_out_pdc),
+          actual_unloading: fmtTime(t.actual_unloading),
           ritNo,
-          isDelayed: isLate(t.actual_in_pdc, t.plan_dccp),
+          isDelayed: false, // Disabled
           isChange
         };
       });
@@ -373,15 +383,8 @@ export async function fetchFleetMonitoringData(date: string) {
           changeRitase = curRitNo;
         }
 
-        // 2. Check for Potential Delay (any ritase)
-        const delayedTrip = enrichedTrips.find(t => t.isDelayed);
-        if (delayedTrip) {
-          isDelayed = true;
-          delayRitase = delayedTrip.ritNo;
-        } else if (!currentTrip.actual_outpool && isLate(null, currentTrip.plan_dccp)) {
-          isDelayed = true;
-          delayRitase = curRitNo;
-        }
+        // 2. Check for Potential Delay (any ritase) - Disabled
+        const delayedTrip = null;
 
         if (currentTrip.actual_unloading) {
           status = 'At Destination';
@@ -393,7 +396,7 @@ export async function fetchFleetMonitoringData(date: string) {
             status = 'OTW PDC';
             origin = currentTrip.pdc_bongkar;
             destination = nextTrip?.pdc_muat || 'Plant';
-            if (isLate(null, nextTrip?.plan_dccp || null)) {
+            if (false) { // Disabled delay check
               isDelayed = true;
               delayRitase = nextEnriched.ritNo;
             }
@@ -402,13 +405,13 @@ export async function fetchFleetMonitoringData(date: string) {
           }
         } else if (currentTrip.actual_out_pdc) {
           status = 'OTW Destination';
-          lastUpdate = currentTrip.actual_out_pdc;
+          lastUpdate = fmtTime(currentTrip.actual_out_pdc) || currentTrip.actual_out_pdc;
         } else if (currentTrip.actual_in_pdc) {
           status = 'In PDC';
-          lastUpdate = currentTrip.actual_in_pdc;
+          lastUpdate = fmtTime(currentTrip.actual_in_pdc) || currentTrip.actual_in_pdc;
         } else if (currentTrip.actual_outpool) {
           status = 'OTW PDC';
-          lastUpdate = currentTrip.actual_outpool;
+          lastUpdate = fmtTime(currentTrip.actual_outpool) || currentTrip.actual_outpool;
         }
       }
 
