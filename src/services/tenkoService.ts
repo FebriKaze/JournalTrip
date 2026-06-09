@@ -77,6 +77,93 @@ export function calculateSummary(records: TenkoRecord[]): TenkoSummary {
   return summary;
 }
 
+export type TensiTrendPoint = {
+  period: string;
+  normal: number;
+  hipertensi: number;
+  hipotensi: number;
+  total: number;
+};
+
+export type DriverTensiTrendPoint = {
+  driver: string;
+  normal: number;
+  hipertensi: number;
+  hipotensi: number;
+  total: number;
+};
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function classifyTensiStatus(sistolik: number, diastolik: number): 'normal' | 'hipertensi' | 'hipotensi' {
+  const sis = parseInt(String(sistolik)) || 0;
+  const dia = parseInt(String(diastolik)) || 0;
+  if (sis >= 140 || dia >= 90) return 'hipertensi';
+  if (sis < 90 || dia < 60) return 'hipotensi';
+  return 'normal';
+}
+
+function filterRecordsByDateRange(records: TenkoRecord[], startDate: string, endDate: string) {
+  return records.filter(r => r.tanggal >= startDate && r.tanggal <= endDate);
+}
+
+export function shouldUseMonthlyTrend(startDate: string, endDate: string) {
+  return startDate.slice(0, 7) !== endDate.slice(0, 7);
+}
+
+export function buildPeriodTensiTrends(
+  records: TenkoRecord[],
+  startDate: string,
+  endDate: string,
+  granularity: 'day' | 'month'
+): TensiTrendPoint[] {
+  const map: Record<string, TensiTrendPoint> = {};
+
+  filterRecordsByDateRange(records, startDate, endDate).forEach(item => {
+    const period = granularity === 'month' ? item.tanggal.slice(0, 7) : item.tanggal;
+    if (!map[period]) {
+      map[period] = { period, normal: 0, hipertensi: 0, hipotensi: 0, total: 0 };
+    }
+    map[period][classifyTensiStatus(item.sistolik, item.diastolik)]++;
+    map[period].total++;
+  });
+
+  return Object.values(map).sort((a, b) => a.period.localeCompare(b.period));
+}
+
+export function buildDriverTensiTrends(
+  records: TenkoRecord[],
+  startDate: string,
+  endDate: string
+): DriverTensiTrendPoint[] {
+  const map: Record<string, DriverTensiTrendPoint> = {};
+
+  filterRecordsByDateRange(records, startDate, endDate)
+    .filter(item => !item.is_assistant)
+    .forEach(item => {
+      const driver = item.nama_driver || 'Unknown';
+      if (!map[driver]) {
+        map[driver] = { driver, normal: 0, hipertensi: 0, hipotensi: 0, total: 0 };
+      }
+      map[driver][classifyTensiStatus(item.sistolik, item.diastolik)]++;
+      map[driver].total++;
+    });
+
+  return Object.values(map).sort((a, b) => b.total - a.total);
+}
+
+export function formatTrendPeriodLabel(period: string, granularity: 'day' | 'month') {
+  if (granularity === 'month') {
+    const [y, m] = period.split('-');
+    return `${MONTH_LABELS[Number(m) - 1]} '${y.slice(2)}`;
+  }
+  return period.split('-').slice(1).reverse().join('/');
+}
+
+export function matchesPeriodFilter(tanggal: string, filter: string) {
+  return filter.length === 7 ? tanggal.startsWith(filter) : tanggal === filter;
+}
+
 export async function fetchTenkoData(startDate: string, endDate: string, customer: string = 'ALL', area: string = 'ALL', personnelType: string = 'ALL') {
   try {
     console.log('Fetching Tenko Data:', { startDate, endDate, customer, area, personnelType });
@@ -198,19 +285,44 @@ export async function fetchUniqueAreas() {
  */
 export async function fetchUniqueCustomers(area: string = 'ALL') {
   try {
-    let query = supabase.from('tenko').select('customer');
-    
-    if (area && area !== 'ALL') {
-      query = query.eq('area', area);
+    const { data: rpcData, error: rpcError } = area && area !== 'ALL'
+      ? await supabase.rpc('get_unique_customers', { p_area: area })
+      : await supabase.rpc('get_unique_customers');
+
+    if (!rpcError && rpcData) {
+      const customers = rpcData
+        .map((item: { customer_name?: string; customer?: string }) => item.customer_name || item.customer)
+        .filter(Boolean);
+      console.log('Customers via RPC:', customers);
+      return ['ALL', ...customers.sort()];
     }
 
-    const { data, error } = await query.limit(10000);
-    if (error) throw error;
-      
-    const unique = Array.from(new Set((data || []).map(item => item.customer))).filter(Boolean).sort();
-    return ['ALL', ...unique as string[]];
+    // Fallback: paginate through table — single .limit() misses customers buried past early rows (e.g. ADM-heavy head)
+    const foundCustomers = new Set<string>();
+    const step = 1000;
+    for (let i = 0; i < 50; i++) {
+      let query = supabase
+        .from('tenko')
+        .select('customer')
+        .range(i * step, (i + 1) * step - 1);
+
+      if (area && area !== 'ALL') {
+        query = query.eq('area', area);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+
+      data.forEach(d => { if (d.customer) foundCustomers.add(d.customer); });
+      if (data.length < step) break;
+    }
+
+    const unique = Array.from(foundCustomers).filter(Boolean).sort();
+    console.log('Customers via fallback loop:', unique);
+    return ['ALL', ...unique];
   } catch (error) {
     console.error('Error fetching unique customers:', error);
-    return ['ALL'];
+    return ['ALL', 'TAM', 'TMMIN'];
   }
 }

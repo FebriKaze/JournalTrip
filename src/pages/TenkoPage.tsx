@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity, Heart, Thermometer, Wine, Eye, Moon, AlertCircle,
-  Calendar, MapPin, Search, ChevronDown, CheckCircle2, XCircle,
+  Calendar, Search, ChevronDown, CheckCircle2, XCircle,
   TrendingUp, BarChart3, PieChart as PieIcon, ClipboardList,
   Building2, Users
 } from 'lucide-react';
@@ -53,10 +53,10 @@ export default function TenkoPage() {
     if (mode === 'BULAN') handleMonthChange(selectedMonth);
   };
   const [summary, setSummary] = useState<TenkoSummary | null>(null);
-  const [trendData, setTrendData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [crossFilter, setCrossFilter] = useState<{ tensiStatus: string | null; date: string | null }>({ tensiStatus: null, date: null });
+  const [bpChartView, setBpChartView] = useState<'date' | 'driver'>('date');
 
   const toggleCrossFilter = (key: 'tensiStatus' | 'date', value: string) => {
     setCrossFilter(prev => ({ ...prev, [key]: prev[key] === value ? null : value }));
@@ -93,7 +93,6 @@ export default function TenkoPage() {
       const data = await tenkoService.fetchTenkoData(startDate, endDate, selectedCustomer, selectedArea, personnelType);
       
       setSummary(data.summary);
-      setTrendData(data.trends);
       setLoading(false);
     };
     loadData();
@@ -107,7 +106,7 @@ export default function TenkoPage() {
         if (crossFilter.tensiStatus === 'Hipertensi' && !(r.sistolik >= 140 || r.diastolik >= 90)) return false;
         if (crossFilter.tensiStatus === 'Hipotensi' && !(r.sistolik < 90 || r.diastolik < 60)) return false;
       }
-      if (crossFilter.date && r.tanggal !== crossFilter.date) return false;
+      if (crossFilter.date && !tenkoService.matchesPeriodFilter(r.tanggal, crossFilter.date)) return false;
       if (searchQuery && !r.nama_driver?.toLowerCase().includes(searchQuery.toLowerCase()) && !r.nopol?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
@@ -126,6 +125,25 @@ export default function TenkoPage() {
       { name: 'Hipertensi', value: summary.tensi.hipertensi }
     ];
   }, [summary]);
+
+  const bpDateGranularity = useMemo(
+    () => (tenkoService.shouldUseMonthlyTrend(startDate, endDate) ? 'month' : 'day'),
+    [startDate, endDate]
+  );
+
+  const dateTrendData = useMemo(() => {
+    if (!summary?.raw) return [];
+    return tenkoService.buildPeriodTensiTrends(summary.raw, startDate, endDate, bpDateGranularity);
+  }, [summary, startDate, endDate, bpDateGranularity]);
+
+  const driverTrendData = useMemo(() => {
+    if (!summary?.raw) return [];
+    return tenkoService.buildDriverTensiTrends(summary.raw, startDate, endDate);
+  }, [summary, startDate, endDate]);
+
+  const bpChartData = bpChartView === 'date' ? dateTrendData : driverTrendData;
+  const bpBarSize = bpChartView === 'driver' ? Math.max(12, Math.min(40, 600 / Math.max(bpChartData.length, 1))) : 40;
+  const driverChartLocked = bpChartView === 'driver' && selectedCustomer === 'ALL';
 
   const hasActiveCrossFilter = crossFilter.tensiStatus !== null || crossFilter.date !== null;
 
@@ -185,7 +203,7 @@ export default function TenkoPage() {
 
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full lg:w-auto">
               <AreaDropdown areas={areas} selected={selectedArea} onChange={setSelectedArea} />
-              <CustomerDropdown customers={customers} selected={selectedCustomer} onChange={setSelectedCustomer} />
+              <CustomerDropdown customers={customers} selected={selectedCustomer} onChange={setSelectedCustomer} highlighted={driverChartLocked} />
               <div className="col-span-2 sm:col-span-1">
                 <PersonnelDropdown value={personnelType} onChange={setPersonnelType} />
               </div>
@@ -205,7 +223,7 @@ export default function TenkoPage() {
           )}
           {crossFilter.date && (
             <button onClick={() => toggleCrossFilter('date', crossFilter.date!)} className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-xl text-[10px] font-black text-purple-500 uppercase hover:bg-purple-500/20 transition-all">
-              <Calendar className="w-3 h-3" /> Tanggal: {crossFilter.date} <XCircle className="w-3 h-3" />
+              <Calendar className="w-3 h-3" /> {crossFilter.date.length === 7 ? 'Bulan' : 'Tanggal'}: {tenkoService.formatTrendPeriodLabel(crossFilter.date, crossFilter.date.length === 7 ? 'month' : 'day')} <XCircle className="w-3 h-3" />
             </button>
           )}
           <button onClick={clearCrossFilters} className="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase transition-colors">Clear All ×</button>
@@ -221,30 +239,103 @@ export default function TenkoPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="xl:col-span-2 bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2"><Heart className="w-6 h-6 text-red-500" /> Blood Pressure Analysis</h3>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Daily Systolic & Diastolic Monitoring</p>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                {bpChartView === 'date'
+                  ? (bpDateGranularity === 'month' ? 'Monitoring Bulanan — Periode Terpilih' : 'Monitoring Harian — Periode Terpilih')
+                  : 'Tensi per Driver — Periode Terpilih (Drivers Only)'}
+              </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#10b981]" /><span className="text-[10px] font-black text-slate-400 uppercase">Normal</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#f59e0b]" /><span className="text-[10px] font-black text-slate-400 uppercase">Hipo</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#ef4444]" /><span className="text-[10px] font-black text-slate-400 uppercase">Hiper</span></div>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 border border-slate-200 dark:border-slate-700">
+                {([
+                  { key: 'date' as const, label: 'Per Tanggal', icon: Calendar },
+                  { key: 'driver' as const, label: 'Per Driver', icon: Users },
+                ]).map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setBpChartView(key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+                      bpChartView === key
+                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#10b981]" /><span className="text-[10px] font-black text-slate-400 uppercase">Normal</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#f59e0b]" /><span className="text-[10px] font-black text-slate-400 uppercase">Hipo</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#ef4444]" /><span className="text-[10px] font-black text-slate-400 uppercase">Hiper</span></div>
+              </div>
             </div>
           </div>
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={trendData} onClick={(e: any) => { if (e?.activeLabel) toggleCrossFilter('date', e.activeLabel); }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.1} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} tickFormatter={(val: string) => val.split('-').slice(1).reverse().join('/')} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="normal" stackId="a" fill={COLORS.normal} barSize={40} cursor="pointer" />
-                <Bar dataKey="hipotensi" stackId="a" fill={COLORS.warning} barSize={40} cursor="pointer" />
-                <Bar dataKey="hipertensi" stackId="a" fill={COLORS.danger} barSize={40} radius={[6,6,0,0]} cursor="pointer" />
-                <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
-              </ComposedChart>
-            </ResponsiveContainer>
+          <div className={`relative w-full ${bpChartView === 'driver' ? 'h-[400px]' : 'h-[350px]'}`}>
+            <div className={`h-full w-full transition-all duration-300 ${driverChartLocked ? 'blur-md opacity-40 pointer-events-none select-none' : ''}`}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={bpChartData}
+                  margin={bpChartView === 'driver' ? { bottom: 60 } : undefined}
+                  onClick={(e: any) => {
+                    if (driverChartLocked) return;
+                    const payload = e?.activePayload?.[0]?.payload;
+                    if (!payload) return;
+                    if (bpChartView === 'date') toggleCrossFilter('date', payload.period);
+                    else setSearchQuery(payload.driver);
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.1} />
+                  <XAxis
+                    dataKey={bpChartView === 'date' ? 'period' : 'driver'}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={0}
+                    angle={bpChartView === 'driver' ? -35 : 0}
+                    textAnchor={bpChartView === 'driver' ? 'end' : 'middle'}
+                    height={bpChartView === 'driver' ? 70 : 30}
+                    tick={{ fontSize: bpChartView === 'driver' ? 8 : 10, fontWeight: 900, fill: '#94a3b8' }}
+                    tickFormatter={(val: string) =>
+                      bpChartView === 'date'
+                        ? tenkoService.formatTrendPeriodLabel(val, bpDateGranularity)
+                        : val.length > 12 ? `${val.slice(0, 10)}…` : val
+                    }
+                  />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
+                  <Tooltip content={<CustomTooltip labelKey={bpChartView === 'date' ? 'period' : 'driver'} periodGranularity={bpDateGranularity} />} />
+                  <Bar dataKey="normal" name="Normal" stackId="a" fill={COLORS.normal} barSize={bpBarSize} cursor={driverChartLocked ? 'default' : 'pointer'} />
+                  <Bar dataKey="hipotensi" name="Hipotensi" stackId="a" fill={COLORS.warning} barSize={bpBarSize} cursor={driverChartLocked ? 'default' : 'pointer'} />
+                  <Bar dataKey="hipertensi" name="Hipertensi" stackId="a" fill={COLORS.danger} barSize={bpBarSize} radius={[6, 6, 0, 0]} cursor={driverChartLocked ? 'default' : 'pointer'} />
+                  <Line type="monotone" dataKey="total" name="Total" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+
+            <AnimatePresence>
+              {driverChartLocked && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/30 dark:bg-slate-900/30 backdrop-blur-[2px]"
+                >
+                  <div className="mx-4 max-w-sm text-center px-6 py-5 bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Pilih Customer Dulu</p>
+                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                      Chart per driver butuh filter customer spesifik. Pilih customer di filter atas — misalnya TAM atau TMMIN. Hanya data driver, tanpa assistant.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
 
@@ -490,7 +581,7 @@ function AreaDropdown({ areas, selected, onChange }: { areas: string[]; selected
   );
 }
 
-function CustomerDropdown({ customers, selected, onChange }: { customers: string[]; selected: string; onChange: (v: string) => void }) {
+function CustomerDropdown({ customers, selected, onChange, highlighted = false }: { customers: string[]; selected: string; onChange: (v: string) => void; highlighted?: boolean }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
@@ -530,7 +621,11 @@ function CustomerDropdown({ customers, selected, onChange }: { customers: string
   return (
     <div className="relative">
       <button ref={btnRef} onClick={handleOpen} type="button"
-        className="flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[140px] w-full sm:w-auto">
+        className={`flex items-center gap-2 pl-3 pr-3 py-2.5 bg-white dark:bg-slate-800 border rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm hover:border-blue-400 focus:ring-2 focus:ring-blue-500/30 min-w-[140px] w-full sm:w-auto ${
+          highlighted
+            ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-500/40 animate-pulse'
+            : 'border-slate-200 dark:border-slate-700'
+        }`}>
         <div className={`w-2 h-2 rounded-full shrink-0 ${getColor(selected)}`} />
         <span className="flex-1 text-left text-slate-700 dark:text-slate-200 truncate">{selected === 'ALL' ? 'ALL CUSTOMER' : selected}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -677,11 +772,14 @@ function PersonnelDropdown({ value, onChange }: { value: string; onChange: (v: s
   );
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label, labelKey, periodGranularity = 'day' }: any) {
   if (active && payload && payload.length) {
+    const displayLabel = labelKey === 'period' && typeof label === 'string'
+      ? tenkoService.formatTrendPeriodLabel(label, periodGranularity)
+      : label;
     return (
       <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
-        <p className="text-[10px] font-black text-slate-400 uppercase mb-2">{label}</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase mb-2">{displayLabel}</p>
         <div className="space-y-1.5">
           {payload.map((p: any, idx: number) => (
             <div key={idx} className="flex items-center justify-between gap-8">
