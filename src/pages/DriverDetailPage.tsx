@@ -41,7 +41,7 @@ import { fetchEcoViolations, EcoViolation } from '../services/ecoDataFetcher';
 import { Driver, Ritase } from '../types';
 import RitaseItem from '../components/dashboard/RitaseItem';
 import * as gatepassService from '../services/gatepassService';
-import { TenkoRecord } from '../services/tenkoService';
+import { TenkoRecord, TENSI_FAKTOR_OPTIONS, isHipertensi, formatTensiFaktorDisplay } from '../services/tenkoService';
 import { P2HRecord } from '../types';
 import Logo from '../image/Logo.png';
 import { jsPDF } from 'jspdf';
@@ -77,7 +77,9 @@ export default function DriverDetailPage() {
     diastolik: 80,
     suhu: 36.5,
     alkohol: 0,
-    fatigue: 'NORMAL' as 'NORMAL' | 'LELAH'
+    fatigue: 'NORMAL' as 'NORMAL' | 'LELAH',
+    tensi_faktor: '',
+    tensi_keterangan: '',
   });
   const [p2hForm, setP2HForm] = useState({
     status: 'OK' as 'OK' | 'NG',
@@ -94,13 +96,16 @@ export default function DriverDetailPage() {
 
   const getTenkoStatus = useCallback((): { status: 'OK' | 'NG' | 'PENDING'; details?: string } => {
     if (!tenkoRecord) return { status: 'PENDING' };
-    const isHipertensi = tenkoRecord.sistolik >= 140 || tenkoRecord.diastolik >= 90;
+    const isHipertensiVal = isHipertensi(tenkoRecord.sistolik, tenkoRecord.diastolik);
     const isHipotensi = tenkoRecord.sistolik < 90 || tenkoRecord.diastolik < 60;
     const isDemam = tenkoRecord.suhu_tubuh >= 37.5;
     const isPositifAlkohol = Number(tenkoRecord.alkohol) > 0;
     const isLelah = tenkoRecord.fatigue?.toUpperCase() === 'LELAH';
     
-    if (isHipertensi) return { status: 'NG', details: 'Hipertensi' };
+    if (isHipertensiVal) {
+      const faktor = formatTensiFaktorDisplay(tenkoRecord);
+      return { status: 'NG', details: faktor ? `Hipertensi — ${faktor}` : 'Hipertensi' };
+    }
     if (isHipotensi) return { status: 'NG', details: 'Hipotensi' };
     if (isDemam) return { status: 'NG', details: 'Suhu Tinggi' };
     if (isPositifAlkohol) return { status: 'NG', details: 'Positif Alkohol' };
@@ -145,6 +150,18 @@ export default function DriverDetailPage() {
     if (!driver) return;
     setIsSaving(true);
     try {
+      const hipertensi = isHipertensi(tenkoForm.sistolik, tenkoForm.diastolik);
+      if (hipertensi && !tenkoForm.tensi_faktor) {
+        alert('Pilih faktor hipertensi sebelum menyimpan.');
+        setIsSaving(false);
+        return;
+      }
+      if (hipertensi && tenkoForm.tensi_faktor === 'Lainnya' && !tenkoForm.tensi_keterangan.trim()) {
+        alert('Isi keterangan faktor untuk opsi Lainnya.');
+        setIsSaving(false);
+        return;
+      }
+
       const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       const tensiStr = `${tenkoForm.sistolik}/${tenkoForm.diastolik}`;
       
@@ -159,6 +176,8 @@ export default function DriverDetailPage() {
         suhu_tubuh: tenkoForm.suhu,
         alkohol: tenkoForm.alkohol,
         fatigue: tenkoForm.fatigue,
+        tensi_faktor: hipertensi ? tenkoForm.tensi_faktor : null,
+        tensi_keterangan: hipertensi && tenkoForm.tensi_keterangan.trim() ? tenkoForm.tensi_keterangan.trim() : null,
         timestamp: new Date().toLocaleTimeString('id-ID'),
         tim_tenko: 'Tim Tenko (Self Check)'
       };
@@ -269,7 +288,9 @@ export default function DriverDetailPage() {
           diastolik: tenkoVal.diastolik || 80,
           suhu: tenkoVal.suhu_tubuh || 36.5,
           alkohol: Number(tenkoVal.alkohol) || 0,
-          fatigue: (tenkoVal.fatigue?.toUpperCase() === 'LELAH' ? 'LELAH' : 'NORMAL') as 'NORMAL' | 'LELAH'
+          fatigue: (tenkoVal.fatigue?.toUpperCase() === 'LELAH' ? 'LELAH' : 'NORMAL') as 'NORMAL' | 'LELAH',
+          tensi_faktor: tenkoVal.tensi_faktor || '',
+          tensi_keterangan: tenkoVal.tensi_keterangan || '',
         });
       } else {
         setTenkoForm({
@@ -277,7 +298,9 @@ export default function DriverDetailPage() {
           diastolik: 80,
           suhu: 36.5,
           alkohol: 0,
-          fatigue: 'NORMAL'
+          fatigue: 'NORMAL',
+          tensi_faktor: '',
+          tensi_keterangan: '',
         });
       }
       
@@ -1186,7 +1209,16 @@ export default function DriverDetailPage() {
                         min={50}
                         max={250}
                         value={tenkoForm.sistolik}
-                        onChange={(e) => setTenkoForm(prev => ({ ...prev, sistolik: parseInt(e.target.value) || 120 }))}
+                        onChange={(e) => setTenkoForm(prev => {
+                          const sistolik = parseInt(e.target.value) || 120;
+                          const stillHipertensi = isHipertensi(sistolik, prev.diastolik);
+                          return {
+                            ...prev,
+                            sistolik,
+                            tensi_faktor: stillHipertensi ? prev.tensi_faktor : '',
+                            tensi_keterangan: stillHipertensi ? prev.tensi_keterangan : '',
+                          };
+                        })}
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
                       />
                     </div>
@@ -1200,11 +1232,56 @@ export default function DriverDetailPage() {
                         min={30}
                         max={180}
                         value={tenkoForm.diastolik}
-                        onChange={(e) => setTenkoForm(prev => ({ ...prev, diastolik: parseInt(e.target.value) || 80 }))}
+                        onChange={(e) => setTenkoForm(prev => {
+                          const diastolik = parseInt(e.target.value) || 80;
+                          const stillHipertensi = isHipertensi(prev.sistolik, diastolik);
+                          return {
+                            ...prev,
+                            diastolik,
+                            tensi_faktor: stillHipertensi ? prev.tensi_faktor : '',
+                            tensi_keterangan: stillHipertensi ? prev.tensi_keterangan : '',
+                          };
+                        })}
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
                       />
                     </div>
                   </div>
+
+                  {isHipertensi(tenkoForm.sistolik, tenkoForm.diastolik) && (
+                    <div className="p-4 rounded-2xl border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 space-y-3">
+                      <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest">
+                        Hipertensi Terdeteksi — Isi Faktor
+                      </p>
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                          Faktor Hipertensi *
+                        </label>
+                        <select
+                          required
+                          value={tenkoForm.tensi_faktor}
+                          onChange={(e) => setTenkoForm(prev => ({ ...prev, tensi_faktor: e.target.value }))}
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
+                        >
+                          <option value="">— Pilih Faktor —</option>
+                          {TENSI_FAKTOR_OPTIONS.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                          Keterangan {tenkoForm.tensi_faktor === 'Lainnya' ? '*' : '(Opsional)'}
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={tenkoForm.tensi_keterangan}
+                          onChange={(e) => setTenkoForm(prev => ({ ...prev, tensi_keterangan: e.target.value }))}
+                          placeholder="Detail faktor / kondisi driver..."
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Suhu Tubuh */}
                   <div>

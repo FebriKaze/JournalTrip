@@ -1,10 +1,35 @@
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 import { motion } from 'motion/react';
 import { Timer, Map, MapPin, Navigation, Route as RouteIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ROWS_PER_PAGE = 6;
 
-const routes = [
+type RouteRow = {
+  no: number;
+  from: string;
+  to: string;
+  lt: string;
+  rest?: string;
+};
+
+type RouteFooter = {
+  label: string;
+  lt?: string;
+  rest?: string;
+};
+
+type Route = {
+  id: string;
+  title: string;
+  icon: ReactElement;
+  color: string;
+  hasRest: boolean;
+  columns: string[];
+  data: RouteRow[];
+  footer?: RouteFooter[];
+};
+
+const routes: Route[] = [
   {
     id: 'palembang',
     title: 'Palembang - Padang',
@@ -93,7 +118,7 @@ const colorMap: Record<string, { bg: string; text: string; border: string; pill:
   purple:  { bg: 'bg-purple-50 dark:bg-purple-500/10',text: 'text-purple-600 dark:text-purple-400',border: 'border-purple-200 dark:border-purple-500/30',pill: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' },
 };
 
-function RouteCard({ route, delay }: { route: typeof routes[0]; delay: number }) {
+function RouteCard({ route, delay }: { route: Route; delay: number }) {
   const [page, setPage] = useState(1);
   const c = colorMap[route.color];
   const totalPages = Math.ceil(route.data.length / ROWS_PER_PAGE);
@@ -136,7 +161,7 @@ function RouteCard({ route, delay }: { route: typeof routes[0]; delay: number })
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-            {paged.map((row: any) => (
+            {paged.map((row) => (
               <tr key={row.no} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                 <td className="px-3 sm:px-4 py-3 text-[9px] font-bold text-slate-400 text-center">{row.no}</td>
                 <td className="px-3 sm:px-4 py-3 text-[9px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">{row.from}</td>
@@ -172,7 +197,7 @@ function RouteCard({ route, delay }: { route: typeof routes[0]; delay: number })
           {/* Footer only on last page */}
           {route.footer && isLastPage && (
             <tfoot className="bg-slate-50 dark:bg-slate-800/40 border-t-2 border-slate-200 dark:border-slate-700">
-              {route.footer.map((f: any) => (
+              {route.footer.map((f) => (
                 <tr key={f.label}>
                   <td colSpan={3} className="px-3 sm:px-4 py-3 text-[9px] font-black uppercase tracking-widest text-right text-slate-500 dark:text-slate-400">
                     {f.label}

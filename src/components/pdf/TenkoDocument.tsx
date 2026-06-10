@@ -1,5 +1,5 @@
 import React from 'react';
-import { TenkoRecord } from '../../services/tenkoService';
+import { TenkoRecord, isHipertensi, formatTensiFaktorDisplay } from '../../services/tenkoService';
 import Logo from '../../image/Logo.png';
 import Logo1 from '../../image/logo1.webp';
 
@@ -77,7 +77,12 @@ export default function TenkoDocument({ tenko }: TenkoDocumentProps) {
             <tr>
               <td className="border border-black p-2 text-center">1</td>
               <td className="border border-black p-2 font-bold">Tekanan Darah (Sistolik / Diastolik)</td>
-              <td className="border border-black p-2 text-center">{tenko.sistolik} / {tenko.diastolik} mmHg</td>
+              <td className="border border-black p-2 text-center">
+                {tenko.sistolik} / {tenko.diastolik} mmHg
+                {isHipertensi(tenko.sistolik, tenko.diastolik) && formatTensiFaktorDisplay(tenko) && (
+                  <p className="text-[9px] font-normal mt-1 normal-case">Faktor: {formatTensiFaktorDisplay(tenko)}</p>
+                )}
+              </td>
               <td className="border border-black p-2 text-center font-bold">
                 {(tenko.sistolik >= 100 && tenko.sistolik <= 130 && tenko.diastolik >= 60 && tenko.diastolik <= 90) ? 'OK' : 'NG'}
               </td>

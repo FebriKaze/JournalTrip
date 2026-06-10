@@ -221,7 +221,9 @@ export async function saveManualTenkoRecord(record: Partial<TenkoRecord>): Promi
     customer: record.customer || 'ALL',
     area: record.area || 'ALL',
     nik: record.nik || '',
-    is_assistant: record.is_assistant || false
+    is_assistant: record.is_assistant || false,
+    tensi_faktor: record.tensi_faktor || null,
+    tensi_keterangan: record.tensi_keterangan || null,
   };
 
   // Kita simpan ke LocalStorage sebagai entitas terpisah agar tidak menimpa data real Supabase

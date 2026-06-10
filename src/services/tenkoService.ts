@@ -24,6 +24,53 @@ export interface TenkoRecord {
   is_assistant: boolean;
   tim_tenko?: string;
   checked_by?: string;
+  tensi_faktor?: string | null;
+  tensi_keterangan?: string | null;
+}
+
+export const TENSI_FAKTOR_OPTIONS = [
+  'Kurang Istirahat',
+  'Stress / Tekanan Kerja',
+  'Lupa Minum Obat',
+  'Sakit / Demam',
+  'Konsumsi Kafein Berlebih',
+  'Kondisi Kronis / Genetik',
+  'Belum Diketahui',
+  'Lainnya',
+] as const;
+
+export type TensiFaktor = (typeof TENSI_FAKTOR_OPTIONS)[number];
+
+export function isHipertensi(sistolik: number, diastolik: number) {
+  return sistolik >= 140 || diastolik >= 90;
+}
+
+export function isHipotensi(sistolik: number, diastolik: number) {
+  return sistolik < 90 || diastolik < 60;
+}
+
+export function isAbnormalTensi(sistolik: number, diastolik: number) {
+  return isHipertensi(sistolik, diastolik) || isHipotensi(sistolik, diastolik);
+}
+
+export function getHipertensiTypeLabel(sistolik: number, diastolik: number): string {
+  const sysHigh = sistolik >= 140;
+  const diaHigh = diastolik >= 90;
+  if (sysHigh && diaHigh) return 'Sistolik & Diastolik Tinggi';
+  if (sysHigh) return 'Sistolik Tinggi';
+  if (diaHigh) return 'Diastolik Tinggi';
+  return 'Hipertensi';
+}
+
+export function formatTensiFaktorDisplay(record: Pick<TenkoRecord, 'tensi_faktor' | 'tensi_keterangan'>) {
+  if (!record.tensi_faktor) return null;
+  if (record.tensi_faktor === 'Lainnya' && record.tensi_keterangan?.trim()) {
+    return record.tensi_keterangan.trim();
+  }
+  if (record.tensi_keterangan?.trim()) {
+    return `${record.tensi_faktor} — ${record.tensi_keterangan.trim()}`;
+  }
+  return record.tensi_faktor;
 }
 
 export interface TenkoSummary {
@@ -283,6 +330,23 @@ export async function fetchUniqueAreas() {
 /**
  * Fetch dynamic list of unique customers from the data
  */
+export async function updateTensiFaktor(
+  id: string,
+  tensi_faktor: string,
+  tensi_keterangan: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const { error } = await supabase
+    .from('tenko')
+    .update({ tensi_faktor, tensi_keterangan })
+    .eq('id', id);
+
+  if (error) {
+    console.error('updateTensiFaktor error:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
 export async function fetchUniqueCustomers(area: string = 'ALL') {
   try {
     const { data: rpcData, error: rpcError } = area && area !== 'ALL'

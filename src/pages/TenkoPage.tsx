@@ -5,7 +5,7 @@ import {
   Activity, Heart, Thermometer, Wine, Eye, Moon, AlertCircle,
   Calendar, Search, ChevronDown, CheckCircle2, XCircle,
   TrendingUp, BarChart3, PieChart as PieIcon, ClipboardList,
-  Building2, Users
+  Building2, Users, Pencil, Loader2
 } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -13,7 +13,16 @@ import {
   ComposedChart, Area as ReArea
 } from 'recharts';
 import * as tenkoService from '../services/tenkoService';
-import { TenkoSummary, TenkoRecord } from '../services/tenkoService';
+import {
+  TenkoRecord,
+  TenkoSummary,
+  TensiTrendPoint,
+  DriverTensiTrendPoint,
+  TENSI_FAKTOR_OPTIONS,
+  isHipertensi,
+  getHipertensiTypeLabel,
+  formatTensiFaktorDisplay,
+} from '../services/tenkoService';
 
 const COLORS = {
   normal: '#10b981',
@@ -141,11 +150,54 @@ export default function TenkoPage() {
     return tenkoService.buildDriverTensiTrends(summary.raw, startDate, endDate);
   }, [summary, startDate, endDate]);
 
-  const bpChartData = bpChartView === 'date' ? dateTrendData : driverTrendData;
+  const bpChartData: (TensiTrendPoint | DriverTensiTrendPoint)[] =
+    bpChartView === 'date' ? dateTrendData : driverTrendData;
   const bpBarSize = bpChartView === 'driver' ? Math.max(12, Math.min(40, 600 / Math.max(bpChartData.length, 1))) : 40;
   const driverChartLocked = bpChartView === 'driver' && selectedCustomer === 'ALL';
 
   const hasActiveCrossFilter = crossFilter.tensiStatus !== null || crossFilter.date !== null;
+
+  const [editingFaktor, setEditingFaktor] = useState<TenkoRecord | null>(null);
+  const [faktorForm, setFaktorForm] = useState({ tensi_faktor: '', tensi_keterangan: '' });
+  const [savingFaktor, setSavingFaktor] = useState(false);
+
+  const openFaktorEditor = (record: TenkoRecord) => {
+    setEditingFaktor(record);
+    setFaktorForm({
+      tensi_faktor: record.tensi_faktor || '',
+      tensi_keterangan: record.tensi_keterangan || '',
+    });
+  };
+
+  const handleSaveFaktor = async () => {
+    if (!editingFaktor) return;
+    if (!faktorForm.tensi_faktor) {
+      alert('Pilih faktor hipertensi sebelum menyimpan.');
+      return;
+    }
+    if (faktorForm.tensi_faktor === 'Lainnya' && !faktorForm.tensi_keterangan.trim()) {
+      alert('Isi keterangan faktor untuk opsi Lainnya.');
+      return;
+    }
+    setSavingFaktor(true);
+    const keterangan = faktorForm.tensi_keterangan.trim() || null;
+    const res = await tenkoService.updateTensiFaktor(editingFaktor.id, faktorForm.tensi_faktor, keterangan);
+    setSavingFaktor(false);
+    if (!res.success) {
+      alert(`Gagal menyimpan: ${res.error || 'Unknown error'}`);
+      return;
+    }
+    setSummary(prev => {
+      if (!prev) return prev;
+      const updatedRaw = prev.raw.map(r =>
+        r.id === editingFaktor.id
+          ? { ...r, tensi_faktor: faktorForm.tensi_faktor, tensi_keterangan: keterangan }
+          : r
+      );
+      return { ...prev, raw: updatedRaw };
+    });
+    setEditingFaktor(null);
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -397,18 +449,41 @@ export default function TenkoPage() {
                     <p className="text-[10px] font-bold text-blue-500 uppercase mt-1">{r.nopol} • {r.no_lambung}</p>
                   </td>
                   <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <motion.span 
-                        animate={(r.sistolik >= 140 || r.diastolik >= 90 || r.sistolik < 90 || r.diastolik < 60) ? { 
-                          opacity: [1, 0.4, 1],
-                        } : {}}
-                        transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-black ${
-                          (r.sistolik >= 140 || r.diastolik >= 90) ? 'bg-red-500/10 text-red-500 shadow-lg shadow-red-500/20' : (r.sistolik < 90 || r.diastolik < 60) ? 'bg-amber-500/10 text-amber-500 shadow-lg shadow-amber-500/20' : 'bg-emerald-500/10 text-emerald-500'
-                        }`}>
-                        {r.tensi}
-                      </motion.span>
-                      <span className="text-[10px] font-bold text-slate-400">mmHg</span>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <motion.span 
+                          animate={(r.sistolik >= 140 || r.diastolik >= 90 || r.sistolik < 90 || r.diastolik < 60) ? { 
+                            opacity: [1, 0.4, 1],
+                          } : {}}
+                          transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-black ${
+                            isHipertensi(r.sistolik, r.diastolik) ? 'bg-red-500/10 text-red-500 shadow-lg shadow-red-500/20' : (r.sistolik < 90 || r.diastolik < 60) ? 'bg-amber-500/10 text-amber-500 shadow-lg shadow-amber-500/20' : 'bg-emerald-500/10 text-emerald-500'
+                          }`}>
+                          {r.tensi}
+                        </motion.span>
+                        <span className="text-[10px] font-bold text-slate-400">mmHg</span>
+                      </div>
+                      {isHipertensi(r.sistolik, r.diastolik) && (
+                        <div className="max-w-[220px]">
+                          <p className="text-[9px] font-black text-red-500/80 uppercase tracking-wide">
+                            {getHipertensiTypeLabel(r.sistolik, r.diastolik)}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => openFaktorEditor(r)}
+                            className={`mt-1 flex items-start gap-1.5 text-left group transition-colors ${
+                              formatTensiFaktorDisplay(r)
+                                ? 'text-slate-500 dark:text-slate-400 hover:text-blue-500'
+                                : 'text-amber-600 dark:text-amber-400 hover:text-amber-500'
+                            }`}
+                          >
+                            <Pencil className="w-3 h-3 shrink-0 mt-0.5 opacity-60 group-hover:opacity-100" />
+                            <span className="text-[9px] font-bold leading-snug">
+                              {formatTensiFaktorDisplay(r) || 'Faktor belum diisi — klik untuk isi'}
+                            </span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-5"><p className="text-xs font-black text-slate-700 dark:text-slate-300">{r.suhu_tubuh}°C</p><p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{r.denyut_nadi} BPM</p></td>
@@ -466,6 +541,68 @@ export default function TenkoPage() {
           </div>
         )}
       </motion.div>
+
+      {editingFaktor && createPortal(
+        <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden"
+          >
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Isi Faktor Hipertensi</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{editingFaktor.nama_driver} • {editingFaktor.tensi} mmHg</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Faktor Hipertensi *</label>
+                <select
+                  value={faktorForm.tensi_faktor}
+                  onChange={(e) => setFaktorForm(prev => ({ ...prev, tensi_faktor: e.target.value }))}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none"
+                >
+                  <option value="">— Pilih Faktor —</option>
+                  {TENSI_FAKTOR_OPTIONS.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  Keterangan {faktorForm.tensi_faktor === 'Lainnya' ? '*' : '(Opsional)'}
+                </label>
+                <textarea
+                  rows={3}
+                  value={faktorForm.tensi_keterangan}
+                  onChange={(e) => setFaktorForm(prev => ({ ...prev, tensi_keterangan: e.target.value }))}
+                  placeholder="Detail faktor / kondisi driver..."
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-red-500/20 outline-none resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <button
+                type="button"
+                onClick={() => setEditingFaktor(null)}
+                disabled={savingFaktor}
+                className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveFaktor}
+                disabled={savingFaktor}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors shadow-lg shadow-red-500/20"
+              >
+                {savingFaktor ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Simpan
+              </button>
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
