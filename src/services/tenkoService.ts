@@ -92,8 +92,157 @@ export interface TenkoSummary {
     normal: number;
     lelah: number;
   };
+  rest: {
+    cukup: number;
+    kurang: number;
+  };
+  nadi: {
+    normal: number;
+    abnormal: number;
+  };
+  mental: {
+    ok: number;
+    ng: number;
+  };
   raw: TenkoRecord[];
 }
+
+export type TenkoMetricId = 'tensi' | 'suhu' | 'rest' | 'nadi' | 'alkohol' | 'fatigue' | 'mental';
+
+export type MetricCategoryDef = {
+  key: string;
+  label: string;
+  shortLabel: string;
+  color: string;
+  pieFilterName?: string;
+};
+
+export type TenkoMetricConfig = {
+  id: TenkoMetricId;
+  title: string;
+  pieTitle: string;
+  classify: (r: TenkoRecord) => string;
+  categories: MetricCategoryDef[];
+};
+
+export function classifyTensiRecord(r: TenkoRecord) {
+  return classifyTensiStatus(r.sistolik, r.diastolik);
+}
+
+export function classifySuhuRecord(r: TenkoRecord) {
+  return r.suhu_tubuh >= 37.5 ? 'demam' : 'normal';
+}
+
+export function classifyRestRecord(r: TenkoRecord) {
+  return Number(r.rest_time) >= 7 ? 'cukup' : 'kurang';
+}
+
+export function classifyNadiRecord(r: TenkoRecord) {
+  const n = Number(r.denyut_nadi) || 0;
+  return n >= 60 && n <= 100 ? 'normal' : 'abnormal';
+}
+
+export function classifyAlkoholRecord(r: TenkoRecord) {
+  return Number(r.alkohol) === 0 ? 'negatif' : 'positif';
+}
+
+export function classifyFatigueRecord(r: TenkoRecord) {
+  return r.fatigue?.toUpperCase() === 'NORMAL' ? 'normal' : 'lelah';
+}
+
+export function classifyMentalRecord(r: TenkoRecord) {
+  return r.mata?.toUpperCase() === 'OK' ? 'ok' : 'ng';
+}
+
+export const TENKO_HEALTH_METRICS: TenkoMetricConfig[] = [
+  {
+    id: 'tensi',
+    title: 'Tensi Darah',
+    pieTitle: 'Tensi Percentage',
+    classify: classifyTensiRecord,
+    categories: [
+      { key: 'normal', label: 'Normal', shortLabel: 'Normal', color: '#10b981', pieFilterName: 'Normal' },
+      { key: 'hipotensi', label: 'Hipotensi', shortLabel: 'Hipo', color: '#f59e0b', pieFilterName: 'Hipotensi' },
+      { key: 'hipertensi', label: 'Hipertensi', shortLabel: 'Hiper', color: '#ef4444', pieFilterName: 'Hipertensi' },
+    ],
+  },
+  {
+    id: 'suhu',
+    title: 'Suhu Tubuh',
+    pieTitle: 'Suhu Percentage',
+    classify: classifySuhuRecord,
+    categories: [
+      { key: 'normal', label: 'Normal', shortLabel: 'Normal', color: '#10b981' },
+      { key: 'demam', label: 'Demam (≥37.5°C)', shortLabel: 'Demam', color: '#f97316' },
+    ],
+  },
+  {
+    id: 'rest',
+    title: 'Waktu Tidur',
+    pieTitle: 'Istirahat Percentage',
+    classify: classifyRestRecord,
+    categories: [
+      { key: 'cukup', label: 'Cukup (≥7 Jam)', shortLabel: 'Cukup', color: '#10b981' },
+      { key: 'kurang', label: 'Kurang (<7 Jam)', shortLabel: 'Kurang', color: '#f59e0b' },
+    ],
+  },
+  {
+    id: 'nadi',
+    title: 'Denyut Nadi',
+    pieTitle: 'Nadi Percentage',
+    classify: classifyNadiRecord,
+    categories: [
+      { key: 'normal', label: 'Normal (60–100 BPM)', shortLabel: 'Normal', color: '#10b981' },
+      { key: 'abnormal', label: 'Abnormal', shortLabel: 'Abnormal', color: '#ef4444' },
+    ],
+  },
+  {
+    id: 'alkohol',
+    title: 'Alkohol',
+    pieTitle: 'Alkohol Percentage',
+    classify: classifyAlkoholRecord,
+    categories: [
+      { key: 'negatif', label: 'Negatif', shortLabel: 'Negatif', color: '#10b981' },
+      { key: 'positif', label: 'Positif', shortLabel: 'Positif', color: '#ef4444' },
+    ],
+  },
+  {
+    id: 'fatigue',
+    title: 'Fatigue',
+    pieTitle: 'Fatigue Percentage',
+    classify: classifyFatigueRecord,
+    categories: [
+      { key: 'normal', label: 'Normal', shortLabel: 'Normal', color: '#10b981' },
+      { key: 'lelah', label: 'Lelah', shortLabel: 'Lelah', color: '#f59e0b' },
+    ],
+  },
+  {
+    id: 'mental',
+    title: 'Mental Check (Mata)',
+    pieTitle: 'Mental Check Percentage',
+    classify: classifyMentalRecord,
+    categories: [
+      { key: 'ok', label: 'OK', shortLabel: 'OK', color: '#10b981' },
+      { key: 'ng', label: 'NG', shortLabel: 'NG', color: '#ef4444' },
+    ],
+  },
+];
+
+export type MetricTrendPoint = {
+  period?: string;
+  driver?: string;
+  total: number;
+  [key: string]: number | string | undefined;
+};
+
+export type MetricPieSlice = {
+  name: string;
+  value: number;
+  percent: number;
+  total: number;
+  color: string;
+  filterName?: string;
+};
 
 export function calculateSummary(records: TenkoRecord[]): TenkoSummary {
   const summary: TenkoSummary = {
@@ -102,26 +251,109 @@ export function calculateSummary(records: TenkoRecord[]): TenkoSummary {
     suhu: { normal: 0, demam: 0 },
     alkohol: { negatif: 0, positif: 0 },
     fatigue: { normal: 0, lelah: 0 },
+    rest: { cukup: 0, kurang: 0 },
+    nadi: { normal: 0, abnormal: 0 },
+    mental: { ok: 0, ng: 0 },
     raw: records
   };
 
   records.forEach(r => {
-    if (r.sistolik >= 140 || r.diastolik >= 90) summary.tensi.hipertensi++;
-    else if (r.sistolik < 90 || r.diastolik < 60) summary.tensi.hipotensi++;
-    else summary.tensi.normal++;
-
-    if (r.suhu_tubuh >= 37.5) summary.suhu.demam++;
-    else summary.suhu.normal++;
-
-    // Jika angka > 0 berarti positif alkohol
-    if (Number(r.alkohol) === 0) summary.alkohol.negatif++;
-    else summary.alkohol.positif++;
-
-    if (r.fatigue?.toUpperCase() === 'NORMAL') summary.fatigue.normal++;
-    else summary.fatigue.lelah++;
+    summary.tensi[classifyTensiRecord(r) as 'normal' | 'hipertensi' | 'hipotensi']++;
+    summary.suhu[classifySuhuRecord(r) as 'normal' | 'demam']++;
+    summary.alkohol[classifyAlkoholRecord(r) as 'negatif' | 'positif']++;
+    summary.fatigue[classifyFatigueRecord(r) as 'normal' | 'lelah']++;
+    summary.rest[classifyRestRecord(r) as 'cukup' | 'kurang']++;
+    summary.nadi[classifyNadiRecord(r) as 'normal' | 'abnormal']++;
+    summary.mental[classifyMentalRecord(r) as 'ok' | 'ng']++;
   });
 
   return summary;
+}
+
+function emptyTrendPoint(
+  metric: TenkoMetricConfig,
+  labelKey: 'period' | 'driver',
+  label: string
+): MetricTrendPoint {
+  const point: MetricTrendPoint = { total: 0 };
+  point[labelKey] = label;
+  metric.categories.forEach(cat => {
+    point[cat.key] = 0;
+  });
+  return point;
+}
+
+export function buildPeriodMetricTrends(
+  records: TenkoRecord[],
+  startDate: string,
+  endDate: string,
+  granularity: 'day' | 'month',
+  metric: TenkoMetricConfig
+): MetricTrendPoint[] {
+  const map: Record<string, MetricTrendPoint> = {};
+
+  filterRecordsByDateRange(records, startDate, endDate).forEach(item => {
+    const period = granularity === 'month' ? item.tanggal.slice(0, 7) : item.tanggal;
+    if (!map[period]) map[period] = emptyTrendPoint(metric, 'period', period);
+    const status = metric.classify(item);
+    map[period][status] = (Number(map[period][status]) || 0) + 1;
+    map[period].total = (map[period].total || 0) + 1;
+  });
+
+  return Object.values(map).sort((a, b) => String(a.period).localeCompare(String(b.period)));
+}
+
+export function buildDriverMetricTrends(
+  records: TenkoRecord[],
+  startDate: string,
+  endDate: string,
+  metric: TenkoMetricConfig
+): MetricTrendPoint[] {
+  const map: Record<string, MetricTrendPoint> = {};
+
+  filterRecordsByDateRange(records, startDate, endDate)
+    .filter(item => !item.is_assistant)
+    .forEach(item => {
+      const driver = item.nama_driver || 'Unknown';
+      if (!map[driver]) map[driver] = emptyTrendPoint(metric, 'driver', driver);
+      const status = metric.classify(item);
+      map[driver][status] = (Number(map[driver][status]) || 0) + 1;
+      map[driver].total = (map[driver].total || 0) + 1;
+    });
+
+  return Object.values(map).sort((a, b) => (b.total || 0) - (a.total || 0));
+}
+
+export function getMetricPieSlices(summary: TenkoSummary, metricId: TenkoMetricId): MetricPieSlice[] {
+  const metric = TENKO_HEALTH_METRICS.find(m => m.id === metricId);
+  if (!metric) return [];
+
+  const total = summary.totalCheckups || 0;
+  const toPercent = (count: number) => (total > 0 ? (count / total) * 100 : 0);
+
+  const summaryBucket: Record<TenkoMetricId, Record<string, number>> = {
+    tensi: summary.tensi,
+    suhu: summary.suhu,
+    rest: summary.rest,
+    nadi: summary.nadi,
+    alkohol: summary.alkohol,
+    fatigue: summary.fatigue,
+    mental: summary.mental,
+  };
+
+  const getCount = (key: string) => summaryBucket[metricId][key] || 0;
+
+  return metric.categories.map(cat => {
+    const value = getCount(cat.key);
+    return {
+      name: cat.label,
+      value,
+      percent: toPercent(value),
+      total,
+      color: cat.color,
+      filterName: cat.pieFilterName,
+    };
+  });
 }
 
 export type TensiTrendPoint = {
