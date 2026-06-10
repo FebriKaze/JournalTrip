@@ -5,13 +5,15 @@ import {
   Activity, Heart, Thermometer, Wine, Eye, Moon, AlertCircle,
   Calendar, Search, ChevronDown, CheckCircle2, XCircle,
   TrendingUp, BarChart3, PieChart as PieIcon, ClipboardList,
-  Building2, Users, Pencil, Loader2
+  Building2, Users, Pencil, Loader2, LogIn, Lock
 } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ComposedChart, Area as ReArea
 } from 'recharts';
+import { supabase } from '../lib/supabase';
+import AuthModal from '../components/auth/AuthModal';
 import * as tenkoService from '../services/tenkoService';
 import {
   TenkoRecord,
@@ -128,10 +130,12 @@ export default function TenkoPage() {
 
   const tensiPieData = useMemo(() => {
     if (!summary) return [];
+    const total = summary.totalCheckups || 0;
+    const toPercent = (count: number) => (total > 0 ? (count / total) * 100 : 0);
     return [
-      { name: 'Normal', value: summary.tensi.normal },
-      { name: 'Hipotensi', value: summary.tensi.hipotensi },
-      { name: 'Hipertensi', value: summary.tensi.hipertensi }
+      { name: 'Normal', value: summary.tensi.normal, percent: toPercent(summary.tensi.normal), total },
+      { name: 'Hipotensi', value: summary.tensi.hipotensi, percent: toPercent(summary.tensi.hipotensi), total },
+      { name: 'Hipertensi', value: summary.tensi.hipertensi, percent: toPercent(summary.tensi.hipertensi), total },
     ];
   }, [summary]);
 
@@ -160,13 +164,51 @@ export default function TenkoPage() {
   const [editingFaktor, setEditingFaktor] = useState<TenkoRecord | null>(null);
   const [faktorForm, setFaktorForm] = useState({ tensi_faktor: '', tensi_keterangan: '' });
   const [savingFaktor, setSavingFaktor] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  const openFaktorEditor = (record: TenkoRecord) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+      setUserEmail(session?.user?.email ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+      setUserEmail(session?.user?.email ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const promptLogin = (action?: () => void) => {
+    if (action) setPendingAction(() => action);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
+
+  const showFaktorEditor = (record: TenkoRecord) => {
     setEditingFaktor(record);
     setFaktorForm({
       tensi_faktor: record.tensi_faktor || '',
       tensi_keterangan: record.tensi_keterangan || '',
     });
+  };
+
+  const openFaktorEditor = async (record: TenkoRecord) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      promptLogin(() => showFaktorEditor(record));
+      return;
+    }
+    showFaktorEditor(record);
   };
 
   const handleSaveFaktor = async () => {
@@ -179,9 +221,16 @@ export default function TenkoPage() {
       alert('Isi keterangan faktor untuk opsi Lainnya.');
       return;
     }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      promptLogin(() => { void handleSaveFaktor(); });
+      return;
+    }
+
     setSavingFaktor(true);
     const keterangan = faktorForm.tensi_keterangan.trim() || null;
-    const res = await tenkoService.updateTensiFaktor(editingFaktor.id, faktorForm.tensi_faktor, keterangan);
+    const res = await tenkoService.updateTensiFaktor(editingFaktor, faktorForm.tensi_faktor, keterangan);
     setSavingFaktor(false);
     if (!res.success) {
       alert(`Gagal menyimpan: ${res.error || 'Unknown error'}`);
@@ -207,7 +256,12 @@ export default function TenkoPage() {
 
   return (
     <div className="space-y-6 pb-20 px-1">
-      
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+      />
+
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900/60 backdrop-blur-xl p-4 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl shadow-blue-500/5 relative z-10 overflow-visible">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 overflow-visible">
           <div className="flex items-center gap-4 w-full lg:w-auto">
@@ -399,7 +453,7 @@ export default function TenkoPage() {
                 <Pie data={tensiPieData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={8} dataKey="value" onClick={(entry: any) => toggleCrossFilter('tensiStatus', entry.name)} cursor="pointer">
                   {tensiPieData.map((entry, index) => <Cell key={`cell-${index}`} fill={TENSI_COLORS[index % TENSI_COLORS.length]} opacity={crossFilter.tensiStatus ? (crossFilter.tensiStatus === entry.name ? 1 : 0.35) : 1} stroke={crossFilter.tensiStatus === entry.name ? '#ffffff' : 'transparent'} strokeWidth={3} />)}
                 </Pie>
-                <Tooltip />
+                <Tooltip content={<TensiPieTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -410,8 +464,14 @@ export default function TenkoPage() {
           <div className="grid grid-cols-1 w-full gap-2 mt-8">
             {tensiPieData.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-                <div className="flex items-center gap-3"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TENSI_COLORS[idx] }} /><span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase">{item.name}</span></div>
-                <span className="text-xs font-black text-slate-900 dark:text-white">{item.value}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TENSI_COLORS[idx] }} />
+                  <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase">{item.name}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-black text-slate-900 dark:text-white">{item.percent.toFixed(1)}%</span>
+                  <span className="text-[10px] font-bold text-slate-400 ml-2">({item.value})</span>
+                </div>
               </div>
             ))}
           </div>
@@ -423,6 +483,20 @@ export default function TenkoPage() {
           <div>
             <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Tenko Detailed Records</h3>
             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Individual checkup results list</p>
+            {!isLoggedIn ? (
+              <button
+                type="button"
+                onClick={() => promptLogin()}
+                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase hover:bg-amber-500/20 transition-all"
+              >
+                <Lock className="w-3 h-3" />
+                Login dulu untuk isi faktor tensi
+              </button>
+            ) : (
+              <p className="mt-3 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                ✓ Login sebagai {userEmail?.split('@')[0] || 'Tim Tenko'} — bisa edit faktor
+              </p>
+            )}
           </div>
           <div className="relative w-full lg:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -468,20 +542,33 @@ export default function TenkoPage() {
                           <p className="text-[9px] font-black text-red-500/80 uppercase tracking-wide">
                             {getHipertensiTypeLabel(r.sistolik, r.diastolik)}
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => openFaktorEditor(r)}
-                            className={`mt-1 flex items-start gap-1.5 text-left group transition-colors ${
-                              formatTensiFaktorDisplay(r)
-                                ? 'text-slate-500 dark:text-slate-400 hover:text-blue-500'
-                                : 'text-amber-600 dark:text-amber-400 hover:text-amber-500'
-                            }`}
-                          >
-                            <Pencil className="w-3 h-3 shrink-0 mt-0.5 opacity-60 group-hover:opacity-100" />
-                            <span className="text-[9px] font-bold leading-snug">
-                              {formatTensiFaktorDisplay(r) || 'Faktor belum diisi — klik untuk isi'}
-                            </span>
-                          </button>
+                          {isLoggedIn ? (
+                            <button
+                              type="button"
+                              onClick={() => openFaktorEditor(r)}
+                              className={`mt-1 flex items-start gap-1.5 text-left group transition-colors ${
+                                formatTensiFaktorDisplay(r)
+                                  ? 'text-slate-500 dark:text-slate-400 hover:text-blue-500'
+                                  : 'text-amber-600 dark:text-amber-400 hover:text-amber-500'
+                              }`}
+                            >
+                              <Pencil className="w-3 h-3 shrink-0 mt-0.5 opacity-60 group-hover:opacity-100" />
+                              <span className="text-[9px] font-bold leading-snug">
+                                {formatTensiFaktorDisplay(r) || 'Faktor belum diisi — klik untuk isi'}
+                              </span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => { void openFaktorEditor(r); }}
+                              className="mt-1 flex items-start gap-1.5 text-left text-slate-400 hover:text-amber-500 transition-colors"
+                            >
+                              <LogIn className="w-3 h-3 shrink-0 mt-0.5" />
+                              <span className="text-[9px] font-bold leading-snug">
+                                {formatTensiFaktorDisplay(r) || 'Login dulu untuk isi faktor'}
+                              </span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -552,6 +639,11 @@ export default function TenkoPage() {
             <div className="p-6 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Isi Faktor Hipertensi</h3>
               <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{editingFaktor.nama_driver} • {editingFaktor.tensi} mmHg</p>
+              {userEmail && (
+                <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 mt-2 uppercase">
+                  Disimpan sebagai {userEmail.split('@')[0]}
+                </p>
+              )}
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -905,6 +997,18 @@ function PersonnelDropdown({ value, onChange }: { value: string; onChange: (v: s
         </div>,
         document.body
       )}
+    </div>
+  );
+}
+
+function TensiPieTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0].payload;
+  return (
+    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl">
+      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{item.name}</p>
+      <p className="text-sm font-black text-slate-900 dark:text-white">{item.percent.toFixed(1)}%</p>
+      <p className="text-[10px] font-bold text-slate-500 mt-0.5">{item.value} dari {item.total} cek</p>
     </div>
   );
 }

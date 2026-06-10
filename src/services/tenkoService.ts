@@ -330,20 +330,76 @@ export async function fetchUniqueAreas() {
 /**
  * Fetch dynamic list of unique customers from the data
  */
+export type TensiFaktorUpdateTarget = Pick<
+  TenkoRecord,
+  'id' | 'tanggal' | 'timestamp' | 'nama_driver' | 'nik' | 'driver_id'
+>;
+
 export async function updateTensiFaktor(
-  id: string,
+  record: TensiFaktorUpdateTarget,
   tensi_faktor: string,
   tensi_keterangan: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  const { error } = await supabase
+  const payload = { tensi_faktor, tensi_keterangan };
+
+  const { data: rpcData, error: rpcError } = await supabase.rpc('update_tenko_tensi_faktor', {
+    p_id: record.id || null,
+    p_tanggal: record.tanggal,
+    p_timestamp: record.timestamp,
+    p_nama_driver: record.nama_driver || null,
+    p_nik: record.nik || null,
+    p_tensi_faktor: tensi_faktor,
+    p_tensi_keterangan: tensi_keterangan,
+  });
+
+  if (!rpcError) {
+    const rows = Array.isArray(rpcData) ? rpcData : rpcData ? [rpcData] : [];
+    if (rows.length > 0) return { success: true };
+  } else if (rpcError.code !== 'PGRST202') {
+    // PGRST202 = function not found (migration belum dijalankan)
+    console.warn('update_tenko_tensi_faktor RPC:', rpcError.message);
+  }
+
+  if (record.id) {
+    const { data, error } = await supabase
+      .from('tenko')
+      .update(payload)
+      .eq('id', record.id)
+      .select('id')
+      .maybeSingle();
+
+    if (!error && data) return { success: true };
+    if (error) console.warn('updateTensiFaktor by id:', error.message);
+  }
+
+  let query = supabase
     .from('tenko')
-    .update({ tensi_faktor, tensi_keterangan })
-    .eq('id', id);
+    .update(payload)
+    .eq('tanggal', record.tanggal)
+    .eq('timestamp', record.timestamp);
+
+  if (record.nik) {
+    query = query.eq('nik', record.nik);
+  } else if (record.driver_id) {
+    query = query.eq('driver_id', record.driver_id);
+  } else {
+    query = query.eq('nama_driver', record.nama_driver);
+  }
+
+  const { data, error } = await query.select('id').maybeSingle();
 
   if (error) {
     console.error('updateTensiFaktor error:', error);
     return { success: false, error: error.message };
   }
+
+  if (!data) {
+    return {
+      success: false,
+      error: 'Data tidak tersimpan. Pastikan sudah login dan migration Supabase sudah dijalankan.',
+    };
+  }
+
   return { success: true };
 }
 
