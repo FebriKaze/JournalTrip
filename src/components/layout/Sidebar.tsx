@@ -23,6 +23,9 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   isLoading?: boolean;
   theme: 'light' | 'dark';
+  selectedShift?: 'Day' | 'Night';
+  onShiftChange?: (shift: 'Day' | 'Night') => void;
+  selectedArea?: string;
 }
 
 // Core Operations only — Analytics & Master Data are in the Navbar App Launcher
@@ -61,6 +64,9 @@ export default function Sidebar({
   onToggleCollapse,
   isLoading,
   theme,
+  selectedShift = 'Day',
+  onShiftChange,
+  selectedArea = 'JBK',
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
@@ -239,8 +245,21 @@ export default function Sidebar({
                       </motion.button>
                     ))}
                     {filteredDrivers.length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium italic">Driver tidak ditemukan</p>
+                      <div className="text-center py-8 px-3 space-y-3">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium italic">
+                          {searchQuery
+                            ? 'Driver tidak ditemukan'
+                            : `Tidak ada trip ${selectedShift} Shift di ${selectedArea}`}
+                        </p>
+                        {!searchQuery && onShiftChange && (
+                          <button
+                            type="button"
+                            onClick={() => onShiftChange(selectedShift === 'Day' ? 'Night' : 'Day')}
+                            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
+                          >
+                            Coba {selectedShift === 'Day' ? 'Night' : 'Day'} Shift →
+                          </button>
+                        )}
                       </div>
                     )}
                   </>

@@ -18,7 +18,7 @@ const GatepassPage = lazy(() => import('./pages/GatepassPage'));
 const P2HPage = lazy(() => import('./pages/P2HPage'));
 
 import Footer from './components/layout/Footer';
-import { fetchDashboardData, fetchActiveDrivers } from './services/dataFetcher';
+import { fetchDashboardData, fetchActiveDrivers, getDefaultOperationalShift } from './services/dataFetcher';
 import { Ritase, Driver } from './types';
 import { supabase } from './lib/supabase';
 import { SpeedInsights } from "@vercel/speed-insights/react"
@@ -29,7 +29,7 @@ export default function App() {
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<'Day' | 'Night'>('Day');
+  const [selectedShift, setSelectedShift] = useState<'Day' | 'Night'>(getDefaultOperationalShift);
   const [ritases, setRitases] = useState<Ritase[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<Driver | undefined>();
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -67,7 +67,18 @@ export default function App() {
   const loadDrivers = useCallback(async () => {
     setIsDriversLoading(true);
     try {
-      const data = await fetchActiveDrivers(selectedDate, selectedArea, selectedShift);
+      let data = await fetchActiveDrivers(selectedDate, selectedArea, selectedShift);
+
+      // Jika shift aktif kosong, coba shift alternatif (umum di NGORO: data Night tapi filter Day)
+      if (data.length === 0) {
+        const altShift = selectedShift === 'Day' ? 'Night' : 'Day';
+        const altData = await fetchActiveDrivers(selectedDate, selectedArea, altShift);
+        if (altData.length > 0) {
+          data = altData;
+          setSelectedShift(altShift);
+        }
+      }
+
       setDrivers(data);
 
       if (data.length > 0) {
@@ -167,6 +178,9 @@ export default function App() {
           onToggleCollapse={() => setIsSidebarCollapsed(c => !c)}
           isLoading={isDriversLoading}
           theme={theme}
+          selectedShift={selectedShift}
+          onShiftChange={setSelectedShift}
+          selectedArea={selectedArea}
         />
 
         <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarWidth} overflow-x-hidden`}>

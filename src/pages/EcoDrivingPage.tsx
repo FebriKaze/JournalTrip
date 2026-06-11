@@ -448,7 +448,7 @@ export default function EcoDrivingPage() {
                           }}
                           className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
                         >
-                          {[{ val: 'ALL', label: 'Semua Area' }, { val: 'JBK', label: 'JBK' }, { val: 'NGORO', label: 'NGORO' }, { val: 'SUMATERA', label: 'SUMATERA' }, { val: 'SULAWESI', label: 'SULAWESI' }].map(opt => (
+                          {[{ val: 'ALL', label: 'Semua Area' }, { val: 'JBK', label: 'JBK' }, { val: 'NGORO', label: 'NGORO' }, { val: 'SUMATERA', label: 'SUMATERA' }].map(opt => (
                             <button key={opt.val} onClick={() => { setSelectedArea(opt.val); setAreaDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedArea === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
                           ))}
                         </motion.div>

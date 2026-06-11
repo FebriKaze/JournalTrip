@@ -1,6 +1,48 @@
 import { supabase } from '../lib/supabase';
 import { Driver, Ritase, RitaseStep } from '../types';
 
+const NGORO_PDC_CODES = ['MJKT', 'MKJT'];
+
+type TripAreaRow = { area?: string | null; pdc_bongkar?: string | null };
+
+/** Area operasional untuk Journal Trip — NGORO sering tersimpan area=JBK dengan tujuan MJKT/MKJT */
+export function resolveTripJournalArea(trip: TripAreaRow): string {
+  const area = (trip.area || '').toUpperCase().trim();
+  const bongkar = (trip.pdc_bongkar || '').toUpperCase().trim();
+
+  if (area === 'NGORO' || NGORO_PDC_CODES.includes(bongkar)) return 'NGORO';
+  if (area === 'SUMATERA') return 'SUMATERA';
+  if (area === 'TMMIN') return 'TMMIN';
+  return 'JBK';
+}
+
+function tripMatchesJournalArea(trip: TripAreaRow, selectedArea: string): boolean {
+  if (!selectedArea || selectedArea === 'ALL') return true;
+  if (selectedArea === 'TAM') {
+    return ['JBK', 'NGORO', 'SUMATERA'].includes(resolveTripJournalArea(trip));
+  }
+  return resolveTripJournalArea(trip) === selectedArea;
+}
+
+/** Default shift operasional berdasarkan jam WIB */
+export function getDefaultOperationalShift(): 'Day' | 'Night' {
+  const wibHour = Number(
+    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jakarta' }).format(new Date())
+  );
+  return wibHour >= 6 && wibHour < 18 ? 'Day' : 'Night';
+}
+
+function applyTripAreaQuery<T extends { or: (filters: string) => T; in: (col: string, vals: string[]) => T; eq: (col: string, val: string) => T }>(
+  query: T,
+  area: string
+): T {
+  if (!area || area === 'ALL') return query;
+  if (area === 'TAM') return query.in('area', ['JBK', 'NGORO', 'SUMATERA']);
+  if (area === 'NGORO') return query.or('area.eq.NGORO,pdc_bongkar.in.(MJKT,MKJT)');
+  if (area === 'JBK') return query.in('area', ['JBK', 'NGORO']);
+  return query.eq('area', area);
+}
+
 function fmtTime(t: string | null | undefined): string | null {
   if (!t) return null;
   return t.length >= 5 ? t.substring(0, 5) : t;
@@ -55,13 +97,7 @@ export async function fetchActiveDrivers(selectedDate: string, area: string = 'J
       `)
       .eq('tanggal', selectedDate);
 
-    if (area && area !== 'ALL') {
-      if (area === 'TAM') {
-        query = query.in('area', ['JBK', 'NGORO', 'SUMATERA']);
-      } else {
-        query = query.eq('area', area);
-      }
-    }
+    query = applyTripAreaQuery(query, area);
 
     if (shift) {
       query = query.ilike('shift', `%${shift}%`);
@@ -70,8 +106,12 @@ export async function fetchActiveDrivers(selectedDate: string, area: string = 'J
     const { data: trips, error } = await query;
     if (error) throw error;
 
+    const areaFilteredTrips = (trips || []).filter((row: TripAreaRow) =>
+      tripMatchesJournalArea(row, area)
+    );
+
     const uniqueDrivers = new Map<string, Driver>();
-    trips.forEach((row: any) => {
+    areaFilteredTrips.forEach((row: any) => {
       const driver = row.drivers;
       if (driver && !uniqueDrivers.has(driver.id)) {
         uniqueDrivers.set(driver.id, {
@@ -198,20 +238,26 @@ export async function fetchDriverProfile(driverId: string, month: string) { // m
 
 export async function fetchDashboardData(selectedDate: string, driverId: string, area: string = 'JBK') {
   try {
-    const { data: trips, error } = await supabase
+    let query = supabase
       .from('trips')
       .select(`
         *,
         drivers!inner (*)
       `)
       .eq('tanggal', selectedDate)
-      .eq('driver_id', driverId)
-      .eq('area', area)
-      .order('ritase_no', { ascending: true });
+      .eq('driver_id', driverId);
+
+    query = applyTripAreaQuery(query, area);
+
+    const { data: trips, error } = await query.order('ritase_no', { ascending: true });
 
     if (error) throw error;
 
-    const ritases: Ritase[] = (trips || []).map((row: any, idx: number) => {
+    const filteredTrips = (trips || []).filter((row: TripAreaRow) =>
+      tripMatchesJournalArea(row, area)
+    );
+
+    const ritases: Ritase[] = filteredTrips.map((row: any, idx: number) => {
       const isFinished = !!row.actual_unloading;
       const isActive = !!row.actual_outpool && !isFinished;
 
@@ -221,7 +267,7 @@ export async function fetchDashboardData(selectedDate: string, driverId: string,
         route: `${row.pdc_muat || '---'} → ${row.pdc_bongkar || '---'}`, 
         status: (isFinished ? 'finished' : (isActive ? 'active' : 'locked')) as any,
         type: (isFinished ? 'completed' : (isActive ? 'active' : 'locked')) as any,
-        duration: calculateDuration(row.actual_in_pdc, row.actual_unloading, row.area || area),
+        duration: calculateDuration(row.actual_in_pdc, row.actual_unloading, resolveTripJournalArea(row)),
         timeline: [
           { label: 'OUTPOOL', actual: fmtTime(row.actual_outpool) || '--:--', type: (row.actual_outpool ? 'completed' : 'pending') as any },
           { label: 'IN PDC', plan: fmtTime(row.plan_dccp) || '--:--', actual: fmtTime(row.actual_in_pdc) || '--:--', type: (row.actual_in_pdc ? 'completed' : (isActive ? 'active' : 'pending')) as any },
@@ -231,7 +277,7 @@ export async function fetchDashboardData(selectedDate: string, driverId: string,
       };
     });
 
-    const driverData = trips?.[0]?.drivers || null;
+    const driverData = filteredTrips[0]?.drivers || null;
 
     return {
       driverDetails: driverData ? {
@@ -239,17 +285,17 @@ export async function fetchDashboardData(selectedDate: string, driverId: string,
         name: driverData.name,
         status: (ritases.some(r => r.status === 'active') ? 'online' : 'offline') as 'online' | 'offline',
         avatar: driverData.avatar_url,
-        noPolisi: driverData.no_polisi || trips?.[0]?.no_polisi,
+        noPolisi: driverData.no_polisi || filteredTrips[0]?.no_polisi,
         simExpiry: driverData.sim_expiry,
         simPhotoUrl: driverData.sim_photo_url,
         simStatus: calculateSIMStatus(driverData.sim_expiry)
       } : null,
       ritases,
-      readiness: trips?.[0] ? {
+      readiness: filteredTrips[0] ? {
         physicalHealth: 'OK',
         bloodPressure: 'NORMAL',
         alcoholTest: '0.00% (CLEAR)', 
-        lastVerification: trips[0].actual_outpool || '--:--'
+        lastVerification: filteredTrips[0].actual_outpool || '--:--'
       } : null
     };
   } catch (error) {
