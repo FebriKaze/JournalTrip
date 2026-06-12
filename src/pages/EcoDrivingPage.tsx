@@ -193,7 +193,7 @@ export default function EcoDrivingPage() {
       const targetStr = monthStr || selectedMonth;
       const [y, m] = targetStr.split('-');
       const d = new Date(parseInt(y), parseInt(m) - 1, 1);
-      return buildFilters(d.getMonth(), d.getFullYear());
+      return [...new Set(buildFilters(d.getMonth(), d.getFullYear()))];
     } else {
       const d1 = new Date(startDate);
       const d2 = new Date(endDate);

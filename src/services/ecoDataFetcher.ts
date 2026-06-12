@@ -99,8 +99,13 @@ export async function fetchEcoViolations(options?: {
 
   for (const { data, error } of results) {
     if (error || !data) continue;
-    const mapped = data.map((item: any) => ({
-      id: item.id,
+    const mapped = data.map((item: any, idx: number) => {
+      // Deterministic numeric hash based on data if ID is missing
+      const str = `${item.Tanggal}-${item.Waktu}-${item.Pengemudi}-${item.Lokasi}`;
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
+      return {
+      id: item.id || Math.abs(hash) + idx, // fallback id
       tanggal: item.Tanggal || '',
       waktu: item.Waktu || '',
       plat_nomor: item["Plat Nomor"] || '',
@@ -116,7 +121,8 @@ export async function fetchEcoViolations(options?: {
       area: item.Area || '',
       customer: item.Customer || '',
       grup_kendaraan: item["Grup Kendaraan"] || ''
-    }));
+      };
+    });
     allData = [...allData, ...mapped];
   }
 
@@ -174,8 +180,18 @@ export function computeViolationsByDate(violations: EcoViolation[]): ViolationBy
   });
 
   return Object.values(map)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-14); // last 14 days
+    .sort((a, b) => {
+      const parse = (dStr: string) => {
+        const parts = dStr.split(/[\s-]/);
+        if (parts.length !== 3) return 0;
+        const mMap: Record<string, number> = { 'jan':0, 'feb':1, 'mar':2, 'apr':3, 'may':4, 'mei':4, 'jun':5, 'jul':6, 'aug':7, 'agu':7, 'sep':8, 'oct':9, 'okt':9, 'nov':10, 'dec':11, 'des':11 };
+        const m = mMap[parts[1].toLowerCase().substring(0,3)] ?? 0;
+        const y = parseInt(parts[2]);
+        return new Date(y < 100 ? 2000 + y : y, m, parseInt(parts[0])).getTime();
+      };
+      return parse(a.date) - parse(b.date);
+    })
+    .slice(-31); // show up to 31 days
 }
 
 // ─── COMPUTE SUMMARY ──────────────────────────────────────────────────────────
