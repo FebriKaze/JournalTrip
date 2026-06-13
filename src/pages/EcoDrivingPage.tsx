@@ -384,7 +384,7 @@ export default function EcoDrivingPage() {
               <Leaf className="w-6 h-6 md:w-7 md:h-7 text-emerald-600" />
             </div>
             <div>
-              <h1 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Monitoring Driving Behavior</h1>
+              <h1 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Eco Driving</h1>
               <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 md:mt-1">Fleet Safety Analytics</p>
             </div>
           </div>

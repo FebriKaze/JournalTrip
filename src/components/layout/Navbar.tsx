@@ -30,7 +30,7 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
   '/gatepass': { title: 'Gatepass Control', sub: 'Dispatch & Fleet Readiness' },
   '/leadtime': { title: 'LeadTime Center', sub: 'Performance & Delay Analytics' },
   '/drivers': { title: 'Drivers Registry', sub: 'Data Master Pengemudi' },
-  '/eco': { title: 'Eco Driving', sub: 'Safety Analytics Dashboard' },
+  '/eco': { title: 'Monitoring Driving Behavior', sub: 'Safety Analytics Dashboard' },
   '/carbon': { title: 'Carbon Neutral', sub: 'Carbon Footprint & Environmental Impact' },
 };
 
