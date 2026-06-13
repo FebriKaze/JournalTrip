@@ -331,8 +331,23 @@ export default function LeadTimePage() {
       prevStart = new Date(prevEnd.getTime() - diff);
     }
     
-    const fmt = (d: Date) => d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-    return `${fmt(prevStart)} - ${fmt(prevEnd)} ${prevEnd.getFullYear()}`;
+    const fmt = (d: Date) => d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }).toUpperCase();
+    return `VS ${fmt(prevStart)} - ${fmt(prevEnd)} ${prevEnd.getFullYear()}`;
+  }, [startDate, endDate, filterMode, selectedMonth]);
+
+  const currentPeriodText = useMemo(() => {
+    let currentStart, currentEnd;
+    if (filterMode === 'month') {
+      const [y, m] = selectedMonth.split('-');
+      currentStart = new Date(parseInt(y), parseInt(m) - 1, 1);
+      currentEnd = new Date(parseInt(y), parseInt(m), 0);
+    } else {
+      currentStart = new Date(startDate);
+      currentEnd = new Date(endDate);
+    }
+    
+    const fmt = (d: Date) => d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }).toUpperCase();
+    return `${fmt(currentStart)} - ${fmt(currentEnd)} ${currentEnd.getFullYear()}`;
   }, [startDate, endDate, filterMode, selectedMonth]);
 
   const filteredData = useMemo(() => {
@@ -579,23 +594,23 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
             <StageBox
               title="OUTPOOL" icon={<Truck />} stats={stats?.outpool} prevStats={prevStats?.outpool}
               eff={calculateEfficiency('outpool')} stage="outpool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
-              prevPeriod={prevPeriodText}
+              prevPeriod={currentPeriodText}
             />
             <StageBox
               title="IN-PDC" icon={<Package />} stats={stats?.inpdc} prevStats={prevStats?.inpdc}
               eff={calculateEfficiency('inpdc')} stage="inpdc" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
-              prevPeriod={prevPeriodText}
+              prevPeriod={currentPeriodText}
             />
             <StageBox
               title="DELIVERY" icon={<CheckCircle2 />} stats={stats?.delivery} prevStats={prevStats?.delivery}
               eff={calculateEfficiency('delivery')} stage="delivery" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
-              prevPeriod={prevPeriodText}
+              prevPeriod={currentPeriodText}
             />
             {area !== 'TMMIN' && (
               <StageBox
                 title="BACK-TO-POOL" icon={<Timer />} stats={stats?.backtopool} prevStats={prevStats?.backtopool}
                 eff={calculateEfficiency('backtopool')} stage="backtopool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
-                prevPeriod={prevPeriodText}
+                prevPeriod={currentPeriodText}
               />
             )}
           </div>
