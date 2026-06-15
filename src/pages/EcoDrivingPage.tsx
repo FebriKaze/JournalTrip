@@ -356,12 +356,14 @@ export default function EcoDrivingPage() {
 
   // Prepare data for Driver Bar Chart
   const driverBarData = useMemo(() => {
+    const totalV = Math.max(1, driverViolations.length);
     return rankings.slice(0, 10).map((r, i) => ({
       name: r.driver.split(' ')[0] + '\u200B'.repeat(i), // Zero-width space trick for unique keys
       fullName: r.driver,
-      total: r.total
+      total: r.total,
+      pct: ((r.total / totalV) * 100).toFixed(1) + '%'
     }));
-  }, [rankings]);
+  }, [rankings, driverViolations.length]);
 
   const totalViolations = activeViolations.length;
   
@@ -703,6 +705,12 @@ export default function EcoDrivingPage() {
                         paddingAngle={5}
                         dataKey="value"
                         stroke="none"
+                        label={({ percent, x, y, cx }) => percent > 0.02 ? (
+                          <text x={x} y={y} fill="#64748b" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-[10px] font-black">
+                            {(percent * 100).toFixed(1)}%
+                          </text>
+                        ) : null}
+                        labelLine={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
                         onClick={(data: any) => data.name && setCfType(cfType === data.name ? null : data.name)}
                         className="cursor-pointer outline-none"
                       >
@@ -755,7 +763,7 @@ export default function EcoDrivingPage() {
                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Peta Persebaran Pelanggaran</h3>
                     <p className="text-xs text-slate-500 font-bold mt-1">
                       Showing <span className="text-emerald-600">{Math.min(activeViolations.length, 1000)}</span> 
-                      {activeViolations.length > 1000 ? ` of ${activeViolations.length}` : ''} incidents
+                      {activeViolations.length > 1000 ? ` of ${activeViolations.length}` : ''} Violations
                     </p>
                   </div>
                 </div>
@@ -878,6 +886,7 @@ export default function EcoDrivingPage() {
                               </td>
                               <td className="px-4 py-3 text-right">
                                 <span className="font-black text-slate-900 dark:text-white text-sm">{r.total}</span>
+                                <span className="text-[9px] font-bold text-slate-400 ml-1">({((r.total / Math.max(1, driverViolations.length)) * 100).toFixed(1)}%)</span>
                               </td>
                             </tr>
                           );
@@ -999,7 +1008,7 @@ export default function EcoDrivingPage() {
               </div>
               <div className="h-87.5 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                 <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
-                  <BarChart data={driverBarData} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }} style={{ outline: 'none' }} className="focus:outline-none">
+                  <BarChart data={driverBarData} layout="vertical" margin={{ top: 10, right: 50, left: 20, bottom: 0 }} style={{ outline: 'none' }} className="focus:outline-none">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" opacity={0.3} />
                     <XAxis 
                       type="number"
@@ -1036,6 +1045,14 @@ export default function EcoDrivingPage() {
                       onClick={(data: any) => setCfDriver(cfDriver === data.fullName ? null : data.fullName)}
                       className="cursor-pointer focus:outline-none"
                       style={{ outline: 'none' }}
+                      label={({ x, y, width, height, value, index }) => {
+                        const entry = driverBarData[index];
+                        return (
+                          <text x={x + width + 5} y={y + height / 2} fill="#94a3b8" textAnchor="start" dominantBaseline="central" className="text-[9px] font-black">
+                            {value} ({entry.pct})
+                          </text>
+                        );
+                      }}
                     >
                       {driverBarData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={cfDriver === entry.fullName ? '#1e40af' : cfDriver ? '#bfdbfe' : '#3b82f6'} className="hover:opacity-80 transition-opacity focus:outline-none" style={{ outline: 'none' }}/>
