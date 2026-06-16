@@ -434,7 +434,7 @@ export default function EcoDrivingPage() {
                     <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
                   </button>
                   {areaDropdownOpen && createPortal(
-                    <div className="fixed inset-0 z-[11000] pointer-events-none">
+                    <div className="fixed inset-0 z-11000 pointer-events-none">
                       <AnimatePresence>
                         <motion.div
                           ref={areaDropdownRef}
@@ -481,7 +481,7 @@ export default function EcoDrivingPage() {
                     <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
                   </button>
                   {customerDropdownOpen && createPortal(
-                    <div className="fixed inset-0 z-[11000] pointer-events-none">
+                    <div className="fixed inset-0 z-11000 pointer-events-none">
                       <AnimatePresence>
                         <motion.div
                           ref={customerDropdownRef}
@@ -1048,7 +1048,7 @@ export default function EcoDrivingPage() {
                       label={({ x, y, width, height, value, index }) => {
                         const entry = driverBarData[index];
                         return (
-                          <text x={x + width + 5} y={y + height / 2} fill="#94a3b8" textAnchor="start" dominantBaseline="central" className="text-[9px] font-black">
+                          <text x={Number(x) + Number(width) + 5} y={Number(y) + Number(height) / 2} fill="#94a3b8" textAnchor="start" dominantBaseline="central" className="text-[9px] font-black">
                             {value} ({entry.pct})
                           </text>
                         );

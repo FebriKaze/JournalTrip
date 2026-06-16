@@ -42,6 +42,11 @@ const TIMELINE_FLOWS: Record<string, string[]> = {
     'KM 575B', 'KM 360B', 'KM 164B', 
     'InPool'
   ],
+  'SUMATERA': [
+    'OutPool', 'InPDC', 'OutPDC', 
+    'Pelabuhan Merak', 'Pelabuhan Bakauheni', 
+    'Unloading', 'InPool'
+  ],
   'DEFAULT': ['OutPool', 'InPDC', 'OutPDC', 'Unloading']
 };
 
@@ -56,6 +61,8 @@ const KEY_MAP: Record<string, {actual: string[], plan: string[], stage: string}>
   'KM 575B': { actual: ['KM 575B'], plan: [], stage: 'unknown' },
   'KM 360B': { actual: ['KM 360B'], plan: [], stage: 'unknown' },
   'KM 164B': { actual: ['KM 164B'], plan: [], stage: 'unknown' },
+  'Pelabuhan Merak': { actual: ['Pelabuhan Merak', 'pelabuhan merak', 'merak'], plan: [], stage: 'unknown' },
+  'Pelabuhan Bakauheni': { actual: ['Pelabuhan Bakauheni', 'pelabuhan bakauheni', 'bakauheni'], plan: [], stage: 'unknown' },
   'InPool': { actual: ['Actual (BackToPool)', 'BACK TO POOL', 'inpool', 'in pool'], plan: ['Plan (BackToPool)', 'plan backtopool'], stage: 'backtopool' }
 };
 
