@@ -354,6 +354,28 @@ export default function EcoDrivingPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value, color: colors[name] }));
   }, [typeViolations]);
 
+  // Safe pie label renderer - defined outside JSX to avoid re-render crashes
+  const renderPieLabel = ({ percent, x, y, cx }: any) => {
+    if (!percent || percent < 0.03) return null;
+    try {
+      return (
+        <text
+          x={Number(x)}
+          y={Number(y)}
+          fill="#64748b"
+          textAnchor={Number(x) > Number(cx) ? 'start' : 'end'}
+          dominantBaseline="central"
+          fontSize={10}
+          fontWeight={700}
+        >
+          {(percent * 100).toFixed(1)}%
+        </text>
+      );
+    } catch {
+      return null;
+    }
+  };
+
   // Prepare data for Driver Bar Chart
   const driverBarData = useMemo(() => {
     const totalV = Math.max(1, driverViolations.length);
@@ -705,12 +727,8 @@ export default function EcoDrivingPage() {
                         paddingAngle={5}
                         dataKey="value"
                         stroke="none"
-                        label={({ percent, x, y, cx }) => percent > 0.02 ? (
-                          <text x={x} y={y} fill="#64748b" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-[10px] font-black">
-                            {(percent * 100).toFixed(1)}%
-                          </text>
-                        ) : null}
-                        labelLine={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
+                        label={renderPieLabel}
+                        labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
                         onClick={(data: any) => data.name && setCfType(cfType === data.name ? null : data.name)}
                         className="cursor-pointer outline-none"
                       >
@@ -1047,8 +1065,9 @@ export default function EcoDrivingPage() {
                       style={{ outline: 'none' }}
                       label={({ x, y, width, height, value, index }) => {
                         const entry = driverBarData[index];
+                        if (!entry) return null;
                         return (
-                          <text x={Number(x) + Number(width) + 5} y={Number(y) + Number(height) / 2} fill="#94a3b8" textAnchor="start" dominantBaseline="central" className="text-[9px] font-black">
+                          <text x={Number(x) + Number(width) + 5} y={Number(y) + Number(height) / 2} fill="#94a3b8" textAnchor="start" dominantBaseline="central" fontSize={9} fontWeight={700}>
                             {value} ({entry.pct})
                           </text>
                         );
