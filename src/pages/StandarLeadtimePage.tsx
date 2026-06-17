@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { motion } from 'motion/react';
-import { Timer, Map, MapPin, Navigation, Route as RouteIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Timer, Map, MapPin, Navigation, Route as RouteIcon, Clock, ChevronLeft, ChevronRight, Leaf, Zap, AlertTriangle, TrendingDown, RotateCcw, ParkingCircle, Wind } from 'lucide-react';
 
 const ROWS_PER_PAGE = 6;
 
@@ -285,6 +285,125 @@ export default function StandarLeadtimePage() {
           <RouteCard key={route.id} route={route} delay={i * 0.08} />
         ))}
       </div>
+
+      {/* ── ECO DRIVING PARAMETERS ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
+        className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden"
+      >
+        {/* Section Header */}
+        <div className="px-6 sm:px-8 py-5 border-b border-emerald-100 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-white/60 dark:bg-slate-900/40">
+            <Leaf className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="text-[11px] sm:text-sm font-black uppercase tracking-tight text-emerald-600 dark:text-emerald-400">
+              Standar Parameter Eco Driving
+            </h3>
+            <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">6 parameter pelanggaran</p>
+          </div>
+        </div>
+
+        {/* Parameter Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-y divide-slate-100 dark:divide-slate-800 sm:divide-y-0">
+          {[
+            {
+              icon: <Zap className="w-4 h-4" />,
+              color: 'red',
+              code: 'OverSpeed',
+              label: 'Over Speed',
+              desc: 'Kecepatan Melebihi 80 KM/jam',
+              threshold: '> 80 km/jam',
+            },
+            {
+              icon: <TrendingDown className="w-4 h-4 rotate-180" />,
+              color: 'blue',
+              code: 'HA',
+              label: 'Harsh Acceleration',
+              desc: 'Kenaikan Kecepatan 2.5 m/s atau 10 km/jam dalam 1 detik',
+              threshold: '≥ 2.5 m/s² dalam 1 detik',
+            },
+            {
+              icon: <TrendingDown className="w-4 h-4" />,
+              color: 'amber',
+              code: 'HB',
+              label: 'Harsh Braking',
+              desc: 'Penurunan Kecepatan 2.5 m/s atau 10 km/jam dalam 1 detik',
+              threshold: '≥ 2.5 m/s² dalam 1 detik',
+            },
+            {
+              icon: <RotateCcw className="w-4 h-4" />,
+              color: 'purple',
+              code: 'HC',
+              label: 'Hot Cornering',
+              desc: 'Bila kendaraan berbelok lebih dari 20 derajat dalam 1 detik',
+              threshold: '> 20° dalam 1 detik',
+            },
+            {
+              icon: <ParkingCircle className="w-4 h-4" />,
+              color: 'orange',
+              code: 'IS',
+              label: 'Illegal Stop',
+              desc: 'Berhenti lebih dari 15 menit di tempat yang bukan Rest Point',
+              threshold: '> 15 menit di non-RP',
+            },
+            {
+              icon: <Wind className="w-4 h-4" />,
+              color: 'slate',
+              code: 'IT',
+              label: 'Idle Time',
+              desc: 'Mesin menyala lebih dari 30 menit tanpa pergerakan',
+              threshold: '> 30 menit tanpa gerak',
+            },
+          ].map((param, i) => {
+            const colorStyles: Record<string, { bg: string; text: string; border: string; pill: string; badge: string }> = {
+              red:    { bg: 'bg-red-50 dark:bg-red-500/10',     text: 'text-red-600 dark:text-red-400',     border: 'border-red-100 dark:border-red-500/20',     pill: 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300',     badge: 'bg-red-500' },
+              blue:   { bg: 'bg-blue-50 dark:bg-blue-500/10',   text: 'text-blue-600 dark:text-blue-400',   border: 'border-blue-100 dark:border-blue-500/20',   pill: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300',   badge: 'bg-blue-500' },
+              amber:  { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-100 dark:border-amber-500/20', pill: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300', badge: 'bg-amber-500' },
+              purple: { bg: 'bg-purple-50 dark:bg-purple-500/10',text: 'text-purple-600 dark:text-purple-400',border: 'border-purple-100 dark:border-purple-500/20',pill: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300',badge: 'bg-purple-500' },
+              orange: { bg: 'bg-orange-50 dark:bg-orange-500/10',text: 'text-orange-600 dark:text-orange-400',border: 'border-orange-100 dark:border-orange-500/20',pill: 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300',badge: 'bg-orange-500' },
+              slate:  { bg: 'bg-slate-50 dark:bg-slate-800/60', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-100 dark:border-slate-700',     pill: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300', badge: 'bg-slate-500' },
+            };
+            const c = colorStyles[param.color];
+            return (
+              <div
+                key={param.code}
+                className={`relative p-5 sm:p-6 flex flex-col gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${i < 3 ? 'sm:border-b sm:border-slate-100 sm:dark:border-slate-800' : ''} ${i % 3 !== 2 ? 'lg:border-r lg:border-slate-100 lg:dark:border-slate-800' : ''} ${i % 2 === 0 ? 'sm:border-r sm:border-slate-100 sm:dark:border-slate-800 lg:border-r-0' : ''} ${[0,1,3,4].includes(i) ? 'sm:border-r' : ''}`}
+              >
+                {/* Top row: icon + code badge */}
+                <div className="flex items-center justify-between">
+                  <div className={`p-2 rounded-xl ${c.bg} border ${c.border}`}>
+                    <span className={c.text}>{param.icon}</span>
+                  </div>
+                  <span className={`text-[8px] font-black px-2 py-1 rounded-lg tracking-widest uppercase ${c.pill}`}>
+                    {param.code}
+                  </span>
+                </div>
+
+                {/* Label */}
+                <div>
+                  <p className="text-[11px] sm:text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">
+                    {param.label}
+                  </p>
+                  <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-1.5">
+                    {param.desc}
+                  </p>
+                </div>
+
+                {/* Threshold pill */}
+                <div className="mt-auto">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+                    <AlertTriangle className="w-2.5 h-2.5 text-slate-400" />
+                    {param.threshold}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
 
     </div>
   );
