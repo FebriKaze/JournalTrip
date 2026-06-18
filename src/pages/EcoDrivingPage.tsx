@@ -113,6 +113,7 @@ export default function EcoDrivingPage() {
     const [endDate, setEndDate] = useState(now.toLocaleDateString('en-CA')); // YYYY-MM-DD Lokal
   const [selectedArea, setSelectedArea] = useState('ALL');
   const [selectedCustomer, setSelectedCustomer] = useState('ALL');
+  const [selectedCabang, setSelectedCabang] = useState('ALL');
   const [violations, setViolations] = useState<EcoViolation[]>([]);
   const [prevViolations, setPrevViolations] = useState<EcoViolation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,13 +121,49 @@ export default function EcoDrivingPage() {
   // Custom Dropdown State
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const [cabangDropdownOpen, setCabangDropdownOpen] = useState(false);
   const [areaPos, setAreaPos] = useState({ top: 0, left: 0, width: 0 });
   const [customerPos, setCustomerPos] = useState({ top: 0, left: 0, width: 0 });
+  const [cabangPos, setCabangPos] = useState({ top: 0, left: 0, width: 0 });
   const areaBtnRef = useRef<HTMLButtonElement>(null);
   const customerBtnRef = useRef<HTMLButtonElement>(null);
+  const cabangBtnRef = useRef<HTMLButtonElement>(null);
   const areaDropdownRef = useRef<HTMLDivElement>(null);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
+  const cabangDropdownRef = useRef<HTMLDivElement>(null);
   
+  // Filtered areas based on selected branch (cabang)
+  const filteredAreas = useMemo(() => {
+    if (selectedCabang === 'KARAWANG') {
+      return [
+        { val: 'ALL', label: 'Semua Area' },
+        { val: 'JBK', label: 'JBK' },
+        { val: 'NGORO', label: 'NGORO' },
+        { val: 'SUMATERA', label: 'SUMATERA' }
+      ];
+    }
+    if (selectedCabang === 'SULAWESI') {
+      return [
+        { val: 'ALL', label: 'Semua Area' },
+        { val: 'SULAWESI', label: 'SULAWESI' }
+      ];
+    }
+    return [
+      { val: 'ALL', label: 'Semua Area' },
+      { val: 'JBK', label: 'JBK' },
+      { val: 'NGORO', label: 'NGORO' },
+      { val: 'SUMATERA', label: 'SUMATERA' },
+      { val: 'SULAWESI', label: 'SULAWESI' }
+    ];
+  }, [selectedCabang]);
+
+  // Reset selectedArea if not compatible with selected branch (cabang)
+  useEffect(() => {
+    if (selectedArea !== 'ALL' && !filteredAreas.some(opt => opt.val === selectedArea)) {
+      setSelectedArea('ALL');
+    }
+  }, [selectedCabang, filteredAreas, selectedArea]);
+
   // Cross-Filtering State
   const [cfDriver, setCfDriver] = useState<string | null>(null);
   const [cfType, setCfType] = useState<string | null>(null);
@@ -139,7 +176,7 @@ export default function EcoDrivingPage() {
   // Reload data when filters change (also handles initial load)
   useEffect(() => {
     loadData();
-  }, [filterMode, selectedMonth, startDate, endDate, selectedArea, selectedCustomer]);
+  }, [filterMode, selectedMonth, startDate, endDate, selectedArea, selectedCustomer, selectedCabang]);
 
   // Handle clicking outside custom dropdowns
   useEffect(() => {
@@ -151,10 +188,13 @@ export default function EcoDrivingPage() {
       if (customerDropdownOpen && customerDropdownRef.current && !customerDropdownRef.current.contains(target) && customerBtnRef.current && !customerBtnRef.current.contains(target)) {
         setCustomerDropdownOpen(false);
       }
+      if (cabangDropdownOpen && cabangDropdownRef.current && !cabangDropdownRef.current.contains(target) && cabangBtnRef.current && !cabangBtnRef.current.contains(target)) {
+        setCabangDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [areaDropdownOpen, customerDropdownOpen]);
+  }, [areaDropdownOpen, customerDropdownOpen, cabangDropdownOpen]);
 
   // Clear cross-filters when main data changes
   useEffect(() => {
@@ -240,7 +280,7 @@ export default function EcoDrivingPage() {
       // 1. Fetch Current Period
       const mFilters = getMonthFilters();
       const promises = mFilters.map(f => fetchEcoViolations({
-        area: selectedArea, customer: selectedCustomer, monthFilter: f
+        area: selectedArea, customer: selectedCustomer, monthFilter: f, cabang: selectedCabang
       }));
       const results = await Promise.all(promises);
       const rawData = Array.from(new Map(results.flat().map((v: EcoViolation) => [v.id, v])).values());
@@ -280,7 +320,7 @@ export default function EcoDrivingPage() {
         const prevMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         const prevFilters = getMonthFilters(prevMonthStr);
         const prevResults = await Promise.all(prevFilters.map(f => fetchEcoViolations({
-          area: selectedArea, customer: selectedCustomer, monthFilter: f
+          area: selectedArea, customer: selectedCustomer, monthFilter: f, cabang: selectedCabang
         })));
         const prevRaw = Array.from(new Map(prevResults.flat().map((v: EcoViolation) => [v.id, v])).values());
         const prevFiltered = (prevRaw as EcoViolation[]).filter(v => {
@@ -299,7 +339,7 @@ export default function EcoDrivingPage() {
         
         const prevFilters = getMonthFilters(undefined, prevStart, prevEnd);
         const prevResults = await Promise.all(prevFilters.map(f => fetchEcoViolations({
-          area: selectedArea, customer: selectedCustomer, monthFilter: f
+          area: selectedArea, customer: selectedCustomer, monthFilter: f, cabang: selectedCabang
         })));
         
         const prevRaw = Array.from(new Map(prevResults.flat().map((v: EcoViolation) => [v.id, v])).values());
@@ -434,7 +474,54 @@ export default function EcoDrivingPage() {
               )}
             </div>
             
-            <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 w-full lg:w-auto">
+            <div className="grid grid-cols-3 sm:flex sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative group w-full sm:w-auto">
+                  <button
+                    ref={cabangBtnRef}
+                    onClick={() => {
+                      if (cabangBtnRef.current) {
+                        const r = cabangBtnRef.current.getBoundingClientRect();
+                        const isMob = window.innerWidth < 640;
+                        setCabangPos({ 
+                          top: r.bottom + 8, 
+                          left: isMob ? Math.max(8, r.left) : r.left,
+                          width: Math.max(r.width, isMob ? window.innerWidth - 16 : 144)
+                        });
+                      }
+                      setCabangDropdownOpen(!cabangDropdownOpen);
+                    }}
+                    className="w-full sm:w-36 flex items-center justify-between pl-4 pr-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 outline-none uppercase tracking-widest transition-all shadow-sm"
+                  >
+                    <span className="truncate">{selectedCabang === 'ALL' ? 'Cabang' : selectedCabang}</span>
+                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                  </button>
+                  {cabangDropdownOpen && createPortal(
+                    <div className="fixed inset-0 z-11000 pointer-events-none">
+                      <AnimatePresence>
+                        <motion.div
+                          ref={cabangDropdownRef}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 5 }}
+                          style={{
+                            position: 'fixed',
+                            top: cabangPos.top,
+                            left: cabangPos.left,
+                            width: cabangPos.width,
+                            maxWidth: 320,
+                          }}
+                          className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
+                        >
+                          {[{ val: 'ALL', label: 'Semua Cabang' }, { val: 'KARAWANG', label: 'KARAWANG' }, { val: 'SULAWESI', label: 'SULAWESI' }].map(opt => (
+                            <button key={opt.val} onClick={() => { setSelectedCabang(opt.val); setCabangDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCabang === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
+                          ))}
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>,
+                    document.body
+                  )}
+                </div>
+
                 <div className="relative group w-full sm:w-auto">
                   <button
                     ref={areaBtnRef}
@@ -472,7 +559,7 @@ export default function EcoDrivingPage() {
                           }}
                           className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
                         >
-                          {[{ val: 'ALL', label: 'Semua Area' }, { val: 'JBK', label: 'JBK' }, { val: 'NGORO', label: 'NGORO' }, { val: 'SUMATERA', label: 'SUMATERA' }].map(opt => (
+                          {filteredAreas.map(opt => (
                             <button key={opt.val} onClick={() => { setSelectedArea(opt.val); setAreaDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedArea === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
                           ))}
                         </motion.div>
