@@ -47,7 +47,7 @@ const TIMELINE_FLOWS: Record<string, string[]> = {
     'Pelabuhan Merak', 'Pelabuhan Bakauheni', 
     'Unloading', 'InPool'
   ],
-  'DEFAULT': ['OutPool', 'InPDC', 'OutPDC', 'Unloading']
+  'DEFAULT': ['OutPool', 'InPDC', 'OutPDC', 'Unloading', 'InPool']
 };
 
 const KEY_MAP: Record<string, {actual: string[], plan: string[], stage: string}> = {
@@ -115,6 +115,10 @@ export default function LeadTimePage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      const formatLocal = (d: Date) => {
+        return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      };
+
       let currentStart, currentEnd;
       if (filterMode === 'month') {
         const [y, m] = selectedMonth.split('-');
@@ -127,8 +131,8 @@ export default function LeadTimePage() {
 
       // 1. Current Period
       const result = await leadtimeService.getLeadTimes(
-        currentStart.toISOString().split('T')[0],
-        currentEnd.toISOString().split('T')[0],
+        formatLocal(currentStart),
+        formatLocal(currentEnd),
         area
       );
       setData(result);
@@ -146,8 +150,8 @@ export default function LeadTimePage() {
       }
       
       const prevResult = await leadtimeService.getLeadTimes(
-        prevStart.toISOString().split('T')[0],
-        prevEnd.toISOString().split('T')[0],
+        formatLocal(prevStart),
+        formatLocal(prevEnd),
         area
       );
       setPrevData(prevResult);
