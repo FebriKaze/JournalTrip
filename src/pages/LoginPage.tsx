@@ -98,7 +98,7 @@ export default function LoginPage() {
           
           <div className="mt-16 text-center">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              &copy; 2026 PT. K Line Mobilitas Indonesia
+              &copy; 2026 PT. K Line Mobaru Diamond Indonesia
             </p>
           </div>
         </div>

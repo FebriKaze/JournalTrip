@@ -26,6 +26,7 @@ interface SidebarProps {
   selectedShift?: 'Day' | 'Night';
   onShiftChange?: (shift: 'Day' | 'Night') => void;
   selectedArea?: string;
+  isTAM?: boolean;
 }
 
 // Core Operations only — Analytics & Master Data are in the Navbar App Launcher
@@ -67,6 +68,7 @@ export default function Sidebar({
   selectedShift = 'Day',
   onShiftChange,
   selectedArea = 'JBK',
+  isTAM = false,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
@@ -120,7 +122,7 @@ export default function Sidebar({
           {!isCollapsed && (
             <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-3">Main Menu</p>
           )}
-          {NAV_ITEMS.map(item => {
+          {NAV_ITEMS.filter(item => isTAM ? !['p2h', 'gatepass'].includes(item.id) : true).map(item => {
             const active = item.path === '/' 
               ? location.pathname === '/' 
               : location.pathname.startsWith(item.path);

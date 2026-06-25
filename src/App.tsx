@@ -16,6 +16,7 @@ const CarbonNeutralPage = lazy(() => import('./pages/CarbonNeutralPage'));
 const TenkoPage = lazy(() => import('./pages/TenkoPage'));
 const GatepassPage = lazy(() => import('./pages/GatepassPage'));
 const P2HPage = lazy(() => import('./pages/P2HPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
 
 import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers, getDefaultOperationalShift } from './services/dataFetcher';
@@ -47,6 +48,9 @@ export default function App() {
     }
     return 'light';
   });
+
+  const isTAM = session?.user?.email === 'toyotaastra@kmdi.co.id';
+  const effectiveArea = isTAM ? 'TMMIN' : selectedArea;
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -97,11 +101,11 @@ export default function App() {
       setRitases([]);
     }
     setIsDriversLoading(false);
-  }, [selectedDate, selectedArea, selectedShift, selectedDriverId]);
+  }, [selectedDate, effectiveArea, selectedShift, selectedDriverId]);
 
   useEffect(() => {
     loadDrivers();
-  }, [selectedDate, selectedArea, selectedShift]);
+  }, [selectedDate, effectiveArea, selectedShift]);
 
   const loadData = useCallback(async () => {
     if (!selectedDriverId) return;
@@ -114,7 +118,7 @@ export default function App() {
       }
     } catch (e) { console.error(e); }
     setIsLoading(false);
-  }, [selectedDate, selectedDriverId, selectedArea]);
+  }, [selectedDate, selectedDriverId, effectiveArea]);
 
   useEffect(() => {
     loadData();
@@ -155,6 +159,30 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <BrowserRouter>
+        <Suspense fallback={
+          <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }>
+          <Routes>
+            <Route path="*" element={<LoginPage />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    );
+  }
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
     localStorage.setItem('manual-theme-set', 'true');
@@ -180,7 +208,8 @@ export default function App() {
           theme={theme}
           selectedShift={selectedShift}
           onShiftChange={setSelectedShift}
-          selectedArea={selectedArea}
+          selectedArea={effectiveArea}
+          isTAM={isTAM}
         />
 
         <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarWidth} overflow-x-hidden`}>
@@ -195,6 +224,7 @@ export default function App() {
                 theme={theme}
                 onThemeToggle={toggleTheme}
                 session={session}
+                isTAM={isTAM}
               />
 
               <main id="pdf-export-content" className="pt-16 min-h-screen">
@@ -233,8 +263,9 @@ export default function App() {
                               driver={selectedDriver as any}
                               selectedDate={selectedDate}
                               onDateChange={setSelectedDate}
-                              selectedArea={selectedArea}
+                              selectedArea={effectiveArea}
                               onAreaChange={setSelectedArea}
+                              isTAM={isTAM}
                             />
                             <div className="mt-6">
                               <RitaseTracking

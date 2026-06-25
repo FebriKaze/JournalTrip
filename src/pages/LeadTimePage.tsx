@@ -163,9 +163,8 @@ export default function LeadTimePage() {
 
   const getTripCounts = (trip: LeadTimeData, filter: string, areaName: string) => {
     let counts = { onTime: 0, advance: 0, delay: 0 };
-    const stages = filter === 'ALL' ? ['outpool', 'inpdc', 'delivery', 'backtopool'] : [filter];
+    const stages = filter === 'ALL' ? ['outpool', 'inpdc', 'delivery'] : [filter];
     stages.forEach(s => {
-      if (areaName === 'TMMIN' && s === 'backtopool') return;
       const stat = getRowStatus(trip, s);
       if (stat === 'OnTime') counts.onTime++;
       else if (stat === 'Advance') counts.advance++;
@@ -254,14 +253,17 @@ export default function LeadTimePage() {
 
   const stats = useMemo(() => {
     if (baseData.length === 0) return null;
+    const totalRecords = baseData.length;
 
     const getStageStats = (stage: string, reasonKeywords: string[]) => {
       const counts: Record<string, number> = { 'OnTime': 0, 'Delay': 0, 'Advance': 0 };
+      let unknown = 0;
       const reasons: Record<string, number> = {};
 
       baseData.forEach(item => {
         const status = getRowStatus(item, stage);
         if (counts[status] !== undefined) counts[status]++;
+        else unknown++;
         for (const key in item.status_info) {
           if (reasonKeywords.some(k => key.toLowerCase().includes(k.toLowerCase()))) {
             const val = item.status_info[key];
@@ -272,13 +274,18 @@ export default function LeadTimePage() {
         }
       });
 
+      // total = hanya yang punya data (exclude Unknown)
       const total = counts.OnTime + counts.Delay + counts.Advance;
       const chartData = Object.entries(counts).map(([name, value]) => ({ 
         name, value, percentage: total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'
       }));
 
+      // coverage = berapa % dari total records yang punya data di stage ini
+      const coverage = totalRecords > 0 ? Math.round((total / totalRecords) * 100) : 0;
+
       return {
-        chartData, total, reasons: Object.entries(reasons).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 8)
+        chartData, total, unknown, coverage, totalRecords,
+        reasons: Object.entries(reasons).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 8)
       };
     };
 
@@ -302,7 +309,8 @@ export default function LeadTimePage() {
       inpdc: getStageStats('inpdc', ['Evaluasi Kedatangan CC', 'delay inpdc', 'Reason Delay InPDC', 'Reason Delay In PDC', 'Reason Delay PDC']),
       delivery: getStageStats('delivery', ['Leadtime delivery', 'status leadtime', 'delay delivery', 'Reason Delay Delivery']),
       backtopool: getStageStats('backtopool', ['Reason Delay BackToPool', 'Reason Delay Back To Pool', 'Reason Delay BackToPool']),
-      trend: getTrend(trendStage)
+      trend: getTrend(trendStage),
+      totalRecords
     };
   }, [baseData, trendStage]);
 
@@ -382,8 +390,18 @@ export default function LeadTimePage() {
     if (activeFilter) {
       result = result.filter(item => getRowStatus(item, activeFilter.stage) === activeFilter.status);
     }
+    // Auto-hide records with no data for the active stage filter
+    if (tableStageFilter !== 'ALL') {
+      result = result.filter(item => getRowStatus(item, tableStageFilter) !== 'Unknown');
+    } else {
+      // When ALL: hide records that have no data in ANY stage (completely empty)
+      result = result.filter(item => {
+        const stages = ['outpool', 'inpdc', 'delivery'];
+        return stages.some(s => getRowStatus(item, s) !== 'Unknown');
+      });
+    }
     return result;
-  }, [baseData, searchQuery, activeFilter, reasonFilter]);
+  }, [baseData, searchQuery, activeFilter, reasonFilter, tableStageFilter]);
 
   const groupedData = useMemo(() => {
     const map: Record<string, {
@@ -601,7 +619,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
           )}
 
           {/* ── STAGE BOXES ── */}
-          <div className={`grid grid-cols-1 md:grid-cols-2 ${area === 'TMMIN' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 sm:gap-10 w-full max-w-full overflow-hidden box-border`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-10 w-full max-w-full overflow-hidden box-border`}>
             <StageBox
               title="OUTPOOL" icon={<Truck />} stats={stats?.outpool} prevStats={prevStats?.outpool}
               eff={calculateEfficiency('outpool')} stage="outpool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
@@ -617,13 +635,6 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
               eff={calculateEfficiency('delivery')} stage="delivery" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
               prevPeriod={currentPeriodText}
             />
-            {area !== 'TMMIN' && (
-              <StageBox
-                title="BACK-TO-POOL" icon={<Timer />} stats={stats?.backtopool} prevStats={prevStats?.backtopool}
-                eff={calculateEfficiency('backtopool')} stage="backtopool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
-                prevPeriod={currentPeriodText}
-              />
-            )}
           </div>
 
           {/* ── DELAY ANALYSIS CENTER ── */}
@@ -636,7 +647,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
                 <p className="text-[9px] sm:text-xs text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Klik DELAY untuk lihat rincian penyebab</p>
               </div>
             </div>
-            <div className={`grid grid-cols-1 md:grid-cols-2 ${area === 'TMMIN' ? 'xl:grid-cols-3' : 'xl:grid-cols-4'} gap-6 sm:gap-12 w-full max-w-full overflow-hidden`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-12 w-full max-w-full overflow-hidden`}>
               <ReasonSection title="OUTPOOL DELAYS" stageStats={stats?.outpool} color="text-amber-500"
                 onClickDelay={() => setDelayPopup({ title: 'OUTPOOL DELAY REASONS', reasons: (stats?.outpool?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.outpool?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
                 onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
@@ -649,12 +660,6 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
                 onClickDelay={() => setDelayPopup({ title: 'DELIVERY DELAY REASONS', reasons: (stats?.delivery?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.delivery?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
                 onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
               />
-              {area !== 'TMMIN' && (
-                <ReasonSection title="BACK-TO-POOL DELAYS" stageStats={stats?.backtopool} color="text-purple-500"
-                  onClickDelay={() => setDelayPopup({ title: 'BACK-TO-POOL DELAY REASONS', reasons: (stats?.backtopool?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.backtopool?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
-                  onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
-                />
-              )}
             </div>
           </div>
 
@@ -667,8 +672,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
                   <p className="text-[7px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Daily Efficiency (OnTime + Advance)</p>
                 </div>
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-fit">
-                  {(['outpool', 'inpdc', 'delivery', 'backtopool'] as const)
-                    .filter(s => !(area === 'TMMIN' && s === 'backtopool'))
+                  {(['outpool', 'inpdc', 'delivery'] as const)
                     .map((s) => (
                     <button
                       key={s}
@@ -719,8 +723,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
               </div>
               <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 shrink-0">
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-full lg:w-fit overflow-x-auto scrollbar-hide">
-                  {(['ALL', 'outpool', 'inpdc', 'delivery', 'backtopool'] as const)
-                    .filter(s => !(area === 'TMMIN' && s === 'backtopool'))
+                  {(['ALL', 'outpool', 'inpdc', 'delivery'] as const)
                     .map((s) => (
                     <button
                       key={s}

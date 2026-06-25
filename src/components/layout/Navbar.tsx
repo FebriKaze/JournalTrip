@@ -21,6 +21,7 @@ interface NavbarProps {
   theme: 'light' | 'dark';
   onThemeToggle: () => void;
   session?: any;
+  isTAM?: boolean;
 }
 
 const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
@@ -93,6 +94,7 @@ export default function Navbar({
   theme,
   onThemeToggle,
   session,
+  isTAM = false,
 }: NavbarProps) {
   const location = useLocation();
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -393,7 +395,7 @@ export default function Navbar({
 
                 {/* Grid Items */}
                 <div className="p-3 grid grid-cols-2 gap-2">
-                  {LAUNCHER_ITEMS.map((item, i) => (
+                  {LAUNCHER_ITEMS.filter(item => isTAM ? !['carbon', 'drivers'].includes(item.id) : true).map((item, i) => (
                     <motion.div
                       key={item.id}
                       initial={{ opacity: 0, y: 8 }}

@@ -9,11 +9,12 @@ interface HeaderProps {
   onDateChange: (date: string) => void;
   selectedArea: string;
   onAreaChange: (area: string) => void;
+  isTAM?: boolean;
 }
 
 const areas = ['JBK', 'NGORO', 'SUMATERA', 'TMMIN'];
 
-export default function Header({ driver, selectedDate, onDateChange, selectedArea, onAreaChange }: HeaderProps) {
+export default function Header({ driver, selectedDate, onDateChange, selectedArea, onAreaChange, isTAM = false }: HeaderProps) {
   const [showSimModal, setShowSimModal] = useState(false);
 
   return (
@@ -25,27 +26,29 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
       >
         <div className="flex flex-wrap items-center gap-3">
           {/* Area Switcher Premium - Pembersihan total outline/border */}
-          <div className="bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-2xl flex items-center shadow-inner backdrop-blur-sm">
-            {areas.map((area) => (
-              <motion.button
-                key={area}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => onAreaChange(area)}
-                className={`relative px-4 py-2 rounded-xl text-xs font-black transition-all border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none ${
-                  selectedArea === area ? 'text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-              >
-                {selectedArea === area && (
-                  <motion.div
-                    layoutId="activeArea"
-                    className="absolute inset-0 bg-red-600 dark:bg-red-700 rounded-xl"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <span className="relative z-10 uppercase tracking-wider">{area}</span>
-              </motion.button>
-            ))}
-          </div>
+          {!isTAM && (
+            <div className="bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-2xl flex items-center shadow-inner backdrop-blur-sm">
+              {areas.map((area) => (
+                <motion.button
+                  key={area}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onAreaChange(area)}
+                  className={`relative px-4 py-2 rounded-xl text-xs font-black transition-all border-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none ${
+                    selectedArea === area ? 'text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {selectedArea === area && (
+                    <motion.div
+                      layoutId="activeArea"
+                      className="absolute inset-0 bg-red-600 dark:bg-red-700 rounded-xl"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <span className="relative z-10 uppercase tracking-wider">{area}</span>
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
       </motion.div>
 
