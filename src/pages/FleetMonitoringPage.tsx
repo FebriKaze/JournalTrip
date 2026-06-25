@@ -506,55 +506,58 @@ export default function FleetMonitoringPage() {
                       {/* Timeline Line */}
                       <div className="absolute left-5.75 top-4 bottom-4 w-0.5 bg-slate-100 dark:bg-slate-800" />
                       
-                      {selectedDriver.allTrips.map((trip: any, idx: number) => (
-                        <div key={idx} className="relative flex gap-6">
-                          {/* Dot */}
-                          <div className={`z-10 w-5 h-5 rounded-full border-4 border-white dark:border-slate-900 shadow-sm mt-1 shrink-0 ${trip.actual_in_pdc ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-                          
-                          {/* Card */}
-                          <div className={`flex-1 p-4 rounded-2xl border transition-all ${
-                            trip.ritNo === selectedDriver.currentRitase 
-                              ? 'bg-red-50/30 border-red-100 dark:bg-red-500/5 dark:border-red-900/30' 
-                              : 'bg-white dark:bg-slate-800/40 border-slate-100 dark:border-slate-800'
-                          }`}>
-                            <div className="flex justify-between items-start mb-4">
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black ${
-                                  trip.actual_in_pdc ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                                }`}>
-                                  R{trip.ritNo}
-                                </span>
-                                <div className="flex items-center gap-2 text-xs font-black">
-                                  <span className="text-slate-900 dark:text-white">{trip.pdc_muat}</span>
-                                  <ArrowRight className="w-3 h-3 text-slate-300" />
-                                  <span className="text-slate-900 dark:text-white">{trip.pdc_bongkar}</span>
+                      {selectedDriver.allTrips.map((trip: any, idx: number) => {
+                        const isCompleted = trip.actual_unloading || trip.actual_out_pdc || trip.actual_in_pdc || trip.actual_outpool;
+                        return (
+                          <div key={idx} className="relative flex gap-6">
+                            {/* Dot */}
+                            <div className={`z-10 w-5 h-5 rounded-full border-4 border-white dark:border-slate-900 shadow-sm mt-1 shrink-0 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                            
+                            {/* Card */}
+                            <div className={`flex-1 p-4 rounded-2xl border transition-all ${
+                              trip.ritNo === selectedDriver.currentRitase 
+                                ? 'bg-red-50/30 border-red-100 dark:bg-red-500/5 dark:border-red-900/30' 
+                                : 'bg-white dark:bg-slate-800/40 border-slate-100 dark:border-slate-800'
+                            }`}>
+                              <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black ${
+                                    isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                                  }`}>
+                                    R{trip.ritNo}
+                                  </span>
+                                  <div className="flex items-center gap-2 text-xs font-black">
+                                    <span className="text-slate-900 dark:text-white">{trip.pdc_muat}</span>
+                                    <ArrowRight className="w-3 h-3 text-slate-300" />
+                                    <span className="text-slate-900 dark:text-white">{trip.pdc_bongkar}</span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1 items-end">
+                                  {trip.isDelayed && (
+                                    <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[7px] font-black uppercase animate-pulse">Berpotensi Delay</span>
+                                  )}
+                                  {trip.isChange && (
+                                    <span className="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[7px] font-black uppercase">Change Shift</span>
+                                  )}
                                 </div>
                               </div>
-                              <div className="flex flex-col gap-1 items-end">
-                                {trip.isDelayed && (
-                                  <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[7px] font-black uppercase animate-pulse">Berpotensi Delay</span>
-                                )}
-                                {trip.isChange && (
-                                  <span className="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[7px] font-black uppercase">Change Shift</span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Plan DCCP</p>
-                                <p className="text-xs font-black text-slate-900 dark:text-white">{trip.plan_dccp || '--:--'}</p>
-                              </div>
-                              <div>
-                                <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Actual In PDC</p>
-                                <p className={`text-xs font-black ${trip.isDelayed ? 'text-red-600' : 'text-emerald-600'}`}>
-                                  {trip.actual_in_pdc || 'Waiting...'}
-                                </p>
+                              
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Plan DCCP</p>
+                                  <p className="text-xs font-black text-slate-900 dark:text-white">{trip.plan_dccp || '--:--'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Actual In PDC</p>
+                                  <p className={`text-xs font-black ${trip.isDelayed ? 'text-red-600' : (isCompleted && !trip.actual_in_pdc ? 'text-slate-400' : 'text-emerald-600')}`}>
+                                    {trip.actual_in_pdc || (trip.actual_unloading || trip.actual_out_pdc ? 'Bypassed' : 'Waiting...')}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 

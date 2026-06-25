@@ -699,10 +699,10 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
                   <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#94a3b8' }} />
                   <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 8, fontWeight: 900, fill: '#f59e0b' }} />
                   <Tooltip content={<CustomTrendTooltip />} />
-                  <Bar yAxisId="left" dataKey="OnTime" stackId="a" fill={STATUS_COLORS.ontime} barSize={16} />
-                  <Bar yAxisId="left" dataKey="Advance" stackId="a" fill={STATUS_COLORS.advance} barSize={16} />
-                  <Bar yAxisId="left" dataKey="Delay" stackId="a" fill={STATUS_COLORS.delay} radius={[2, 2, 0, 0]} barSize={16} />
-                  <Line yAxisId="right" type="monotone" dataKey="onTimeRate" stroke={STATUS_COLORS.advance} strokeWidth={2} dot={{ fill: STATUS_COLORS.advance, r: 2.5 }} />
+                  <Bar yAxisId="left" dataKey="OnTime" stackId="a" fill={STATUS_COLORS.ontime} barSize={16} animationDuration={1200} animationEasing="ease-out" />
+                  <Bar yAxisId="left" dataKey="Advance" stackId="a" fill={STATUS_COLORS.advance} barSize={16} animationDuration={1200} animationEasing="ease-out" />
+                  <Bar yAxisId="left" dataKey="Delay" stackId="a" fill={STATUS_COLORS.delay} radius={[2, 2, 0, 0]} barSize={16} animationDuration={1200} animationEasing="ease-out" />
+                  <Line yAxisId="right" type="monotone" dataKey="onTimeRate" stroke={STATUS_COLORS.advance} strokeWidth={2} dot={{ fill: STATUS_COLORS.advance, r: 2.5 }} animationDuration={1200} animationEasing="ease-out" />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -1028,7 +1028,7 @@ function StageBox({ title, icon, stats, prevStats, eff, stage, activeFilter, set
         <div className="w-28 h-28 sm:w-full sm:h-full sm:max-w-50 shrink-0">
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <PieChart>
-              <Pie data={stats?.chartData} cx="50%" cy="50%" innerRadius="70%" outerRadius="95%" paddingAngle={8} dataKey="value" animationDuration={1000}>
+              <Pie data={stats?.chartData} cx="50%" cy="50%" innerRadius="70%" outerRadius="95%" paddingAngle={8} dataKey="value" animationDuration={1000} animationEasing="ease-out">
                 <Cell fill={STATUS_COLORS.ontime} cursor="pointer" onClick={() => setActiveFilter({stage, status: 'OnTime'})} />
                 <Cell fill={STATUS_COLORS.delay} cursor="pointer" onClick={() => setActiveFilter({stage, status: 'Delay'})} />
                 <Cell fill={STATUS_COLORS.advance} cursor="pointer" onClick={() => setActiveFilter({stage, status: 'Advance'})} />

@@ -68,11 +68,11 @@ export async function fetchEcoViolations(options?: {
   if (options?.area && options.area !== 'ALL') countQuery = countQuery.eq('Area', options.area);
   if (options?.customer && options.customer !== 'ALL') countQuery = countQuery.eq('Customer', options.customer);
   if (options?.monthFilter) countQuery = countQuery.ilike('Tanggal', options.monthFilter);
+  // SULAWESI & TMMIN are hidden from EcoDriving - always exclude them
+  countQuery = countQuery.neq('Area', 'SULAWESI').neq('Customer', 'TMMIN');
   if (options?.cabang && options.cabang !== 'ALL') {
-    if (options.cabang === 'SULAWESI') {
-      countQuery = countQuery.eq('Area', 'SULAWESI');
-    } else if (options.cabang === 'KARAWANG') {
-      countQuery = countQuery.neq('Area', 'SULAWESI');
+    if (options.cabang === 'KARAWANG') {
+      // KARAWANG branch already excluded SULAWESI above
     }
   }
 
@@ -98,11 +98,11 @@ export async function fetchEcoViolations(options?: {
     if (options?.area && options.area !== 'ALL') query = query.eq('Area', options.area);
     if (options?.customer && options.customer !== 'ALL') query = query.eq('Customer', options.customer);
     if (options?.monthFilter) query = query.ilike('Tanggal', options.monthFilter);
+    // SULAWESI & TMMIN are hidden from EcoDriving - always exclude them
+    query = query.neq('Area', 'SULAWESI').neq('Customer', 'TMMIN');
     if (options?.cabang && options.cabang !== 'ALL') {
-      if (options.cabang === 'SULAWESI') {
-        query = query.eq('Area', 'SULAWESI');
-      } else if (options.cabang === 'KARAWANG') {
-        query = query.neq('Area', 'SULAWESI');
+      if (options.cabang === 'KARAWANG') {
+        // KARAWANG branch already excluded SULAWESI above
       }
     }
 

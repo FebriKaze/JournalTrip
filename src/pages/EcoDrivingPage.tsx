@@ -133,27 +133,13 @@ export default function EcoDrivingPage() {
   const cabangDropdownRef = useRef<HTMLDivElement>(null);
   
   // Filtered areas based on selected branch (cabang)
+  // Note: SULAWESI is hidden from EcoDriving
   const filteredAreas = useMemo(() => {
-    if (selectedCabang === 'KARAWANG') {
-      return [
-        { val: 'ALL', label: 'Semua Area' },
-        { val: 'JBK', label: 'JBK' },
-        { val: 'NGORO', label: 'NGORO' },
-        { val: 'SUMATERA', label: 'SUMATERA' }
-      ];
-    }
-    if (selectedCabang === 'SULAWESI') {
-      return [
-        { val: 'ALL', label: 'Semua Area' },
-        { val: 'SULAWESI', label: 'SULAWESI' }
-      ];
-    }
     return [
       { val: 'ALL', label: 'Semua Area' },
       { val: 'JBK', label: 'JBK' },
       { val: 'NGORO', label: 'NGORO' },
-      { val: 'SUMATERA', label: 'SUMATERA' },
-      { val: 'SULAWESI', label: 'SULAWESI' }
+      { val: 'SUMATERA', label: 'SUMATERA' }
     ];
   }, [selectedCabang]);
 
@@ -512,7 +498,7 @@ export default function EcoDrivingPage() {
                           }}
                           className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
                         >
-                          {[{ val: 'ALL', label: 'Semua Cabang' }, { val: 'KARAWANG', label: 'KARAWANG' }, { val: 'SULAWESI', label: 'SULAWESI' }].map(opt => (
+                          {[{ val: 'ALL', label: 'Semua Cabang' }, { val: 'KARAWANG', label: 'KARAWANG' }].map(opt => (
                             <button key={opt.val} onClick={() => { setSelectedCabang(opt.val); setCabangDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCabang === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
                           ))}
                         </motion.div>
@@ -606,7 +592,7 @@ export default function EcoDrivingPage() {
                           }}
                           className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
                         >
-                          {[{ val: 'ALL', label: 'Semua Customer' }, { val: 'TMMIN', label: 'TMMIN' }, { val: 'TAM', label: 'TAM' }].map(opt => (
+                          {[{ val: 'ALL', label: 'Semua Customer' }, { val: 'TAM', label: 'TAM' }].map(opt => (
                             <button key={opt.val} onClick={() => { setSelectedCustomer(opt.val); setCustomerDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCustomer === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
                           ))}
                         </motion.div>
