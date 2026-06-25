@@ -58,14 +58,18 @@ export default function FleetMonitoringPage({ isTAM = false }: { isTAM?: boolean
   const loadData = useCallback(async () => {
     setIsLoading(true);
     const data = await fetchFleetMonitoringData(selectedDate);
-    // Map project to areaCategory to match the updated interface
+    const TAM_AREAS = ['JBK', 'NGORO', 'SUMATERA'];
     const mappedData = (data || []).map((item: any) => ({
       ...item,
       areaCategory: item.project
     }));
-    setFleetData(mappedData);
+    // For TAM users: hide TMMIN drivers (only show TAM project)
+    const filtered = isTAM
+      ? mappedData.filter((item: any) => TAM_AREAS.some(a => item.area?.includes(a)))
+      : mappedData;
+    setFleetData(filtered);
     setIsLoading(false);
-  }, [selectedDate]);
+  }, [selectedDate, isTAM]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -105,8 +109,18 @@ export default function FleetMonitoringPage({ isTAM = false }: { isTAM?: boolean
     const matchesSearch = f.driverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          f.nopol.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesShift = selectedShift === 'ALL' || f.shift.toUpperCase().includes(selectedShift);
-    const matchesArea = selectedArea === 'ALL' || f.areaCategory === selectedArea;
+    const matchesShift = selectedShift === 'ALL' || (f as any).shift.toUpperCase().includes(selectedShift);
+
+    let matchesArea = true;
+    if (selectedArea !== 'ALL') {
+      if (isTAM) {
+        // For TAM users, filter by the actual area field (JBK, NGORO, SUMATERA)
+        matchesArea = ((f as any).area || '').toUpperCase().includes(selectedArea);
+      } else {
+        // For OPS users, filter by project category (TAM or TMMIN)
+        matchesArea = f.areaCategory === selectedArea;
+      }
+    }
 
     return matchesSearch && matchesShift && matchesArea;
   });

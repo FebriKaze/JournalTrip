@@ -473,6 +473,7 @@ export async function fetchFleetMonitoringData(date: string) {
         destination,
         shift: firstTrip.shift || 'Unknown',
         project,
+        area: (firstTrip.area || '').toUpperCase(),
         isChangeShift,
         changeRitase,
         isDelayed,
