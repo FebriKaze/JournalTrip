@@ -46,7 +46,7 @@ const METRIC_ICONS: Record<string, React.ReactNode> = {
   mental: <Eye className="w-6 h-6 text-emerald-500" />,
 };
 
-export default function TenkoPage() {
+export default function TenkoPage({ isTAM = false }: { isTAM?: boolean }) {
   const [selectedCustomer, setSelectedCustomer] = useState('ALL');
   const [selectedArea, setSelectedArea] = useState('ALL');
   const [personnelType, setPersonnelType] = useState('ALL'); // ALL, DRIVER, ASST
@@ -91,7 +91,12 @@ export default function TenkoPage() {
   useEffect(() => {
     const loadAreas = async () => {
       const dynamicAreas = await tenkoService.fetchUniqueAreas();
-      setAreas(dynamicAreas);
+      if (isTAM) {
+        const allowedTAM = ['ALL', 'JBK', 'NGORO', 'SUMATERA', 'PADANG', 'KALIMANTAN', 'SULAWESI'];
+        setAreas(dynamicAreas.filter(a => allowedTAM.includes(a.toUpperCase())));
+      } else {
+        setAreas(dynamicAreas);
+      }
     };
     loadAreas();
   }, []);

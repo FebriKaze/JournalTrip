@@ -50,7 +50,6 @@ export default function App() {
   });
 
   const isTAM = session?.user?.email === 'toyotaastra@kmdi.co.id';
-  const effectiveArea = isTAM ? 'TMMIN' : selectedArea;
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -101,11 +100,11 @@ export default function App() {
       setRitases([]);
     }
     setIsDriversLoading(false);
-  }, [selectedDate, effectiveArea, selectedShift, selectedDriverId]);
+  }, [selectedDate, selectedArea, selectedShift, selectedDriverId]);
 
   useEffect(() => {
     loadDrivers();
-  }, [selectedDate, effectiveArea, selectedShift]);
+  }, [selectedDate, selectedArea, selectedShift]);
 
   const loadData = useCallback(async () => {
     if (!selectedDriverId) return;
@@ -118,7 +117,7 @@ export default function App() {
       }
     } catch (e) { console.error(e); }
     setIsLoading(false);
-  }, [selectedDate, selectedDriverId, effectiveArea]);
+  }, [selectedDate, selectedDriverId, selectedArea]);
 
   useEffect(() => {
     loadData();
@@ -208,7 +207,7 @@ export default function App() {
           theme={theme}
           selectedShift={selectedShift}
           onShiftChange={setSelectedShift}
-          selectedArea={effectiveArea}
+          selectedArea={selectedArea}
           isTAM={isTAM}
         />
 
@@ -263,7 +262,7 @@ export default function App() {
                               driver={selectedDriver as any}
                               selectedDate={selectedDate}
                               onDateChange={setSelectedDate}
-                              selectedArea={effectiveArea}
+                              selectedArea={selectedArea}
                               onAreaChange={setSelectedArea}
                               isTAM={isTAM}
                             />
@@ -278,12 +277,12 @@ export default function App() {
                         )}
                       </AnimatePresence>
                     } />
-                    <Route path="/monitoring" element={<FleetMonitoringPage />} />
-                    <Route path="/leadtime" element={<LeadTimePage />} />
+                    <Route path="/monitoring" element={<FleetMonitoringPage isTAM={isTAM} />} />
+                    <Route path="/leadtime" element={<LeadTimePage isTAM={isTAM} />} />
                     <Route path="/standar-leadtime" element={<StandarLeadtimePage />} />
-                    <Route path="/eco" element={<EcoDrivingPage />} />
+                    <Route path="/eco" element={<EcoDrivingPage isTAM={isTAM} />} />
                     <Route path="/carbon" element={<CarbonNeutralPage />} />
-                    <Route path="/tenko" element={<TenkoPage />} />
+                    <Route path="/tenko" element={<TenkoPage isTAM={isTAM} />} />
                     <Route path="/p2h" element={<P2HPage />} />
                     
                     <Route path="/gatepass" element={<GatepassPage />} />

@@ -105,7 +105,7 @@ function StatCard({ label, value, prevValue, icon: Icon, iconColor, iconBg, acti
 
 
 
-export default function EcoDrivingPage() {
+export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
     const now = new Date();
     const [filterMode, setFilterMode] = useState<'month' | 'range'>('month');
     const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`); // YYYY-MM Lokal
@@ -132,16 +132,26 @@ export default function EcoDrivingPage() {
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   const cabangDropdownRef = useRef<HTMLDivElement>(null);
   
-  // Filtered areas based on selected branch (cabang)
-  // Note: SULAWESI is hidden from EcoDriving
+  // Filtered areas based on isTAM
+  // Note: SULAWESI is hidden from EcoDriving always
   const filteredAreas = useMemo(() => {
+    if (isTAM) {
+      return [
+        { val: 'ALL', label: 'Semua Area' },
+        { val: 'JBK', label: 'JBK' },
+        { val: 'NGORO', label: 'NGORO' },
+        { val: 'SUMATERA', label: 'SUMATERA' },
+        { val: 'PADANG', label: 'PADANG' },
+        { val: 'KALIMANTAN', label: 'KALIMANTAN' },
+      ];
+    }
     return [
       { val: 'ALL', label: 'Semua Area' },
       { val: 'JBK', label: 'JBK' },
       { val: 'NGORO', label: 'NGORO' },
       { val: 'SUMATERA', label: 'SUMATERA' }
     ];
-  }, [selectedCabang]);
+  }, [isTAM, selectedCabang]);
 
   // Reset selectedArea if not compatible with selected branch (cabang)
   useEffect(() => {

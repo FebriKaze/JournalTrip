@@ -31,7 +31,7 @@ interface FleetArmada {
   origin: string;
   destination: string;
   shift: string;
-  areaCategory: 'TAM' | 'TMMIN';
+  areaCategory: 'TAM' | 'TMMIN' | 'JBK' | 'NGORO' | 'SUMATERA';
   isChangeShift: boolean;
   changeRitase: number;
   isDelayed: boolean;
@@ -40,10 +40,10 @@ interface FleetArmada {
   allTrips: any[];
 }
 
-export default function FleetMonitoringPage() {
+export default function FleetMonitoringPage({ isTAM = false }: { isTAM?: boolean }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedShift, setSelectedShift] = useState<'ALL' | 'DAY' | 'NIGHT'>('ALL');
-  const [selectedArea, setSelectedArea] = useState<'ALL' | 'TAM' | 'TMMIN'>('ALL');
+  const [selectedArea, setSelectedArea] = useState('ALL');
   const [fleetData, setFleetData] = useState<FleetArmada[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState<FleetArmada | null>(null);
@@ -138,7 +138,7 @@ export default function FleetMonitoringPage() {
           {/* Area & Shift Filter - Responsive Group */}
           <div className="grid grid-cols-1 sm:flex items-center gap-3 w-full sm:w-auto">
             <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200/60 dark:border-slate-800 shadow-inner w-full sm:w-auto">
-              {(['ALL', 'TAM', 'TMMIN'] as const).map((p) => (
+              {(isTAM ? ['ALL', 'JBK', 'NGORO', 'SUMATERA'] : ['ALL', 'TAM', 'TMMIN']).map((p) => (
                 <button
                   key={p}
                   onClick={() => setSelectedArea(p)}

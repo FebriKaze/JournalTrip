@@ -26,9 +26,8 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
       >
         <div className="flex flex-wrap items-center gap-3">
           {/* Area Switcher Premium - Pembersihan total outline/border */}
-          {!isTAM && (
-            <div className="bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-2xl flex items-center shadow-inner backdrop-blur-sm">
-              {areas.map((area) => (
+          <div className="bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-2xl flex items-center shadow-inner backdrop-blur-sm">
+            {(isTAM ? ['JBK', 'NGORO', 'SUMATERA'] : areas).map((area) => (
                 <motion.button
                   key={area}
                   whileTap={{ scale: 0.97 }}
@@ -47,8 +46,7 @@ export default function Header({ driver, selectedDate, onDateChange, selectedAre
                   <span className="relative z-10 uppercase tracking-wider">{area}</span>
                 </motion.button>
               ))}
-            </div>
-          )}
+          </div>
         </div>
       </motion.div>
 

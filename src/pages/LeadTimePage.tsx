@@ -66,7 +66,7 @@ const KEY_MAP: Record<string, {actual: string[], plan: string[], stage: string}>
   'InPool': { actual: ['Actual (BackToPool)', 'BACK TO POOL', 'inpool', 'in pool'], plan: ['Plan (BackToPool)', 'plan backtopool'], stage: 'backtopool' }
 };
 
-export default function LeadTimePage() {
+export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
@@ -95,7 +95,10 @@ export default function LeadTimePage() {
   const [sortBy, setSortBy] = useState<string>('tanggal');
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc');
 
-  const areas = ['ALL', 'JBK', 'NGORO', 'TMMIN', 'SUMATERA', 'PADANG', 'SULAWESI', 'KALIMANTAN'];
+  const TAM_AREAS = ['ALL', 'JBK', 'NGORO', 'SUMATERA', 'PADANG', 'KALIMANTAN', 'SULAWESI'];
+  const areas = isTAM
+    ? ['ALL', 'JBK', 'NGORO', 'TMMIN', 'SUMATERA', 'PADANG', 'SULAWESI', 'KALIMANTAN'].filter(a => TAM_AREAS.includes(a))
+    : ['ALL', 'JBK', 'NGORO', 'TMMIN', 'SUMATERA', 'PADANG', 'SULAWESI', 'KALIMANTAN'];
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -973,7 +976,7 @@ function StageBox({ title, icon, stats, prevStats, eff, stage, activeFilter, set
   const delayData = stats?.chartData?.find((d: any) => d.name === 'Delay');
   const advanceData = stats?.chartData?.find((d: any) => d.name === 'Advance');
   const isInPdc = title === 'IN-PDC';
-  const total = stats?.total || 0;
+  const total = stats?.totalRecords || 0;
   
   return (
     <div className="bg-white dark:bg-slate-900/60 rounded-2xl sm:rounded-4xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-blue-500/5 p-3 sm:p-8 flex flex-col h-full hover:border-blue-500/30 transition-all duration-500 group overflow-hidden w-full max-w-full box-border">
