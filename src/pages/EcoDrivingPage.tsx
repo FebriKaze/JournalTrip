@@ -133,7 +133,7 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
   const cabangDropdownRef = useRef<HTMLDivElement>(null);
   
   // Filtered areas based on isTAM
-  // Note: SULAWESI is hidden from EcoDriving always
+  // Note: SULAWESI is hidden from EcoDriving for TAM users only
   const filteredAreas = useMemo(() => {
     if (isTAM) {
       return [
@@ -149,7 +149,8 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
       { val: 'ALL', label: 'Semua Area' },
       { val: 'JBK', label: 'JBK' },
       { val: 'NGORO', label: 'NGORO' },
-      { val: 'SUMATERA', label: 'SUMATERA' }
+      { val: 'SUMATERA', label: 'SUMATERA' },
+      { val: 'SULAWESI', label: 'SULAWESI' }
     ];
   }, [isTAM, selectedCabang]);
 
@@ -375,6 +376,7 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
   // For Daily Trend Chart (ignores cfDate so context remains)
   const dateViolations = useMemo(() => violations.filter(v => checkFilter(v, true, true, false)), [violations, cfDriver, cfType]);
   const dateTrend = useMemo(() => computeViolationsByDate(dateViolations), [dateViolations]);
+  const chartIsMonthly = dateTrend.length > 0 && !dateTrend[0]?.date?.match(/^\d/);
   
   // For Pie Chart & Scorecards (ignores cfType so context remains)
   const typeViolations = useMemo(() => violations.filter(v => checkFilter(v, true, false, true)), [violations, cfDriver, cfDate]);
@@ -602,7 +604,7 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
                           }}
                           className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden pointer-events-auto py-1"
                         >
-                          {[{ val: 'ALL', label: 'Semua Customer' }, { val: 'TAM', label: 'TAM' }].map(opt => (
+                          {[{ val: 'ALL', label: 'Semua Customer' }, { val: 'TAM', label: 'TAM' }, { val: 'TMMIN', label: 'TMMIN' }].map(opt => (
                             <button key={opt.val} onClick={() => { setSelectedCustomer(opt.val); setCustomerDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${selectedCustomer === opt.val ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{opt.label}</button>
                           ))}
                         </motion.div>
@@ -711,7 +713,9 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Daily Trend Chart */}
               <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-4xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Pelanggaran per Hari</h3>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">
+                  Pelanggaran per {chartIsMonthly ? 'Bulan' : 'Hari'}
+                </h3>
                 <div className="h-72 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
                     <BarChart 
@@ -727,6 +731,7 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
                         tickLine={false} 
                         tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }}
                         tickFormatter={(val) => {
+                          if (chartIsMonthly) return val; // already "Jun 26" etc
                           const d = new Date(val);
                           return isNaN(d.getTime()) ? val : d.getDate().toString();
                         }}

@@ -114,8 +114,8 @@ export default function LoginPage() {
             Securely Manage And Verify <br />
             Fleet Readiness
           </h1>
-          <h2 className="text-4xl font-black text-slate-800 tracking-tight mt-2">
-            With <span className="text-blue-500">K Line !</span>
+          <h2 className="text-4xl font-black text-slate-800 tracking-tight mt-2 flex items-center justify-center gap-3">
+            With <img src={Logo} alt="K Line" className="h-9 object-contain inline-block" /><span className="text-blue-500">K Line !</span>
           </h2>
         </div>
         

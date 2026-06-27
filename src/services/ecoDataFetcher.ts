@@ -68,11 +68,9 @@ export async function fetchEcoViolations(options?: {
   if (options?.area && options.area !== 'ALL') countQuery = countQuery.eq('Area', options.area);
   if (options?.customer && options.customer !== 'ALL') countQuery = countQuery.eq('Customer', options.customer);
   if (options?.monthFilter) countQuery = countQuery.ilike('Tanggal', options.monthFilter);
-  // SULAWESI & TMMIN are hidden from EcoDriving - always exclude them
-  countQuery = countQuery.neq('Area', 'SULAWESI').neq('Customer', 'TMMIN');
   if (options?.cabang && options.cabang !== 'ALL') {
     if (options.cabang === 'KARAWANG') {
-      // KARAWANG branch already excluded SULAWESI above
+      // KARAWANG branch filtering
     }
   }
 
@@ -98,11 +96,9 @@ export async function fetchEcoViolations(options?: {
     if (options?.area && options.area !== 'ALL') query = query.eq('Area', options.area);
     if (options?.customer && options.customer !== 'ALL') query = query.eq('Customer', options.customer);
     if (options?.monthFilter) query = query.ilike('Tanggal', options.monthFilter);
-    // SULAWESI & TMMIN are hidden from EcoDriving - always exclude them
-    query = query.neq('Area', 'SULAWESI').neq('Customer', 'TMMIN');
     if (options?.cabang && options.cabang !== 'ALL') {
       if (options.cabang === 'KARAWANG') {
-        // KARAWANG branch already excluded SULAWESI above
+        // KARAWANG branch filtering
       }
     }
 
@@ -180,33 +176,56 @@ export function computeDriverRankings(violations: EcoViolation[]): DriverRanking
 
 // ─── COMPUTE VIOLATIONS BY DATE ───────────────────────────────────────────────
 export function computeViolationsByDate(violations: EcoViolation[]): ViolationByDate[] {
-  const map: Record<string, ViolationByDate> = {};
+  const dayMap: Record<string, ViolationByDate> = {};
 
   violations.forEach(v => {
     const date = v.tanggal;
-    if (!map[date]) {
-      map[date] = { date, perlambatan: 0, akselerasi: 0, tikungan: 0, kecepatan: 0 };
+    if (!date) return;
+    if (!dayMap[date]) {
+      dayMap[date] = { date, perlambatan: 0, akselerasi: 0, tikungan: 0, kecepatan: 0 };
     }
     const jenis = v.jenis_peringatan?.toLowerCase() || '';
-    if (jenis.includes('akselerasi'))  map[date].akselerasi += 1;
-    if (jenis.includes('perlambatan')) map[date].perlambatan += 1;
-    if (jenis.includes('tikungan'))    map[date].tikungan += 1;
-    if (jenis.includes('kecepatan'))   map[date].kecepatan += 1;
+    if (jenis.includes('akselerasi'))  dayMap[date].akselerasi += 1;
+    if (jenis.includes('perlambatan')) dayMap[date].perlambatan += 1;
+    if (jenis.includes('tikungan'))    dayMap[date].tikungan += 1;
+    if (jenis.includes('kecepatan'))   dayMap[date].kecepatan += 1;
   });
 
-  return Object.values(map)
-    .sort((a, b) => {
-      const parse = (dStr: string) => {
-        const parts = dStr.split(/[\s-]/);
-        if (parts.length !== 3) return 0;
-        const mMap: Record<string, number> = { 'jan':0, 'feb':1, 'mar':2, 'apr':3, 'may':4, 'mei':4, 'jun':5, 'jul':6, 'aug':7, 'agu':7, 'sep':8, 'oct':9, 'okt':9, 'nov':10, 'dec':11, 'des':11 };
-        const m = mMap[parts[1].toLowerCase().substring(0,3)] ?? 0;
-        const y = parseInt(parts[2]);
-        return new Date(y < 100 ? 2000 + y : y, m, parseInt(parts[0])).getTime();
-      };
-      return parse(a.date) - parse(b.date);
-    })
-    .slice(-31); // show up to 31 days
+  const parseDayStr = (dStr: string): number => {
+    // Format: "DD Mon YY" e.g. "01 Jun 26"
+    const parts = dStr.split(/[\s-]/);
+    if (parts.length !== 3) return 0;
+    const mMap: Record<string, number> = { 'jan':0,'feb':1,'mar':2,'apr':3,'may':4,'mei':4,'jun':5,'jul':6,'aug':7,'agu':7,'sep':8,'oct':9,'okt':9,'nov':10,'dec':11,'des':11 };
+    const m = mMap[parts[1].toLowerCase().substring(0,3)] ?? 0;
+    const y = parseInt(parts[2]);
+    return new Date(y < 100 ? 2000 + y : y, m, parseInt(parts[0])).getTime();
+  };
+
+  const sortedDays = Object.values(dayMap).sort((a, b) => parseDayStr(a.date) - parseDayStr(b.date));
+
+  // Auto-switch to monthly grouping if more than 31 distinct days
+  if (sortedDays.length > 31) {
+    const monthMap: Record<string, ViolationByDate> = {};
+    const monthOrder: Record<string, number> = {};
+    sortedDays.forEach(day => {
+      const ts = parseDayStr(day.date);
+      if (!ts) return;
+      const d = new Date(ts);
+      // Label: full month name in Indonesian, e.g. "Juni", "Juli"
+      const monthLabel = d.toLocaleDateString('id-ID', { month: 'long' });
+      if (!monthMap[monthLabel]) {
+        monthMap[monthLabel] = { date: monthLabel, perlambatan: 0, akselerasi: 0, tikungan: 0, kecepatan: 0 };
+        monthOrder[monthLabel] = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+      }
+      monthMap[monthLabel].akselerasi  += day.akselerasi;
+      monthMap[monthLabel].perlambatan += day.perlambatan;
+      monthMap[monthLabel].tikungan    += day.tikungan;
+      monthMap[monthLabel].kecepatan   += day.kecepatan;
+    });
+    return Object.values(monthMap).sort((a, b) => (monthOrder[a.date] || 0) - (monthOrder[b.date] || 0));
+  }
+
+  return sortedDays.slice(-31); // show up to 31 days max
 }
 
 // ─── COMPUTE SUMMARY ──────────────────────────────────────────────────────────
