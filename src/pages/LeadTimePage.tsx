@@ -938,6 +938,39 @@ function ReasonSection({ title, stageStats, color, onClickDelay, onSelect }: {
     );
   }
 
+  const totalReasons = actualReasons.reduce((acc, r: any) => acc + r.value, 0);
+  const CHART_COLORS = [
+    '#ef4444', // red-500
+    '#3b82f6', // blue-500
+    '#10b981', // emerald-500
+    '#f59e0b', // amber-500
+    '#8b5cf6', // violet-500
+    '#06b6d4', // cyan-500
+    '#ec4899', // pink-500
+    '#84cc16', // lime-500
+    '#6366f1', // indigo-500
+    '#f43f5e'  // rose-500
+  ];
+
+  const renderPieLabel = ({ percent, x, y, cx }: any) => {
+    if (!percent || percent < 0.03) return null;
+    try {
+      return (
+        <text
+          x={Number(x)}
+          y={Number(y)}
+          fill="#94a3b8" // slate-400
+          textAnchor={Number(x) > Number(cx) ? 'start' : 'end'}
+          dominantBaseline="central"
+          fontSize={8}
+          fontWeight={900}
+        >
+          {(percent * 100).toFixed(1)}%
+        </text>
+      );
+    } catch { return null; }
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 mb-2">
@@ -945,28 +978,89 @@ function ReasonSection({ title, stageStats, color, onClickDelay, onSelect }: {
         <h4 className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{title}</h4>
       </div>
 
-      {/* DELAY card — click to open popup */}
-      <button
-        onClick={onClickDelay}
-        className="w-full flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800/80 rounded-2xl border border-slate-700/50 hover:border-red-500/40 transition-all group"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`w-2.5 h-2.5 rounded-full bg-current ${color}`} />
-          <div className="text-left">
-            <div className="text-xs font-black text-slate-300 uppercase tracking-widest group-hover:text-white transition-colors">DELAY</div>
-            {actualReasons.length > 0 && (
-              <div className="text-[8px] text-slate-500 font-bold mt-0.5">{actualReasons.length} reason{actualReasons.length > 1 ? 's' : ''} — klik untuk lihat</div>
-            )}
+      {/* DELAY reasons pie chart */}
+      <div className="w-full p-4 bg-slate-800/40 rounded-2xl border border-slate-700/50 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className={`w-2.5 h-2.5 rounded-full bg-current ${color}`} />
+              <div className="text-xs font-black text-slate-300 uppercase tracking-widest">DELAY</div>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-black text-white leading-none">{delayCount}</div>
+              <div className="text-[9px] font-bold text-slate-500 mt-0.5">{delayPct}% dari total</div>
+            </div>
           </div>
+          
+          {actualReasons.length > 0 ? (
+            <div className="flex flex-col mt-2">
+              <div className="h-36 w-full relative -ml-2 sm:ml-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart style={{ outline: 'none' }} className="focus:outline-none">
+                    <Pie
+                      data={actualReasons}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={25}
+                      outerRadius={40}
+                      paddingAngle={2}
+                      dataKey="value"
+                      nameKey="name"
+                      stroke="none"
+                      label={renderPieLabel}
+                      labelLine={{ stroke: '#475569', strokeWidth: 1 }}
+                    >
+                      {actualReasons.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const pct = totalReasons > 0 ? ((payload[0].value as number) / totalReasons * 100).toFixed(1) : '0';
+                          return (
+                            <div className="bg-slate-900/95 backdrop-blur-md p-3 rounded-xl shadow-xl border border-slate-800 max-w-[200px]">
+                              <p className="text-[10px] font-black text-white uppercase tracking-widest break-words">{payload[0].name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs font-black text-red-400">{payload[0].value} Kasus</p>
+                                <p className="text-[9px] font-bold text-slate-400">({pct}%)</p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Legend Summary */}
+              <div className="flex flex-col gap-1.5 mt-2 overflow-y-auto max-h-32 pr-1 custom-scrollbar">
+                {actualReasons.map((r: any, idx: number) => {
+                  const pct = totalReasons > 0 ? ((r.value / totalReasons) * 100).toFixed(1) : '0';
+                  return (
+                    <div key={idx} className="flex justify-between items-center text-[9px] font-black tracking-widest uppercase">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+                        <span className="text-slate-400 truncate" title={r.name}>{r.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className="text-slate-500 font-bold">{pct}%</span>
+                        <span className="text-white min-w-[20px] text-right">{r.value}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center py-4">
+              Tidak ada data rincian
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="text-lg font-black text-white">{delayCount}</div>
-            <div className="text-[8px] font-bold text-slate-500">{delayPct}%</div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition-colors" />
-        </div>
-      </button>
+      </div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 import { jsPDF } from 'jspdf';
 import * as htmlToImage from 'html-to-image';
+import Logo1 from '../../image/logo1.webp';
 
 interface NavbarProps {
   selectedDate: string;
@@ -201,10 +202,13 @@ export default function Navbar({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 10 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="hidden md:block shrink-0"
+          className="hidden md:flex shrink-0 items-center gap-3"
         >
-          <h2 className="text-base font-black text-red-600 dark:text-red-400 leading-tight">{pageInfo.title}</h2>
-          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">{pageInfo.sub}</p>
+          <img src={Logo1} alt="K Line" className="h-8 object-contain" />
+          <div>
+            <h2 className="text-base font-black text-red-600 dark:text-red-400 leading-tight">{pageInfo.title}</h2>
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">{pageInfo.sub}</p>
+          </div>
         </motion.div>
       </AnimatePresence>
 
