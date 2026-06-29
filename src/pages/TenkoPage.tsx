@@ -104,7 +104,10 @@ export default function TenkoPage({ isTAM = false }: { isTAM?: boolean }) {
   // Cascading effect: Fetch customers based on area
   useEffect(() => {
     const loadCustomers = async () => {
-      const dynamicCustomers = await tenkoService.fetchUniqueCustomers(selectedArea);
+      let dynamicCustomers = await tenkoService.fetchUniqueCustomers(selectedArea);
+      if (isTAM) {
+        dynamicCustomers = dynamicCustomers.filter(c => !c.toUpperCase().includes('TMMIN'));
+      }
       setCustomers(dynamicCustomers);
       
       // Reset customer if it's not in the new list (except for 'ALL')
@@ -113,7 +116,7 @@ export default function TenkoPage({ isTAM = false }: { isTAM?: boolean }) {
       }
     };
     loadCustomers();
-  }, [selectedArea]);
+  }, [selectedArea, isTAM]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -121,7 +124,16 @@ export default function TenkoPage({ isTAM = false }: { isTAM?: boolean }) {
       setCrossFilter({ tensiStatus: null, date: null });
       const data = await tenkoService.fetchTenkoData(startDate, endDate, selectedCustomer, selectedArea, personnelType);
       
-      setSummary(data.summary);
+      if (isTAM && data.summary && data.summary.raw) {
+        const filteredRaw = data.summary.raw.filter(r => {
+          const area = (r.area || '').toUpperCase();
+          const proj = (r.customer || (r as any).Customer || (r as any).project || '').toUpperCase();
+          return !area.includes('SULAWESI') && !proj.includes('TMMIN');
+        });
+        setSummary(tenkoService.calculateSummary(filteredRaw));
+      } else {
+        setSummary(data.summary);
+      }
       setLoading(false);
     };
     loadData();

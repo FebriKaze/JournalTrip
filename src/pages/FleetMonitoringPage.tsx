@@ -65,7 +65,11 @@ export default function FleetMonitoringPage({ isTAM = false }: { isTAM?: boolean
     }));
     // For TAM users: hide TMMIN drivers (only show TAM project)
     const filtered = isTAM
-      ? mappedData.filter((item: any) => TAM_AREAS.some(a => item.area?.includes(a)))
+      ? mappedData.filter((item: any) => {
+          const area = (item.area || '').toUpperCase();
+          const proj = (item.project || item.customer || item.Customer || '').toUpperCase();
+          return TAM_AREAS.some(a => area.includes(a)) && !area.includes('SULAWESI') && !proj.includes('TMMIN');
+        })
       : mappedData;
     setFleetData(filtered);
     setIsLoading(false);

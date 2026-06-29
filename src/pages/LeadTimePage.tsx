@@ -133,11 +133,20 @@ export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
       }
 
       // 1. Current Period
-      const result = await leadtimeService.getLeadTimes(
+      let result = await leadtimeService.getLeadTimes(
         formatLocal(currentStart),
         formatLocal(currentEnd),
         area
       );
+      
+      if (isTAM) {
+        result = result.filter(item => {
+          const areaStr = (item.area || '').toUpperCase();
+          const proj = (item.customer || (item as any).Customer || (item as any).project || '').toUpperCase();
+          return !areaStr.includes('SULAWESI') && !proj.includes('TMMIN');
+        });
+      }
+      
       setData(result);
 
       // 2. Previous Period
@@ -152,11 +161,20 @@ export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
         prevStart = new Date(prevEnd.getTime() - diff);
       }
       
-      const prevResult = await leadtimeService.getLeadTimes(
+      let prevResult = await leadtimeService.getLeadTimes(
         formatLocal(prevStart),
         formatLocal(prevEnd),
         area
       );
+      
+      if (isTAM) {
+        prevResult = prevResult.filter(item => {
+          const areaStr = (item.area || '').toUpperCase();
+          const proj = (item.customer || (item as any).Customer || (item as any).project || '').toUpperCase();
+          return !areaStr.includes('SULAWESI') && !proj.includes('TMMIN');
+        });
+      }
+      
       setPrevData(prevResult);
     } catch (error) {
       console.error('Failed to fetch leadtime data:', error);
