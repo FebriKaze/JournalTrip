@@ -146,7 +146,7 @@ export default function CarbonNeutralPage() {
               <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${areaDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             {areaDropdownOpen && createPortal(
-              <div className="fixed inset-0 z-[11000] pointer-events-none">
+              <div className="fixed inset-0 z-11000 pointer-events-none">
                 <AnimatePresence>
                   <motion.div
                     ref={areaDropdownRef}
@@ -209,7 +209,7 @@ export default function CarbonNeutralPage() {
               <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${driverDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             {driverDropdownOpen && createPortal(
-              <div className="fixed inset-0 z-[11000] pointer-events-none">
+              <div className="fixed inset-0 z-11000 pointer-events-none">
                 <AnimatePresence>
                   <motion.div
                     ref={driverDropdownRef}

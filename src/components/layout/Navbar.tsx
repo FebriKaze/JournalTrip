@@ -265,7 +265,7 @@ export default function Navbar({
                 </motion.button>
 
                 {isShiftOpen && (
-                  <div className="fixed inset-0 z-[199]" onClick={() => setIsShiftOpen(false)} />
+                  <div className="fixed inset-0 z-199" onClick={() => setIsShiftOpen(false)} />
                 )}
 
                 <AnimatePresence>
@@ -275,7 +275,7 @@ export default function Navbar({
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -8 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                      className="absolute top-full right-0 sm:-right-4 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-[200] min-w-40 overflow-hidden"
+                      className="absolute top-full right-0 sm:-right-4 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-200 min-w-40 overflow-hidden"
                     >
                       <div className="p-1.5 space-y-0.5">
                         <motion.button
@@ -378,7 +378,7 @@ export default function Navbar({
 
           {/* Backdrop */}
           {isLauncherOpen && (
-            <div className="fixed inset-0 z-[150]" onClick={() => setIsLauncherOpen(false)} />
+            <div className="fixed inset-0 z-150" onClick={() => setIsLauncherOpen(false)} />
           )}
 
           {/* Mega Menu Dropdown */}
@@ -389,7 +389,7 @@ export default function Navbar({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.93, y: -10 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-                className="absolute top-full right-0 mt-3 w-[300px] sm:w-[320px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/60 dark:border-slate-700/60 rounded-3xl shadow-2xl shadow-slate-900/15 dark:shadow-black/50 z-[200] overflow-hidden"
+                className="absolute top-full right-0 mt-3 w-[300px] sm:w-[320px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/60 dark:border-slate-700/60 rounded-3xl shadow-2xl shadow-slate-900/15 dark:shadow-black/50 z-200 overflow-hidden"
               >
                 {/* Header */}
                 <div className="px-5 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -417,8 +417,8 @@ export default function Navbar({
                       >
                         <div className={`p-2 rounded-xl transition-all ${
                           location.pathname === item.path
-                            ? `bg-gradient-to-br ${item.gradient} text-white shadow-lg ${item.glow}`
-                            : `${item.bg} ${item.text} group-hover:bg-gradient-to-br group-hover:${item.gradient} group-hover:text-white group-hover:shadow-md group-hover:${item.glow}`
+                            ? `bg-linear-to-br ${item.gradient} text-white shadow-lg ${item.glow}`
+                            : `${item.bg} ${item.text} group-hover:bg-linear-to-br group-hover:${item.gradient} group-hover:text-white group-hover:shadow-md group-hover:${item.glow}`
                         }`}>
                           {item.icon}
                         </div>
@@ -462,7 +462,7 @@ export default function Navbar({
             </motion.button>
 
             {isProfileOpen && (
-              <div className="fixed inset-0 z-[199]" onClick={() => setIsProfileOpen(false)} />
+              <div className="fixed inset-0 z-199" onClick={() => setIsProfileOpen(false)} />
             )}
 
             <AnimatePresence>
@@ -472,7 +472,7 @@ export default function Navbar({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -8 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-                  className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-[200] min-w-[224px] overflow-hidden"
+                  className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-200 min-w-[224px] overflow-hidden"
                 >
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800/80">
                     <p className="text-[9px] font-black text-red-500 uppercase tracking-widest leading-none">LOGGED IN AS</p>

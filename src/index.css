@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Kembalikan mesin dark mode sakti Tailwind v4 */
-@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+@variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;

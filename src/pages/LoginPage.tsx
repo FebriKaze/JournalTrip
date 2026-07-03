@@ -107,7 +107,7 @@ export default function LoginPage() {
       {/* RIGHT COLUMN - IMAGE (Hidden on mobile) */}
       <div className="hidden lg:flex flex-1 bg-slate-50/50 flex-col items-center justify-center p-12 relative overflow-hidden">
         {/* Background decorative circles */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-blue-50 to-transparent rounded-full opacity-50 -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-linear-to-br from-blue-50 to-transparent rounded-full opacity-50 -translate-y-1/2 translate-x-1/3" />
         
         <div className="text-center z-10 mb-16 mt-8">
           <h1 className="text-4xl font-black text-slate-800 tracking-tight leading-snug">

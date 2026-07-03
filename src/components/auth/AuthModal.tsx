@@ -42,7 +42,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -123,7 +123,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
             {/* RIGHT COLUMN - IMAGE */}
             <div className="hidden md:flex flex-1 bg-slate-50 flex-col items-center justify-center p-10 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-100 to-transparent rounded-full opacity-50 -translate-y-1/2 translate-x-1/3" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-linear-to-br from-blue-100 to-transparent rounded-full opacity-50 -translate-y-1/2 translate-x-1/3" />
               
               <div className="text-center z-10 mb-8 mt-4">
                 <h2 className="text-3xl font-black text-slate-800 tracking-tight leading-snug">

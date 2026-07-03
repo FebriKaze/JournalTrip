@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, MapPin, ChevronRight, ChevronDown, ChevronUp, Search, Filter, Clock, TrendingUp, AlertCircle,
   Truck, CheckCircle2, Package, ArrowUpRight, ArrowDownRight, Info, Timer, LayoutDashboard, X, ArrowRight,
-  ChevronLeft, Circle, Navigation, Map as MapIcon, Flag, CalendarDays, BarChart3, ListFilter, AlertTriangle
+  ChevronLeft, Circle, Navigation, Map as MapIcon, Flag, CalendarDays, BarChart3, ListFilter, AlertTriangle, Home
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -142,7 +142,7 @@ export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
       if (isTAM) {
         result = result.filter(item => {
           const areaStr = (item.area || '').toUpperCase();
-          const proj = (item.customer || (item as any).Customer || (item as any).project || '').toUpperCase();
+          const proj = ((item as any).customer || (item as any).Customer || (item as any).project || '').toUpperCase();
           return !areaStr.includes('SULAWESI') && !proj.includes('TMMIN');
         });
       }
@@ -170,7 +170,7 @@ export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
       if (isTAM) {
         prevResult = prevResult.filter(item => {
           const areaStr = (item.area || '').toUpperCase();
-          const proj = (item.customer || (item as any).Customer || (item as any).project || '').toUpperCase();
+          const proj = ((item as any).customer || (item as any).Customer || (item as any).project || '').toUpperCase();
           return !areaStr.includes('SULAWESI') && !proj.includes('TMMIN');
         });
       }
@@ -184,7 +184,7 @@ export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
 
   const getTripCounts = (trip: LeadTimeData, filter: string, areaName: string) => {
     let counts = { onTime: 0, advance: 0, delay: 0 };
-    const stages = filter === 'ALL' ? ['outpool', 'inpdc', 'delivery'] : [filter];
+    const stages = filter === 'ALL' ? ['outpool', 'inpdc', 'delivery', 'backtopool'] : [filter];
     stages.forEach(s => {
       const stat = getRowStatus(trip, s);
       if (stat === 'OnTime') counts.onTime++;
@@ -417,7 +417,7 @@ export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
     } else {
       // When ALL: hide records that have no data in ANY stage (completely empty)
       result = result.filter(item => {
-        const stages = ['outpool', 'inpdc', 'delivery'];
+        const stages = ['outpool', 'inpdc', 'delivery', 'backtopool'];
         return stages.some(s => getRowStatus(item, s) !== 'Unknown');
       });
     }
@@ -640,7 +640,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
           )}
 
           {/* ── STAGE BOXES ── */}
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-10 w-full max-w-full overflow-hidden box-border`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 w-full max-w-full overflow-hidden box-border">
             <StageBox
               title="OUTPOOL" icon={<Truck />} stats={stats?.outpool} prevStats={prevStats?.outpool}
               eff={calculateEfficiency('outpool')} stage="outpool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
@@ -656,6 +656,11 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
               eff={calculateEfficiency('delivery')} stage="delivery" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
               prevPeriod={currentPeriodText}
             />
+            <StageBox
+              title="BACK TO POOL" icon={<Home />} stats={stats?.backtopool} prevStats={prevStats?.backtopool}
+              eff={calculateEfficiency('backtopool')} stage="backtopool" activeFilter={activeFilter} setActiveFilter={(f: any) => { setActiveFilter(f); setCurrentPage(1); }}
+              prevPeriod={currentPeriodText}
+            />
           </div>
 
           {/* ── DELAY ANALYSIS CENTER ── */}
@@ -668,7 +673,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
                 <p className="text-[9px] sm:text-xs text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Klik DELAY untuk lihat rincian penyebab</p>
               </div>
             </div>
-            <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-12 w-full max-w-full overflow-hidden`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-12 w-full max-w-full overflow-hidden`}>
               <ReasonSection title="OUTPOOL DELAYS" stageStats={stats?.outpool} color="text-amber-500"
                 onClickDelay={() => setDelayPopup({ title: 'OUTPOOL DELAY REASONS', reasons: (stats?.outpool?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.outpool?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
                 onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
@@ -679,6 +684,10 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
               />
               <ReasonSection title="DELIVERY DELAYS" stageStats={stats?.delivery} color="text-red-500"
                 onClickDelay={() => setDelayPopup({ title: 'DELIVERY DELAY REASONS', reasons: (stats?.delivery?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.delivery?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
+                onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
+              />
+              <ReasonSection title="BACK TO POOL DELAYS" stageStats={stats?.backtopool} color="text-purple-400"
+                onClickDelay={() => setDelayPopup({ title: 'BACK TO POOL DELAY REASONS', reasons: (stats?.backtopool?.reasons || []).filter((r:any) => { const l=r.name.toLowerCase(); return !l.includes('delay')&&!l.includes('advance')&&!l.includes('ontime')&&l!=='ok'&&l!=='-'&&l!=='tidak ada'; }), delayCount: stats?.backtopool?.chartData?.find((d:any)=>d.name==='Delay')?.value||0 })}
                 onSelect={(r: any) => { setReasonFilter(r.name); setCurrentPage(1); }}
               />
             </div>
@@ -693,7 +702,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
                   <p className="text-[7px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Daily Efficiency (OnTime + Advance)</p>
                 </div>
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-fit">
-                  {(['outpool', 'inpdc', 'delivery'] as const)
+                  {(['outpool', 'inpdc', 'delivery', 'backtopool'] as const)
                     .map((s) => (
                     <button
                       key={s}
@@ -744,7 +753,7 @@ const reasonDelay = config.stage !== 'unknown' ? (getReasonDelay(item, config.st
               </div>
               <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 shrink-0">
                 <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 w-full lg:w-fit overflow-x-auto scrollbar-hide">
-                  {(['ALL', 'outpool', 'inpdc', 'delivery'] as const)
+                  {(['ALL', 'outpool', 'inpdc', 'delivery', 'backtopool'] as const)
                     .map((s) => (
                     <button
                       key={s}

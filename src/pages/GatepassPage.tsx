@@ -493,7 +493,7 @@ export default function GatepassPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:border-slate-500 font-black uppercase tracking-widest text-[9px] bg-slate-50/50 dark:bg-slate-800/20">
+                  <tr className="border-b border-slate-100 text-slate-400 dark:border-slate-800 font-black uppercase tracking-widest text-[9px] bg-slate-50/50 dark:bg-slate-800/20">
                     <th className="px-6 py-4 rounded-l-2xl">Driver</th>
                     <th className="px-6 py-4">Unit / Nopol</th>
                     <th className="px-6 py-4 text-center">Tenko (Kesehatan)</th>
@@ -760,7 +760,7 @@ export default function GatepassPage() {
       {/* ── MODAL INPUT P2H MANUAL ── */}
       <AnimatePresence>
         {selectedDriverForP2H && (
-          <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -772,7 +772,7 @@ export default function GatepassPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 z-10"
+              className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 z-10"
             >
               <form onSubmit={handleSaveP2H}>
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -872,7 +872,7 @@ export default function GatepassPage() {
 
       {/* ── PRINT OVERLAY (loading spinner only) ── */}
       {activePrintDriver && (
-        <div className="fixed inset-0 z-[99999] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
           <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-200 dark:border-slate-700">
             <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mb-4" />
             <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest">Mencetak Dokumen...</h2>
@@ -1091,7 +1091,7 @@ function AreaDropdown({ areas, selected, onChange }: DropdownProps & { areas: st
             initial={{ opacity: 0, y: 8 }} 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: 8 }} 
-            className="absolute left-0 mt-2 w-44 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl py-1.5 z-[200] max-h-60 overflow-y-auto"
+            className="absolute top-full right-0 sm:-right-4 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-2xl shadow-slate-900/10 dark:shadow-black/40 z-20 min-w-40 overflow-hidden"
           >
             {areas.map(a => (
               <button 
