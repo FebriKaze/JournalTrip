@@ -259,7 +259,7 @@ export default function LeadTimePage({ isTAM = false }: { isTAM?: boolean }) {
       return 'Unknown';
     }
     if (stage === 'backtopool') {
-      const val = findExactOrInclude(info, ['Evaluasi Kedatangan CC', 'Keterangan', 'Status Leadtime Back To Pool', 'Actual BackToPool', 'Actual Back To Pool']).toLowerCase();
+      const val = findExactOrInclude(info, ['Status Leadtime Back To Pool', 'Actual BackToPool', 'Actual Back To Pool', 'Evaluasi Kembali Pool', 'Back To Pool']).toLowerCase();
       if (val.includes('delay')) return 'Delay';
       if (val.includes('ontime') || val.includes('on time') || val.includes('ok')) return 'OnTime';
       return 'Unknown';
