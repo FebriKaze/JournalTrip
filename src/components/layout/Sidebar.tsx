@@ -7,7 +7,7 @@ import {
   PanelLeftClose, PanelLeft,
   Route, ChevronRight, BarChart3,
   Activity, Ticket, ClipboardCheck,
-  Timer
+  Timer, LayoutDashboard
 } from 'lucide-react';
 import { Driver } from '../../types';
 import Logo from '../../image/Logo.png';
@@ -31,6 +31,7 @@ interface SidebarProps {
 
 // Core Operations only — Analytics & Master Data are in the Navbar App Launcher
 const NAV_ITEMS: { id: string; label: string; icon: ReactNode; sub?: string; path: string }[] = [
+  { id: 'dashboard-overview', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" />, sub: 'Overview', path: '/dashboard' },
   { id: 'dashboard', label: 'Journal Trip', icon: <Route className="w-5 h-5" />, sub: 'Ritase Tracking', path: '/' },
   { id: 'monitoring', label: 'Monitoring', icon: <BarChart3 className="w-5 h-5" />, sub: 'Fleet Status', path: '/monitoring' },
   { id: 'standar-leadtime', label: 'Standar Leadtime', icon: <Timer className="w-5 h-5" />, sub: 'Reference Guide', path: '/standar-leadtime' },

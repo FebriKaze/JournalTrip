@@ -1118,17 +1118,15 @@ function StageBox({ title, icon, stats, prevStats, eff, stage, activeFilter, set
           prevCount={prevStats?.chartData?.find((d: any) => d.name === 'OnTime')?.value}
           prevPeriod={prevPeriod}
         />
-        {!isInPdc && (
-          <StatusCard 
-            active={activeFilter?.stage === stage && activeFilter?.status === 'Advance'}
-            onClick={() => setActiveFilter({stage, status: 'Advance'})}
-            type="Advance" 
-            eff={advanceData?.percentage || '0%'} 
-            count={advanceData?.value} 
-            prevCount={prevStats?.chartData?.find((d: any) => d.name === 'Advance')?.value}
-            prevPeriod={prevPeriod}
-          />
-        )}
+        <StatusCard 
+          active={activeFilter?.stage === stage && activeFilter?.status === 'Advance'}
+          onClick={() => setActiveFilter({stage, status: 'Advance'})}
+          type="Advance" 
+          eff={advanceData?.percentage || '0%'} 
+          count={advanceData?.value} 
+          prevCount={prevStats?.chartData?.find((d: any) => d.name === 'Advance')?.value}
+          prevPeriod={prevPeriod}
+        />
         <StatusCard 
           active={activeFilter?.stage === stage && activeFilter?.status === 'Delay'}
           onClick={() => setActiveFilter({stage, status: 'Delay'})}
@@ -1138,24 +1136,13 @@ function StageBox({ title, icon, stats, prevStats, eff, stage, activeFilter, set
           prevCount={prevStats?.chartData?.find((d: any) => d.name === 'Delay')?.value}
           prevPeriod={prevPeriod}
         />
-        {isInPdc && (
-          <StatusCard 
-            active={activeFilter?.stage === stage && activeFilter?.status === 'Advance'}
-            onClick={() => setActiveFilter({stage, status: 'Advance'})}
-            type="Advance" 
-            eff={advanceData?.percentage || '0%'} 
-            count={advanceData?.value} 
-            prevCount={prevStats?.chartData?.find((d: any) => d.name === 'Advance')?.value}
-            prevPeriod={prevPeriod}
-          />
-        )}
       </div>
       
-      <div className="h-28 sm:h-56 relative flex items-center justify-center mt-auto overflow-hidden w-full max-w-full">
-        <div className="w-28 h-28 sm:w-full sm:h-full sm:max-w-50 shrink-0">
+      <div className="h-40 sm:h-64 relative flex items-center justify-center mt-auto overflow-hidden w-full max-w-full">
+        <div className="w-full h-full flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <PieChart>
-              <Pie data={stats?.chartData} cx="50%" cy="50%" innerRadius="70%" outerRadius="95%" paddingAngle={8} dataKey="value" animationDuration={1000} animationEasing="ease-out">
+              <Pie data={stats?.chartData} cx="50%" cy="50%" innerRadius="75%" outerRadius="100%" paddingAngle={6} dataKey="value" animationDuration={1000} animationEasing="ease-out">
                 <Cell fill={STATUS_COLORS.ontime} cursor="pointer" onClick={() => setActiveFilter({stage, status: 'OnTime'})} />
                 <Cell fill={STATUS_COLORS.delay} cursor="pointer" onClick={() => setActiveFilter({stage, status: 'Delay'})} />
                 <Cell fill={STATUS_COLORS.advance} cursor="pointer" onClick={() => setActiveFilter({stage, status: 'Advance'})} />

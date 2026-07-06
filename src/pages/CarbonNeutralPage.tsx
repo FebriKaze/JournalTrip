@@ -386,7 +386,7 @@ export default function CarbonNeutralPage() {
                 </div>
               </div>
               
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={420}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} opacity={0.5} />
                   <XAxis 
@@ -442,7 +442,7 @@ export default function CarbonNeutralPage() {
                   <BarChart2 className="w-5 h-5 text-orange-500" />
                   CO₂ per Ritase
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={420}>
                   <BarChart data={carbonData.footprints}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                     <XAxis dataKey="ritaseNo" tick={{ fontSize: 10, fontWeight: 'bold' }} />
@@ -464,7 +464,7 @@ export default function CarbonNeutralPage() {
                   <PieIcon className="w-5 h-5 text-emerald-500" />
                   Kontribusi CO₂
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={420}>
                   <PieChart>
                     <Pie
                       data={carbonData.footprints}
@@ -472,7 +472,7 @@ export default function CarbonNeutralPage() {
                       cy="50%"
                       labelLine={true}
                       label={({ ritaseNo, co2Emissions }: any) => `${ritaseNo}: ${co2Emissions.toFixed(1)}kg`}
-                      outerRadius={80}
+                      outerRadius={120}
                       dataKey="co2Emissions"
                     >
                       {carbonData.footprints.map((_, index) => (

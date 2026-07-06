@@ -465,7 +465,7 @@ export default function TenkoPage({ isTAM = false }: { isTAM?: boolean }) {
                 </div>
               </div>
             </div>
-            <div className={`relative w-full ${chartView === 'driver' ? 'h-[400px]' : 'h-[350px]'}`}>
+            <div className={`relative w-full ${chartView === 'driver' ? 'h-[520px]' : 'h-[460px]'}`}>
               <div className={`h-full w-full transition-all duration-300 ${driverChartLocked ? 'blur-md opacity-40 pointer-events-none select-none' : ''}`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
@@ -539,15 +539,15 @@ export default function TenkoPage({ isTAM = false }: { isTAM?: boolean }) {
 
           <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm flex flex-col items-center justify-center">
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-8 text-center">{activeMetric.pieTitle}</h3>
-            <div className="h-[250px] w-full relative">
+            <div className="h-[350px] w-full relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={metricPieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={70}
-                    outerRadius={90}
+                    innerRadius={85}
+                    outerRadius={120}
                     paddingAngle={8}
                     dataKey="value"
                     onClick={(entry: any) => {

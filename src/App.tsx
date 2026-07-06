@@ -16,6 +16,7 @@ const CarbonNeutralPage = lazy(() => import('./pages/CarbonNeutralPage'));
 const TenkoPage = lazy(() => import('./pages/TenkoPage'));
 const GatepassPage = lazy(() => import('./pages/GatepassPage'));
 const P2HPage = lazy(() => import('./pages/P2HPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 
 import Footer from './components/layout/Footer';
@@ -277,6 +278,7 @@ export default function App() {
                         )}
                       </AnimatePresence>
                     } />
+                    <Route path="/dashboard" element={<DashboardPage isTAM={isTAM} />} />
                     <Route path="/monitoring" element={<FleetMonitoringPage isTAM={isTAM} />} />
                     <Route path="/leadtime" element={<LeadTimePage isTAM={isTAM} />} />
                     <Route path="/standar-leadtime" element={<StandarLeadtimePage />} />

@@ -726,7 +726,7 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">
                   Pelanggaran per {chartIsMonthly ? 'Bulan' : 'Hari'}
                 </h3>
-                <div className="h-72 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
+                <div className="h-96 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
                     <BarChart 
                       data={dateTrend} 
@@ -813,15 +813,15 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
               {/* Pie Chart */}
               <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-4xl shadow-sm border border-slate-100 dark:border-slate-800">
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Persentase Pelanggaran</h3>
-                <div className="h-64 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
+                <div className="h-80 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                   <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
                     <PieChart style={{ outline: 'none' }} className="focus:outline-none">
                       <Pie
                         data={pieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        innerRadius={70}
+                        outerRadius={105}
                         paddingAngle={5}
                         dataKey="value"
                         stroke="none"
@@ -1122,7 +1122,7 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
                   Top 10 Violators
                 </h3>
               </div>
-              <div className="h-87.5 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
+              <div className="h-120 w-full focus:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none" style={{ outline: 'none' }}>
                 <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
                   <BarChart data={driverBarData} layout="vertical" margin={{ top: 10, right: 50, left: 20, bottom: 0 }} style={{ outline: 'none' }} className="focus:outline-none">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" opacity={0.3} />
