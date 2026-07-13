@@ -11,6 +11,7 @@ export interface Driver {
   simPhotoUrl?: string;
 
   nik?: string;
+  asisten?: string;
   alamat?: string;
   totalViolations?: number;
   totalRitaseMonth?: number;
@@ -62,5 +63,16 @@ export interface P2HRecord {
   created_at?: string;
 }
 
-
-
+export interface TrainingMonthlyRecord {
+  id: string;
+  nik: string;
+  driver_id: string;
+  bulan: string; // 'JAN', 'FEB', dll
+  tanggal_training: string | null;
+  kehadiran: number;
+  aktual_training: number;
+  post_test: number;
+  kelulusan: string | null; // 'L' / 'TL'
+  score_kpi: number;
+  created_at: string;
+}

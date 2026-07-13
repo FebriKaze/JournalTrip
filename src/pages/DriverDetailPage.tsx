@@ -48,7 +48,8 @@ import { jsPDF } from 'jspdf';
 import * as htmlToImage from 'html-to-image';
 import AuthModal from '../components/auth/AuthModal';
 import { supabase } from '../lib/supabase';
-
+import { TrainingMonthlyRecord } from '../types';
+import { getTrainingByDriverId } from '../services/trainingService';
 
 export default function DriverDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -58,6 +59,7 @@ export default function DriverDetailPage() {
   const [selectedMonth, setSelectedMonth] = useState(() => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 7)); // YYYY-MM
   const [driver, setDriver] = useState<Driver | null>(location.state?.driver || null);
   const [ritases, setRitases] = useState<(Ritase & { tanggal: string })[]>([]);
+  const [trainingRecords, setTrainingRecords] = useState<TrainingMonthlyRecord[]>([]);
   const [ecoViolations, setEcoViolations] = useState<EcoViolation[]>([]);
   const [showEcoModal, setShowEcoModal] = useState(false);
   const [ecoPage, setEcoPage] = useState(1);
@@ -277,6 +279,10 @@ export default function DriverDetailPage() {
       
       const driverId = data.driver.id;
       const driverName = data.driver.name;
+
+      // Load Training
+      const trainingData = await getTrainingByDriverId(driverId);
+      setTrainingRecords(trainingData);
 
       // Load Tenko & P2H for today
       const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -729,8 +735,9 @@ export default function DriverDetailPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Personal Data */}
+            {/* Left Column: Personal Data, Training, & Incidents */}
             <div className="space-y-6">
+              {/* 1. Data Pribadi */}
               <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-600 rounded-full" />
                 Personal Registry
@@ -752,7 +759,106 @@ export default function DriverDetailPage() {
                 </div>
               </div>
 
-              {/* Eco Driving Summary Card */}
+              {/* 2. Data Training */}
+              <div className="pt-4">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                  Training Records
+                </h3>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm space-y-5">
+                  <div className="grid grid-cols-2 gap-4 mb-2">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                      <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Kehadiran Q1</p>
+                      <p className="text-2xl font-black text-slate-900 dark:text-white">
+                        {trainingRecords.filter(r => ['JAN', 'FEB', 'MAR'].includes(r.bulan)).reduce((acc, curr) => acc + (curr.kehadiran || 0), 0)} <span className="text-sm text-slate-400">Sesi</span>
+                      </p>
+                    </div>
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl">
+                      <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Kehadiran Q2</p>
+                      <p className="text-2xl font-black text-slate-900 dark:text-white">
+                        {trainingRecords.filter(r => ['APR', 'MAY', 'JUN'].includes(r.bulan)).reduce((acc, curr) => acc + (curr.kehadiran || 0), 0)} <span className="text-sm text-slate-400">Sesi</span>
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">Latest Training</p>
+                    {(() => {
+                      const latest = [...trainingRecords].reverse().find(r => r.post_test > 0 || r.kehadiran > 0);
+                      if (!latest) return <p className="text-xs text-slate-500 italic">Belum ada data training</p>;
+                      return (
+                        <div>
+                          <p className="text-xs font-bold text-slate-500">{latest.tanggal_training || `Bulan ${latest.bulan}`}</p>
+                          <p className="font-black text-slate-900 dark:text-white mb-2">Defensive & Eco Driving Awareness</p>
+                          
+                          <div className="flex gap-4">
+                            <div>
+                              <p className="text-[9px] text-slate-400 uppercase font-bold">Post Test</p>
+                              <p className="font-black text-lg text-emerald-500">{latest.post_test}</p>
+                            </div>
+                            <div>
+                              <p className="text-[9px] text-slate-400 uppercase font-bold">Status</p>
+                              {latest.kelulusan === 'L' ? (
+                                <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-[10px] font-black tracking-wider">LULUS (L)</span>
+                              ) : latest.kelulusan === 'TL' ? (
+                                <span className="inline-block mt-1 px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded text-[10px] font-black tracking-wider">TIDAK LULUS (TL)</span>
+                              ) : (
+                                <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 rounded text-[10px] font-black tracking-wider">BELUM DIKETAHUI</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Data Broken SOP / Incident */}
+              <div className="pt-4">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                  Incident & SOP Records
+                </h3>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-2xl border border-orange-100 dark:border-orange-900/30 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-10">
+                      <AlertTriangle className="w-16 h-16 text-orange-600" />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/50 px-2 py-0.5 rounded uppercase tracking-wider">Incident</span>
+                        <span className="text-[10px] font-bold text-slate-500">15-Mar-2026</span>
+                      </div>
+                      <p className="font-black text-sm text-slate-900 dark:text-white mb-1">Menabrak pembatas jalan saat hujan deras</p>
+                      <p className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1"><MapPin className="w-3 h-3"/> Tol Japek KM 42</p>
+                      
+                      <div className="pt-3 border-t border-orange-200/50 dark:border-orange-800/50">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Punishment / Action</p>
+                        <p className="text-xs font-bold text-red-600 dark:text-red-400">Skorsing 3 Hari (16 - 18 Mar 2026)</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-black text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded uppercase tracking-wider">Broken SOP</span>
+                        <span className="text-[10px] font-bold text-slate-500">02-Feb-2026</span>
+                      </div>
+                      <p className="font-black text-sm text-slate-900 dark:text-white mb-1">Tidak menggunakan APD (Safety Shoes) saat muat</p>
+                      <p className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1"><MapPin className="w-3 h-3"/> PDC Karawang</p>
+                      
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Punishment / Action</p>
+                        <p className="text-xs font-bold text-amber-600 dark:text-amber-500">Surat Peringatan 1 (SP1)</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Eco Driving Summary Card (Dipindah ke bawah) */}
               <div className="pt-4">
                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-4">
                   <div className="w-2 h-2 bg-amber-500 rounded-full" />
