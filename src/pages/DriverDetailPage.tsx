@@ -34,7 +34,12 @@ import {
   Tooltip, 
   ResponsiveContainer,
   AreaChart,
-  Area
+  Area,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
 } from 'recharts';
 import { fetchDriverProfile } from '../services/dataFetcher';
 import { fetchEcoViolations, EcoViolation } from '../services/ecoDataFetcher';
@@ -766,6 +771,42 @@ export default function DriverDetailPage() {
                   Training Records
                 </h3>
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm space-y-5">
+                  
+                  {/* Radar Chart */}
+                  {(() => {
+                    const getTrainingScore = (months: string[]) => {
+                      const records = trainingRecords.filter(r => months.includes(r.bulan) && r.post_test > 0);
+                      if (records.length === 0) return 0;
+                      return Math.round(records.reduce((acc, curr) => acc + curr.post_test, 0) / records.length);
+                    };
+
+                    const radarData = [
+                      { subject: 'SOP', score: getTrainingScore(['JAN', 'FEB']), fullMark: 100 },
+                      { subject: 'Kiken Yochi', score: getTrainingScore(['MAR', 'APR', 'NOV', 'DEC']), fullMark: 100 },
+                      { subject: 'Defensive Driving', score: getTrainingScore(['MAY', 'JUN']), fullMark: 100 },
+                      { subject: 'Basic Safety', score: getTrainingScore(['JUL', 'AUG']), fullMark: 100 },
+                      { subject: 'Eco Driving', score: getTrainingScore(['SEP']), fullMark: 100 },
+                      { subject: 'Traffic Reg', score: getTrainingScore(['OCT']), fullMark: 100 },
+                    ];
+
+                    return (
+                      <div className="h-64 w-full mb-6">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                            <PolarGrid stroke="#e2e8f0" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                            <Radar name="Score" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} label={{ fill: '#0f172a', fontSize: 12, fontWeight: 900, position: 'outside' }} />
+                            <Tooltip 
+                              contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                              itemStyle={{ fontWeight: 'bold', color: '#3b82f6' }}
+                            />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()}
+
                   <div className="grid grid-cols-2 gap-4 mb-2">
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
                       <p className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Kehadiran Q1</p>
@@ -820,41 +861,12 @@ export default function DriverDetailPage() {
                   <div className="w-2 h-2 bg-orange-500 rounded-full" />
                   Incident & SOP Records
                 </h3>
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
-                  <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-2xl border border-orange-100 dark:border-orange-900/30 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3 opacity-10">
-                      <AlertTriangle className="w-16 h-16 text-orange-600" />
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/50 px-2 py-0.5 rounded uppercase tracking-wider">Incident</span>
-                        <span className="text-[10px] font-bold text-slate-500">15-Mar-2026</span>
-                      </div>
-                      <p className="font-black text-sm text-slate-900 dark:text-white mb-1">Menabrak pembatas jalan saat hujan deras</p>
-                      <p className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1"><MapPin className="w-3 h-3"/> Tol Japek KM 42</p>
-                      
-                      <div className="pt-3 border-t border-orange-200/50 dark:border-orange-800/50">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Punishment / Action</p>
-                        <p className="text-xs font-bold text-red-600 dark:text-red-400">Skorsing 3 Hari (16 - 18 Mar 2026)</p>
-                      </div>
-                    </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-3">
+                    <ShieldAlert className="w-6 h-6 text-slate-300 dark:text-slate-600" />
                   </div>
-
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800 relative overflow-hidden">
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-black text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded uppercase tracking-wider">Broken SOP</span>
-                        <span className="text-[10px] font-bold text-slate-500">02-Feb-2026</span>
-                      </div>
-                      <p className="font-black text-sm text-slate-900 dark:text-white mb-1">Tidak menggunakan APD (Safety Shoes) saat muat</p>
-                      <p className="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1"><MapPin className="w-3 h-3"/> PDC Karawang</p>
-                      
-                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Punishment / Action</p>
-                        <p className="text-xs font-bold text-amber-600 dark:text-amber-500">Surat Peringatan 1 (SP1)</p>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Clear Record</p>
+                  <p className="text-[10px] text-slate-400">Belum ada data pelanggaran atau insiden</p>
                 </div>
               </div>
 
