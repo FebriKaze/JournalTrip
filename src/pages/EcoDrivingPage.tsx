@@ -150,7 +150,7 @@ export default function EcoDrivingPage({ isTAM = false }: { isTAM?: boolean }) {
       { val: 'JBK', label: 'JBK' },
       { val: 'NGORO', label: 'NGORO' },
       { val: 'SUMATERA', label: 'SUMATERA' },
-      { val: 'SULAWESI', label: 'SULAWESI' }
+      // { val: 'SULAWESI', label: 'SULAWESI' }
     ];
   }, [isTAM, selectedCabang]);
 
