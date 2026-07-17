@@ -18,6 +18,7 @@ const GatepassPage = lazy(() => import('./pages/GatepassPage'));
 const P2HPage = lazy(() => import('./pages/P2HPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RouteAnalyticsPage = lazy(() => import('./pages/RouteAnalyticsPage'));
 
 import Footer from './components/layout/Footer';
 import { fetchDashboardData, fetchActiveDrivers, getDefaultOperationalShift } from './services/dataFetcher';
@@ -281,6 +282,7 @@ export default function App() {
                     <Route path="/dashboard" element={<DashboardPage isTAM={isTAM} />} />
                     <Route path="/monitoring" element={<FleetMonitoringPage isTAM={isTAM} />} />
                     <Route path="/leadtime" element={<LeadTimePage isTAM={isTAM} />} />
+                    <Route path="/route-analytics" element={<RouteAnalyticsPage isTAM={isTAM} />} />
                     <Route path="/standar-leadtime" element={<StandarLeadtimePage />} />
                     <Route path="/eco" element={<EcoDrivingPage isTAM={isTAM} />} />
                     <Route path="/carbon" element={<CarbonNeutralPage />} />
