@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { motion } from 'motion/react';
-import { Timer, Map, MapPin, Navigation, Route as RouteIcon, Clock, ChevronLeft, ChevronRight, Leaf, Zap, AlertTriangle, TrendingDown, RotateCcw, ParkingCircle, Wind } from 'lucide-react';
+import { Timer, Map, MapPin, Navigation, Route as RouteIcon, Clock, ChevronLeft, ChevronRight, Leaf, Zap, AlertTriangle, TrendingDown, RotateCcw, ParkingCircle, Wind, Ship } from 'lucide-react';
 
 const ROWS_PER_PAGE = 6;
 
@@ -109,6 +109,22 @@ const routes: Route[] = [
       { no: 11, from: 'Paguat', to: 'Hasjrat Gorontalo', lt: '5 Jam' },
     ],
   },
+  {
+    id: 'sumatera',
+    title: 'Rute Sumatera (Delivery)',
+    icon: <Ship className="w-4 h-4" />,
+    color: 'indigo',
+    hasRest: false,
+    columns: ['No', 'Tujuan', 'Standar LT'],
+    data: [
+      { no: 1, from: 'Palembang', to: '', lt: '36 Jam' },
+      { no: 2, from: 'Lampung', to: '', lt: '24 Jam' },
+      { no: 3, from: 'Pekanbaru', to: '', lt: '72 Jam' },
+    ],
+    footer: [
+      { label: 'Termasuk waktu penyeberangan ferry Merak–Bakauheni' },
+    ],
+  },
 ];
 
 const colorMap: Record<string, { bg: string; text: string; border: string; pill: string }> = {
@@ -116,6 +132,7 @@ const colorMap: Record<string, { bg: string; text: string; border: string; pill:
   blue:    { bg: 'bg-blue-50 dark:bg-blue-500/10',    text: 'text-blue-600 dark:text-blue-400',    border: 'border-blue-200 dark:border-blue-500/30',    pill: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300' },
   amber:   { bg: 'bg-amber-50 dark:bg-amber-500/10',  text: 'text-amber-600 dark:text-amber-400',  border: 'border-amber-200 dark:border-amber-500/30',  pill: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300' },
   purple:  { bg: 'bg-purple-50 dark:bg-purple-500/10',text: 'text-purple-600 dark:text-purple-400',border: 'border-purple-200 dark:border-purple-500/30',pill: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' },
+  indigo:  { bg: 'bg-indigo-50 dark:bg-indigo-500/10',text: 'text-indigo-600 dark:text-indigo-400',border: 'border-indigo-200 dark:border-indigo-500/30',pill: 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300' },
 };
 
 function RouteCard({ route, delay }: { route: Route; delay: number }) {
@@ -164,13 +181,18 @@ function RouteCard({ route, delay }: { route: Route; delay: number }) {
             {paged.map((row) => (
               <tr key={row.no} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                 <td className="px-3 sm:px-4 py-3 text-[9px] font-bold text-slate-400 text-center">{row.no}</td>
-                <td className="px-3 sm:px-4 py-3 text-[9px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">{row.from}</td>
-                <td className="px-3 sm:px-4 py-3 text-[9px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
-                  <span className="flex items-center gap-1.5">
-                    <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
-                    {row.to}
-                  </span>
-                </td>
+                <td className={`px-3 sm:px-4 py-3 text-[9px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase ${!row.to ? 'font-black text-slate-900 dark:text-white' : ''}`}>{row.from}</td>
+                {row.to !== '' && (
+                  <td className="px-3 sm:px-4 py-3 text-[9px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                    <span className="flex items-center gap-1.5">
+                      <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
+                      {row.to}
+                    </span>
+                  </td>
+                )}
+                {row.to === '' && route.columns.length === 3 && (
+                  <td />
+                )}
                 <td className="px-3 sm:px-4 py-3">
                   <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-black ${c.pill}`}>
                     <Clock className="w-2.5 h-2.5" /> {row.lt}
